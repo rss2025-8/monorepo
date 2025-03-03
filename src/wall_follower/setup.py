@@ -29,6 +29,7 @@ setup(
             'wall_follower = wall_follower.wall_follower:main',
 	        'viz_example = wall_follower.viz_example:main',
         	'test_wall_follower = wall_follower.test_wall_follower:main',
+            'sim_drive_mux = wall_follower.sim_drive_mux:main',
         ],
     },
 )
