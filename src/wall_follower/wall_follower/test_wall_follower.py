@@ -37,9 +37,15 @@ class WallTest(Node):
 
         # Fetch constants from the ROS parameter server
         self.TEST_NAME = self.get_parameter("name").get_parameter_value().string_value
-        self.SCAN_TOPIC = self.get_parameter("scan_topic").get_parameter_value().string_value
-        self.POSE_TOPIC = self.get_parameter("pose_topic").get_parameter_value().string_value
-        self.DRIVE_TOPIC = self.get_parameter("wall_follower_topic").get_parameter_value().string_value
+        self.SCAN_TOPIC = (
+            self.get_parameter("scan_topic").get_parameter_value().string_value
+        )
+        self.POSE_TOPIC = (
+            self.get_parameter("pose_topic").get_parameter_value().string_value
+        )
+        self.DRIVE_TOPIC = (
+            self.get_parameter("wall_follower_topic").get_parameter_value().string_value
+        )
 
         self.SIDE = self.get_parameter("side").get_parameter_value().integer_value
         self.VELOCITY = (
