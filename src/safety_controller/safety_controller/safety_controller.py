@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import rclpy
 import rclpy.time
@@ -15,7 +17,7 @@ def scan_index(scan: LaserScan, angle: float) -> int:
 
 
 def time_to_seconds(time: Time) -> float:
-    return time.nanoseconds / time.CONVERSION_CONSTANT
+    return time.nanoseconds / rclpy.time.CONVERSION_CONSTANT
 
 
 def delta_time(start: Time, end: Time) -> float:
@@ -37,7 +39,7 @@ class SafetyController(Node):
             .get_parameter_value()
             .string_value
         )
-        ackerman_cmd_topic: str = (
+        ackermann_cmd_topic: str = (
             self.declare_parameter(
                 "ackermann_cmd_topic", "vesc/low_level/ackermann_cmd"
             )
@@ -51,7 +53,7 @@ class SafetyController(Node):
         )
 
         self.stopping_time: float = (
-            self.declare_parameter("stopping_time", 1)
+            self.declare_parameter("stopping_time", 1.0)
             .get_parameter_value()
             .double_value
         )
@@ -67,9 +69,9 @@ class SafetyController(Node):
         self.ackermann_sub: Subscription = self.create_subscription(
             AckermannDriveStamped, ackermann_cmd_topic, self.ackermann_cmd_callback, 10
         )
-        self.safety_pub: Publisher = self.create_publisher(Bool, safety_topic, 10)
+        self.safety_pub: Publisher = self.create_publisher(AckermannDriveStamped, safety_topic, 10)
 
-        self.timer: Timer = self.create_timer(0.1, self.timer_callback)
+        self.timer: Timer = self.create_timer(0.01, self.timer_callback)
 
         self.ackermann_drive_msg_mut: AckermannDriveStamped = AckermannDriveStamped()
 
@@ -95,29 +97,28 @@ class SafetyController(Node):
 
     def timer_callback(self) -> None:
         now = self.get_clock().now()
-        watchdog_scan = delta_time(self.scan_timestamp, now) > self.watchdog_period
-        watchdog_ackermann = (
-            delta_time(self.ackermann_timestamp, now) > self.watchdog_period
-        )
-        will_crash = self.front_distance / self.speed < self.stopping_time
+        # watchdog_scan = delta_time(self.scan_timestamp, now) > self.watchdog_period
+        # watchdog_ackermann = (
+        #     delta_time(self.ackermann_timestamp, now) > self.watchdog_period
+        # )
+        will_crash = self.front_distance / (self.speed + 1e-6) < self.stopping_time
 
-        if watchdog_scan or watchdog_ackermann or will_crash:
-            self.ackermann_drive_msg_mut.header.stamp = now
+        if will_crash:
+            self.ackermann_drive_msg_mut.header.stamp = now.to_msg()
             self.safety_pub.publish(self.ackermann_drive_msg_mut)
 
-        if watchdog_scan:
-            self.get_logger().error(
-                f"Scan message was not received for {self.watchdog_period}s, safety controller stopping car."
-            )
-        if watchdog_ackermann:
-            self.get_logger().error(
-                f"Ackermann drive message was not received for {self.watchdog_period}s, safety controller stopping car."
-            )
+        # # if watchdog_scan:
+        # #     self.get_logger().error(
+        # #         f"Scan message was not received for {self.watchdog_period}s, safety controller stopping car."
+        # #     )
+        # # if watchdog_ackermann:
+        # #     self.get_logger().error(
+        # #         f"Ackermann drive message was not received for {self.watchdog_period}s, safety controller stopping car."
+        # #     )
         if will_crash:
             self.get_logger().error(
                 f"Minimum lidar distance / commanded speed < stopping time: {self.stopping_time}, safety controller stopping car."
             )
-
 
 def main(args=None):
     rclpy.init(args=args)
