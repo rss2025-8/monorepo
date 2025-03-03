@@ -14,7 +14,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/wall_follower/launch', glob.glob(os.path.join('launch', '*launch.xml'))),
-        ('share/wall_follower/launch', glob.glob(os.path.join('launch', '*launch.py')))],
+        ('share/wall_follower/launch', glob.glob(os.path.join('launch', '*launch.py'))),
+        ('share/wall_follower/config', glob.glob(os.path.join('config', '*.yaml')))],
 
     install_requires=['setuptools'],
     zip_safe=True,

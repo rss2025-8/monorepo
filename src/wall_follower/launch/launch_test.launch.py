@@ -22,10 +22,10 @@ def generate_launch_description():
     test1 = Node(
         package="wall_follower",
         executable="test_wall_follower",
-        namespace='test1',
+        namespace="test1",
         parameters=[
             {"scan_topic": "/scan",
-            "drive_topic": "/drive",
+            "drive_topic": "/wall_follower_topic",
             "pose_topic": "/pose",
             "velocity": 1.,
             "desired_distance": 1.,
@@ -38,12 +38,12 @@ def generate_launch_description():
             "name": "short_right_close"}],
         name='test_wall_follower',
         remappings=[
-            ('/test1/pose', '/pose'),
-            ('/test1/map', '/map'),
-            ('/test1/base_link', '/base_link'),
-            ('/test1/tf', '/tf'),
-            ('/test1/tf_static', '/tf_static'),
-        ]
+            ("/test1/pose", "/pose"),
+            ("/test1/map", "/map"),
+            ("/test1/base_link", "/base_link"),
+            ("/test1/tf", "/tf"),
+            ("/test1/tf_static", "/tf_static"),
+        ],
     )
 
     # test2 = Node(
@@ -188,275 +188,147 @@ def generate_launch_description():
     wall_follower = Node(
         package="wall_follower",
         executable="wall_follower",
-        namespace='wall_follower_ns',
+        namespace="wall_follower_ns",
         parameters=[
-            {"scan_topic": "/scan",
-            "drive_topic": "/drive",
-            "velocity": 1.,
-            "desired_distance": 1.,
-            "side": -1}],
-        name='wall_follower',
+            {
+                "scan_topic": "/scan",
+                "wall_follower_topic": "/drive",
+                "velocity": 1.0,
+                "desired_distance": 1.0,
+                "side": -1,
+            }
+        ],
+        name="wall_follower",
         remappings=[
-            ('/wall_follower_ns/pose', '/pose'),
-            ('/wall_follower_ns/map', '/map'),
-            ('/wall_follower_ns/base_link', '/base_link'),
-            ('/wall_follower_ns/tf', '/tf'),
-            ('/wall_follower_ns/tf_static', '/tf_static'),
-        ]
+            ("/wall_follower_ns/pose", "/pose"),
+            ("/wall_follower_ns/map", "/map"),
+            ("/wall_follower_ns/base_link", "/base_link"),
+            ("/wall_follower_ns/tf", "/tf"),
+            ("/wall_follower_ns/tf_static", "/tf_static"),
+        ],
     )
-    
-    
+
     ############################################################################
     ### Define commands to change parameters of the wall_follower node
-    ############################################################################  
+    ############################################################################
     setup_side2_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
     setup_side2_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
     setup_side2_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
-    
+
     setup_side3_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '-1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "-1"]],
+        shell=True,
     )
     setup_side3_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '-1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "-1"]],
+        shell=True,
     )
     setup_side3_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '-1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "-1"]],
+        shell=True,
     )
-    
+
     setup_v3_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'velocity ',
-            '2.'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "velocity ", "2."]],
+        shell=True,
     )
     setup_v3_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'velocity ',
-            '2.'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "velocity ", "2."]],
+        shell=True,
     )
     setup_v3_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'velocity ',
-            '2.'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "velocity ", "2."]],
+        shell=True,
     )
-    
+
     setup_side4_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
     setup_side4_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
     setup_side4_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
-    
+
     setup_side5_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '-1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "-1"]],
+        shell=True,
     )
     setup_side5_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '-1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "-1"]],
+        shell=True,
     )
     setup_side5_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '-1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "-1"]],
+        shell=True,
     )
-    
+
     setup_side6_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
     setup_side6_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
     setup_side6_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'side ',
-            '1'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "side ", "1"]], shell=True
     )
-    
+
     setup_v6_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'velocity ',
-            '3.'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "velocity ", "3."]],
+        shell=True,
     )
     setup_v6_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'velocity ',
-            '3.'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "velocity ", "3."]],
+        shell=True,
     )
     setup_v6_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'velocity ',
-            '3.'
-        ]],
-        shell=True
+        cmd=[[FindExecutable(name="ros2"), " param set ", "/wall_follower_ns/wall_follower ", "velocity ", "3."]],
+        shell=True,
     )
-    
+
     setup_d6_1 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'desired_distance ',
-            '0.72'
-        ]],
-        shell=True
+        cmd=[
+            [
+                FindExecutable(name="ros2"),
+                " param set ",
+                "/wall_follower_ns/wall_follower ",
+                "desired_distance ",
+                "0.72",
+            ]
+        ],
+        shell=True,
     )
     setup_d6_2 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'desired_distance ',
-            '0.72'
-        ]],
-        shell=True
+        cmd=[
+            [
+                FindExecutable(name="ros2"),
+                " param set ",
+                "/wall_follower_ns/wall_follower ",
+                "desired_distance ",
+                "0.72",
+            ]
+        ],
+        shell=True,
     )
     setup_d6_3 = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' param set ',
-            '/wall_follower_ns/wall_follower ', 
-            'desired_distance ',
-            '0.72'
-        ]],
-        shell=True
+        cmd=[
+            [
+                FindExecutable(name="ros2"),
+                " param set ",
+                "/wall_follower_ns/wall_follower ",
+                "desired_distance ",
+                "0.72",
+            ]
+        ],
+        shell=True,
     )
-    
 
     ############################################################################
     ### Define launch description

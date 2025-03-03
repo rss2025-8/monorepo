@@ -22,7 +22,7 @@ class WallTest(Node):
         super().__init__("test_wall_follower")
         # Declare parameters to make them available for use
         self.declare_parameter("scan_topic", "/scan")
-        self.declare_parameter("drive_topic", "/drive")
+        self.declare_parameter("wall_follower_topic", "/drive")
         self.declare_parameter("pose_topic", "/pose")
 
         self.declare_parameter("side", 1)
@@ -39,7 +39,7 @@ class WallTest(Node):
         self.TEST_NAME = self.get_parameter("name").get_parameter_value().string_value
         self.SCAN_TOPIC = self.get_parameter("scan_topic").get_parameter_value().string_value
         self.POSE_TOPIC = self.get_parameter("pose_topic").get_parameter_value().string_value
-        self.DRIVE_TOPIC = self.get_parameter("drive_topic").get_parameter_value().string_value
+        self.DRIVE_TOPIC = self.get_parameter("wall_follower_topic").get_parameter_value().string_value
 
         self.SIDE = self.get_parameter("side").get_parameter_value().integer_value
         self.VELOCITY = self.get_parameter("velocity").get_parameter_value().double_value
