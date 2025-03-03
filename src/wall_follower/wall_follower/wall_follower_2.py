@@ -1,6 +1,5 @@
 """
-Wall follower that detects a side and front wall and responds accordingly.
-The front wall just uses points instead of fitting a line for stability.
+Wall follower that does not fit a line (instead, it just uses raw LIDAR points).
 """
 
 #!/usr/bin/env python3
@@ -64,15 +63,14 @@ class WallFollower(Node):
         # Make PID parameters
         self.declare_parameter("Kp", 2.7)
         self.declare_parameter("Ki", 0.0)
-        self.declare_parameter("Kd", 0.1)
+        self.declare_parameter("Kd", 0.0)
 
         # Line follower parameters
         # How much to divide the front wall's distance by (to make it appear closer)
         self.declare_parameter("front_dist_weight", 2.0)
         # Additional values that can be tuned:
         # Angle ranges for side / front walls (side_wall_min/max, front_wall_min/max)
-        self.side_wall_min, self.side_wall_max = math.radians(0), math.radians(90)
-        self.front_wall_min, self.front_wall_max = math.radians(-5), math.radians(5)
+        self.side_wall_min, self.side_wall_max = math.radians(-15), math.radians(90)
         # Maximum distance of a point from the car for it to be considered (max_base_dist)
         self.max_base_dist = 4.0
 
@@ -101,6 +99,7 @@ class WallFollower(Node):
         self.DEBUG = self.get_parameter("debug").get_parameter_value().integer_value
         # self.SIDE = 1  # Left wall
         # self.VELOCITY = 2.0
+        # self.DESIRED_DISTANCE = 0.6
 
         # Init publishers and subscribers
         self.laser_sub = self.create_subscription(LaserScan, self.SCAN_TOPIC, self.on_laser_scan, 10)
@@ -163,19 +162,20 @@ class WallFollower(Node):
         ranges = np.array(msg.ranges)
         angles = np.linspace(msg.angle_min, msg.angle_max, len(ranges))
 
+        # Weight point distances
+        for i, angle in enumerate(angles):
+            # Weight points in front as closer to the car (up to X times closer)
+            if abs(angle) <= -self.side_wall_min:
+                ranges[i] /= self.FRONT_DIST_WEIGHT - (self.FRONT_DIST_WEIGHT - 1) * abs(angle) / self.side_wall_max
+
         # Find wall on the side
         side_m, side_b, side_X, side_Y = self.find_wall(ranges, angles, self.side_wall_min, self.side_wall_max)
-        side_dist = abs(side_b) / np.sqrt(1 + side_m**2)
-        # side_angle = np.arctan(side_m)
-
-        # Find wall in front
-        front_m, front_b, front_X, front_Y = self.find_wall(ranges, angles, self.front_wall_min, self.front_wall_max)
-        # front_dist = abs(front_b) / np.sqrt(1 + front_m**2)
+        # side_dist = abs(side_b) / np.sqrt(1 + side_m**2)
         # Only use the points for now
-        front_dist = min(np.hypot(front_X, front_Y))
+        side_dist = min(np.hypot(side_X, side_Y))
 
         # Weighted distance to the nearest wall
-        weighted_dist = min(side_dist, front_dist / self.FRONT_DIST_WEIGHT)
+        weighted_dist = side_dist
 
         # Update PID and send drive command
         error = weighted_dist - self.DESIRED_DISTANCE
@@ -185,13 +185,10 @@ class WallFollower(Node):
 
         if self.DEBUG >= 1:
             # Visualize the line
-            side_X = np.array([-1.0, 1.0])
-            side_Y = side_m * side_X + side_b
-            # front_Y = np.array([-1.0, 1.0])
-            # front_X = (front_Y - front_b) / front_m
-
+            # side_X = np.array([-1.0, 1.0])
+            # side_Y = side_m * side_X + side_b
             VisualizationTools.plot_line(side_X, side_Y, self.line_pub, color=(1.0, 0.0, 0.0), frame="/laser")
-            VisualizationTools.plot_line(front_X, front_Y, self.line_2_pub, color=(0.0, 1.0, 1.0), frame="/laser")
+            # VisualizationTools.plot_line(front_X, front_Y, self.line_2_pub, color=(0.0, 1.0, 1.0), frame="/laser")
         if self.DEBUG >= 2:
             # Debug info
             self.get_logger().info(
@@ -217,9 +214,7 @@ class WallFollower(Node):
                 self.get_logger().info(f"Updated velocity to {self.VELOCITY}")
             elif param.name == "desired_distance":
                 self.DESIRED_DISTANCE = param.value
-                self.get_logger().info(
-                    f"Updated desired_distance to {self.DESIRED_DISTANCE}"
-                )
+                self.get_logger().info(f"Updated desired_distance to {self.DESIRED_DISTANCE}")
         return SetParametersResult(successful=True)
 
 

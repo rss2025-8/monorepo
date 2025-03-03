@@ -10,7 +10,9 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     building_yaml = os.path.join(
-        get_package_share_directory("racecar_simulator"), "maps", "building_31.yaml"
+        get_package_share_directory('racecar_simulator'),
+        'maps',
+        'stata_basement.yaml'
     )
 
     map_server = Node(
