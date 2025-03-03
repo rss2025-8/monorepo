@@ -39,7 +39,9 @@ class PID:
 
         For example, with Kp = 2 and Ki = Kd = 0, an error of 1 results in a control output of -2.
         """
-        dt = (time.nanoseconds - self.prev_time.nanoseconds) / 1e9  # Time elapsed in seconds
+        dt = (
+            time.nanoseconds - self.prev_time.nanoseconds
+        ) / 1e9  # Time elapsed in seconds
         d_error = (error - self.prev_error) / dt  # d(Error)/dt
         self.total_error += error / dt
         correction = -(self.kp * error + self.kd * d_error + self.ki * self.total_error)
@@ -81,11 +83,19 @@ class WallFollower(Node):
 
         # Fetch constants from the ROS parameter server
         # This is necessary for the tests to be able to test varying parameters!
-        self.SCAN_TOPIC = self.get_parameter("scan_topic").get_parameter_value().string_value
-        self.DRIVE_TOPIC = self.get_parameter("wall_follower_topic").get_parameter_value().string_value
+        self.SCAN_TOPIC = (
+            self.get_parameter("scan_topic").get_parameter_value().string_value
+        )
+        self.DRIVE_TOPIC = (
+            self.get_parameter("wall_follower_topic").get_parameter_value().string_value
+        )
         self.SIDE = self.get_parameter("side").get_parameter_value().integer_value
-        self.VELOCITY = self.get_parameter("velocity").get_parameter_value().double_value
-        self.DESIRED_DISTANCE = self.get_parameter("desired_distance").get_parameter_value().double_value
+        self.VELOCITY = (
+            self.get_parameter("velocity").get_parameter_value().double_value
+        )
+        self.DESIRED_DISTANCE = (
+            self.get_parameter("desired_distance").get_parameter_value().double_value
+        )
         # This activates the parameters_callback function so the tests can change parameters.
         self.add_on_set_parameters_callback(self.parameters_callback)
 
@@ -95,7 +105,9 @@ class WallFollower(Node):
         kd = self.get_parameter("Kd").get_parameter_value().double_value
         self.pid = PID(self.get_clock().now(), kp, ki, kd)
 
-        self.FRONT_DIST_WEIGHT = self.get_parameter("front_dist_weight").get_parameter_value().double_value
+        self.FRONT_DIST_WEIGHT = (
+            self.get_parameter("front_dist_weight").get_parameter_value().double_value
+        )
 
         # For debugging (launch file params only update with colcon build)
         self.DEBUG = self.get_parameter("debug").get_parameter_value().integer_value
@@ -103,8 +115,12 @@ class WallFollower(Node):
         # self.VELOCITY = 2.0
 
         # Init publishers and subscribers
-        self.laser_sub = self.create_subscription(LaserScan, self.SCAN_TOPIC, self.on_laser_scan, 10)
-        self.drive_pub = self.create_publisher(AckermannDriveStamped, self.DRIVE_TOPIC, 10)
+        self.laser_sub = self.create_subscription(
+            LaserScan, self.SCAN_TOPIC, self.on_laser_scan, 10
+        )
+        self.drive_pub = self.create_publisher(
+            AckermannDriveStamped, self.DRIVE_TOPIC, 10
+        )
         self.line_pub = self.create_publisher(Marker, "/line", 1)  # Side wall
         self.line_2_pub = self.create_publisher(Marker, "/line_2", 1)  # Front wall
 
@@ -116,7 +132,9 @@ class WallFollower(Node):
         try:
             b, m = Polynomial.fit(x, y, 1).convert().coef
         except Exception as e:  # Assume near-vertical line, slant it a little bit
-            self.get_logger().warning(f"{type(e).__name__}: {str(e)} while trying to fit a line")
+            self.get_logger().warning(
+                f"{type(e).__name__}: {str(e)} while trying to fit a line"
+            )
             x[0] += 1e-6
             x[-1] -= 1e-6
             b, m = Polynomial.fit(x, y, 1).convert().coef
@@ -134,14 +152,22 @@ class WallFollower(Node):
         )
         self.drive_pub.publish(AckermannDriveStamped(header=header, drive=drive))
 
-    def find_wall(self, ranges: np.ndarray, angles: np.ndarray, wall_angle_min: float, wall_angle_max: float):
+    def find_wall(
+        self,
+        ranges: np.ndarray,
+        angles: np.ndarray,
+        wall_angle_min: float,
+        wall_angle_max: float,
+    ):
         """Finds the line equation of a wall in [wall_angle_min, wall_angle_max] radians, where 0 is in front.
 
         Returns (m, b, X, Y) such that y ~ mx + b. X and Y are the points in the wall. Accounts for the side parameter.
         """
         # Filter ranges to those in the wall
         assert wall_angle_min < wall_angle_max
-        wall_indices = (angles * self.SIDE >= wall_angle_min) & (angles * self.SIDE <= wall_angle_max)
+        wall_indices = (angles * self.SIDE >= wall_angle_min) & (
+            angles * self.SIDE <= wall_angle_max
+        )
         relevant_ranges = ranges.copy()[wall_indices]
         relevant_angles = angles.copy()[wall_indices]
 
@@ -164,12 +190,16 @@ class WallFollower(Node):
         angles = np.linspace(msg.angle_min, msg.angle_max, len(ranges))
 
         # Find wall on the side
-        side_m, side_b, side_X, side_Y = self.find_wall(ranges, angles, self.side_wall_min, self.side_wall_max)
+        side_m, side_b, side_X, side_Y = self.find_wall(
+            ranges, angles, self.side_wall_min, self.side_wall_max
+        )
         side_dist = abs(side_b) / np.sqrt(1 + side_m**2)
         # side_angle = np.arctan(side_m)
 
         # Find wall in front
-        front_m, front_b, front_X, front_Y = self.find_wall(ranges, angles, self.front_wall_min, self.front_wall_max)
+        front_m, front_b, front_X, front_Y = self.find_wall(
+            ranges, angles, self.front_wall_min, self.front_wall_max
+        )
         # front_dist = abs(front_b) / np.sqrt(1 + front_m**2)
         # Only use the points for now
         front_dist = min(np.hypot(front_X, front_Y))
@@ -179,7 +209,10 @@ class WallFollower(Node):
 
         # Update PID and send drive command
         error = weighted_dist - self.DESIRED_DISTANCE
-        steering_angle = self.pid.update(error, rclpy.time.Time.from_msg(msg.header.stamp)) * -self.SIDE
+        steering_angle = (
+            self.pid.update(error, rclpy.time.Time.from_msg(msg.header.stamp))
+            * -self.SIDE
+        )
         speed = self.VELOCITY
         self.drive(steering_angle, speed)
 
@@ -190,8 +223,12 @@ class WallFollower(Node):
             # front_Y = np.array([-1.0, 1.0])
             # front_X = (front_Y - front_b) / front_m
 
-            VisualizationTools.plot_line(side_X, side_Y, self.line_pub, color=(1.0, 0.0, 0.0), frame="/laser")
-            VisualizationTools.plot_line(front_X, front_Y, self.line_2_pub, color=(0.0, 1.0, 1.0), frame="/laser")
+            VisualizationTools.plot_line(
+                side_X, side_Y, self.line_pub, color=(1.0, 0.0, 0.0), frame="/laser"
+            )
+            VisualizationTools.plot_line(
+                front_X, front_Y, self.line_2_pub, color=(0.0, 1.0, 1.0), frame="/laser"
+            )
         if self.DEBUG >= 2:
             # Debug info
             self.get_logger().info(
@@ -217,7 +254,9 @@ class WallFollower(Node):
                 self.get_logger().info(f"Updated velocity to {self.VELOCITY}")
             elif param.name == "desired_distance":
                 self.DESIRED_DISTANCE = param.value
-                self.get_logger().info(f"Updated desired_distance to {self.DESIRED_DISTANCE}")
+                self.get_logger().info(
+                    f"Updated desired_distance to {self.DESIRED_DISTANCE}"
+                )
         return SetParametersResult(successful=True)
 
 
