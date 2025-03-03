@@ -37,13 +37,23 @@ class WallTest(Node):
 
         # Fetch constants from the ROS parameter server
         self.TEST_NAME = self.get_parameter("name").get_parameter_value().string_value
-        self.SCAN_TOPIC = self.get_parameter("scan_topic").get_parameter_value().string_value
-        self.POSE_TOPIC = self.get_parameter("pose_topic").get_parameter_value().string_value
-        self.DRIVE_TOPIC = self.get_parameter("drive_topic").get_parameter_value().string_value
+        self.SCAN_TOPIC = (
+            self.get_parameter("scan_topic").get_parameter_value().string_value
+        )
+        self.POSE_TOPIC = (
+            self.get_parameter("pose_topic").get_parameter_value().string_value
+        )
+        self.DRIVE_TOPIC = (
+            self.get_parameter("drive_topic").get_parameter_value().string_value
+        )
 
         self.SIDE = self.get_parameter("side").get_parameter_value().integer_value
-        self.VELOCITY = self.get_parameter("velocity").get_parameter_value().double_value
-        self.DESIRED_DISTANCE = self.get_parameter("desired_distance").get_parameter_value().double_value
+        self.VELOCITY = (
+            self.get_parameter("velocity").get_parameter_value().double_value
+        )
+        self.DESIRED_DISTANCE = (
+            self.get_parameter("desired_distance").get_parameter_value().double_value
+        )
         self.START_x = self.get_parameter("start_x").get_parameter_value().double_value
         self.START_y = self.get_parameter("start_y").get_parameter_value().double_value
         self.START_z = self.get_parameter("start_z").get_parameter_value().double_value
@@ -67,7 +77,9 @@ class WallTest(Node):
 
         # A publisher for navigation commands
         self.pose_pub = self.create_publisher(Pose, "pose", 1)
-        self.drive_pub = self.create_publisher(AckermannDriveStamped, self.DRIVE_TOPIC, 1)
+        self.drive_pub = self.create_publisher(
+            AckermannDriveStamped, self.DRIVE_TOPIC, 1
+        )
 
         # A publisher for the end position marker
         self.marker_pub = self.create_publisher(Marker, "/end_position_marker", 1)
@@ -128,16 +140,22 @@ class WallTest(Node):
             self.place_car(self.START_POSE)
             self.buffer_count += 1
             if self.buffer_count == 30:
-                self.get_logger().info(f"Placed Car: {self.START_POSE[0]}, {self.START_POSE[1]}")
+                self.get_logger().info(
+                    f"Placed Car: {self.START_POSE[0]}, {self.START_POSE[1]}"
+                )
             return
 
         from_frame_rel = "base_link"
         to_frame_rel = "map"
 
         try:
-            t = self.tf_buffer.lookup_transform(to_frame_rel, from_frame_rel, rclpy.time.Time())
+            t = self.tf_buffer.lookup_transform(
+                to_frame_rel, from_frame_rel, rclpy.time.Time()
+            )
         except TransformException as ex:
-            self.get_logger().info(f"Could not transform {to_frame_rel} to {from_frame_rel}: {ex}")
+            self.get_logger().info(
+                f"Could not transform {to_frame_rel} to {from_frame_rel}: {ex}"
+            )
             return
 
         if not self.moved:
@@ -158,7 +176,9 @@ class WallTest(Node):
 
         ranges = np.array(laser_scan.ranges, dtype="float32")
 
-        angles = np.linspace(laser_scan.angle_min, laser_scan.angle_max, num=ranges.shape[0])
+        angles = np.linspace(
+            laser_scan.angle_min, laser_scan.angle_max, num=ranges.shape[0]
+        )
 
         # Convert the ranges to Cartesian coordinates.
         # Consider the robot to be facing in the positive x direction.
@@ -198,7 +218,10 @@ class WallTest(Node):
             np.savez_compressed(self.TEST_NAME + "_log", **self.saves)
             raise SystemExit
         if self.dist_to_end < self.end_threshold:
-            self.get_logger().info("\n\n\n\n\nReached end of the test w/ Avg dist from wall = %f!\n\n\n\n\n" % (dist))
+            self.get_logger().info(
+                "\n\n\n\n\nReached end of the test w/ Avg dist from wall = %f!\n\n\n\n\n"
+                % (dist)
+            )
             stop = AckermannDriveStamped()
             stop.drive.speed = 0.0
             stop.drive.steering_angle = 0.0

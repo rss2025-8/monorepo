@@ -38,7 +38,9 @@ class PID:
     def update(self, error: float, time: rclpy.time.Time) -> float:
         """Update with the current error and the time it was measured. Returns a new control output."""
         duration: rclpy.time.Duration = time - self.time
-        d_error = (error - self.last_error) / (duration.nanoseconds / 1e9)  # d(Error)/dt
+        d_error = (error - self.last_error) / (
+            duration.nanoseconds / 1e9
+        )  # d(Error)/dt
         correction = -error * self.K_P - d_error * self.K_D
         self.time = time
         self.last_error = error
@@ -61,11 +63,19 @@ class WallFollower(Node):
 
         # Fetch constants from the ROS parameter server
         # DO NOT MODIFY THIS! This is necessary for the tests to be able to test varying parameters!
-        self.SCAN_TOPIC = self.get_parameter("scan_topic").get_parameter_value().string_value
-        self.DRIVE_TOPIC = self.get_parameter("drive_topic").get_parameter_value().string_value
+        self.SCAN_TOPIC = (
+            self.get_parameter("scan_topic").get_parameter_value().string_value
+        )
+        self.DRIVE_TOPIC = (
+            self.get_parameter("drive_topic").get_parameter_value().string_value
+        )
         self.SIDE = self.get_parameter("side").get_parameter_value().integer_value
-        self.VELOCITY = self.get_parameter("velocity").get_parameter_value().double_value
-        self.DESIRED_DISTANCE = self.get_parameter("desired_distance").get_parameter_value().double_value
+        self.VELOCITY = (
+            self.get_parameter("velocity").get_parameter_value().double_value
+        )
+        self.DESIRED_DISTANCE = (
+            self.get_parameter("desired_distance").get_parameter_value().double_value
+        )
 
         # This activates the parameters_callback function so that the tests are able
         # to change the parameters during testing.
@@ -77,15 +87,21 @@ class WallFollower(Node):
         # self.VELOCITY = 3.0
 
         # Init publishers and subscribers
-        self.laser_sub = self.create_subscription(LaserScan, self.SCAN_TOPIC, self.on_laser_scan, 10)
-        self.drive_pub = self.create_publisher(AckermannDriveStamped, self.DRIVE_TOPIC, 10)
+        self.laser_sub = self.create_subscription(
+            LaserScan, self.SCAN_TOPIC, self.on_laser_scan, 10
+        )
+        self.drive_pub = self.create_publisher(
+            AckermannDriveStamped, self.DRIVE_TOPIC, 10
+        )
         self.filtered_pub = self.create_publisher(LaserScan, "/filtered_scan", 10)
         self.line_pub = self.create_publisher(Marker, "/closest_line", 1)
 
         # Init PID
         self.pid = PID(self.get_clock().now())
 
-    def create_drive_message(self, steering_angle: float, speed: float) -> AckermannDriveStamped:
+    def create_drive_message(
+        self, steering_angle: float, speed: float
+    ) -> AckermannDriveStamped:
         """Creates an AckermannDriveStamped message with the specified steering_angle (radians) and speed (m/s)."""
         # Setup and publish AckermannDriveStamped message
         header = Header(stamp=self.get_clock().now().to_msg())
@@ -104,7 +120,9 @@ class WallFollower(Node):
         # TODO Convert code to numpy
         # Angles of LIDAR points to consider
         ANGLE_LIMIT_WALL_SIDE = math.radians(90)  # Include more point on the wall side
-        ANGLE_LIMIT_OPEN_SIDE = math.radians(15)  # Include a bit of points on the non-wall side (corners)
+        ANGLE_LIMIT_OPEN_SIDE = math.radians(
+            15
+        )  # Include a bit of points on the non-wall side (corners)
         FRONT_WEIGHT = 2.5  # Amount to shrink distance of points in front by
         points = []  # Filtered to only (x, y) points on the wall
         filtered_ranges = []  # For visualization only
@@ -113,7 +131,10 @@ class WallFollower(Node):
             if -ANGLE_LIMIT_OPEN_SIDE <= angle * self.SIDE <= ANGLE_LIMIT_WALL_SIDE:
                 # Weight points in front as closer to the car (up to X times closer)
                 if abs(angle) <= ANGLE_LIMIT_OPEN_SIDE:
-                    dist /= FRONT_WEIGHT - (FRONT_WEIGHT - 1) * abs(angle) / ANGLE_LIMIT_OPEN_SIDE
+                    dist /= (
+                        FRONT_WEIGHT
+                        - (FRONT_WEIGHT - 1) * abs(angle) / ANGLE_LIMIT_OPEN_SIDE
+                    )
                 points.append((dist * math.cos(angle), dist * math.sin(angle)))
                 filtered_ranges.append(dist)
             else:
@@ -122,7 +143,10 @@ class WallFollower(Node):
         # Calculate error and steering angle
         min_dist = min([math.hypot(x, y) for x, y in points])
         error = min_dist - self.DESIRED_DISTANCE
-        steering_angle = self.pid.update(error, rclpy.time.Time.from_msg(msg.header.stamp)) * -self.SIDE
+        steering_angle = (
+            self.pid.update(error, rclpy.time.Time.from_msg(msg.header.stamp))
+            * -self.SIDE
+        )
         speed = self.VELOCITY
 
         # Debug info
@@ -146,7 +170,11 @@ class WallFollower(Node):
             if math.hypot(*point) < math.hypot(*closest_point):
                 closest_point = point
         VisualizationTools.plot_line(
-            (0.0, closest_point[0]), (0.0, closest_point[1]), self.line_pub, color=(0.0, 1.0, 1.0), frame="/laser"
+            (0.0, closest_point[0]),
+            (0.0, closest_point[1]),
+            self.line_pub,
+            color=(0.0, 1.0, 1.0),
+            frame="/laser",
         )
 
         # Drive
@@ -168,7 +196,9 @@ class WallFollower(Node):
                 self.get_logger().info(f"Updated velocity to {self.VELOCITY}")
             elif param.name == "desired_distance":
                 self.DESIRED_DISTANCE = param.value
-                self.get_logger().info(f"Updated desired_distance to {self.DESIRED_DISTANCE}")
+                self.get_logger().info(
+                    f"Updated desired_distance to {self.DESIRED_DISTANCE}"
+                )
         return SetParametersResult(successful=True)
 
 
