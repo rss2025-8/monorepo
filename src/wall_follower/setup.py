@@ -34,5 +34,10 @@ setup(
             "sim_drive_mux = wall_follower.sim_drive_mux:main",
             "min_dist = wall_follower.min_dist:main",
         ],
+<<<<<<< HEAD
     },
 )
+=======
+    },)
+
+>>>>>>> 12e0803 (launch file setup)
