@@ -1,0 +1,19 @@
+<launch>
+
+  <!-- Launch the wall follower with parameters -->
+  <arg name="env" default="sim"/>
+  
+  <!--pass in as env:=-->
+  <node pkg="wall_follower" name="wall_follower" exec="wall_follower" output="screen">
+    <param from="$(find-pkg-share wall_follower)/config/$(var env)_params.yaml"/> 
+  </node>
+
+  <node pkg="safety_controller" name ="safety_controller" exec="safety_controller" output = "screen">
+    <param from="$(find-pkg-share wall_follower)/config/$(var env)_params.yaml"/> 
+  </node>
+
+  <node pkg="wall_follower" name="sim_drive_mux" exec="sim_drive_mux" output="screen">
+    <param from="$(find-pkg-share wall_follower)/config/$(var env)_params.yaml"/> 
+  </node>
+
+</launch>
