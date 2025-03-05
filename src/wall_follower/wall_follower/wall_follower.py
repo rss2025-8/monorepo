@@ -58,15 +58,15 @@ class WallFollower(Node):
         self.declare_parameter("scan_topic", "default")
         self.declare_parameter("wall_follower_topic", "default")
         self.declare_parameter("side", 1)
-        self.declare_parameter("velocity", 1.0)
+        self.declare_parameter("velocity", 2.0)
         self.declare_parameter("desired_distance", 1.0)
 
         # Make PID parameters
         # self.declare_parameter("Kp", 5.7)  # Great for vel 1 & 2
-        self.declare_parameter("Kp", 4.0)  # Great for vel 3
+        self.declare_parameter("Kp", 0.75)  # Great for vel 3
         # self.declare_parameter("Kp", 0.7)
         self.declare_parameter("Ki", 0.0)
-        self.declare_parameter("Kd", 0.01)
+        self.declare_parameter("Kd", 0.1)
         # self.declare_parameter("Kd", 0.0)  # Great for vel 3
 
         # Amount of debug info to print
@@ -91,7 +91,7 @@ class WallFollower(Node):
         # self.pid2 = PID(self.get_clock().now(), kp=0.1, ki=0, kd=0)
         # self.pid2 = PID(self.get_clock().now(), kp=1.5, ki=0, kd=0)  # Great for vel 3
         # self.pid2 = PID(self.get_clock().now(), kp=2.5, ki=0, kd=0.05)  # Great for vel 2
-        self.pid2 = PID(self.get_clock().now(), kp=4.0, ki=0, kd=0.1)  # Great for vel 1
+        self.pid2 = PID(self.get_clock().now(), kp=0.2, ki=0, kd=0.0)  # Great for vel 1
 
         # For debugging (launch file params only update with colcon build)
         self.DEBUG = self.get_parameter("debug").get_parameter_value().integer_value
@@ -135,7 +135,7 @@ class WallFollower(Node):
         )
         self.drive_pub.publish(AckermannDriveStamped(header=header, drive=drive))
 
-    def find_wall(self, ranges: np.ndarray, angles: np.ndarray, wall_angle_min: float, wall_angle_max: float):
+    def find_wall(self, ranges: np.ndarray, angles: np.ndarray, max_range: float,  wall_angle_min: float, wall_angle_max: float):
         """Finds the line equation of a wall in [wall_angle_min, wall_angle_max] radians, where 0 is in front.
 
         Returns (m, b, X, Y) such that y ~ mx + b. X and Y are the points in the wall. Accounts for the side parameter.
@@ -148,10 +148,10 @@ class WallFollower(Node):
 
         # # When fitting a line, only consider points < max_base_dist + desired_distance away from the car
         # # Filter ranges that are too far away, but fallback to all points if none are close enough
-        # close_indices = relevant_ranges < self.max_base_dist + self.DESIRED_DISTANCE
-        # if np.count_nonzero(close_indices) >= 2:
-        #     relevant_ranges = relevant_ranges[close_indices]
-        #     relevant_angles = relevant_angles[close_indices]
+        close_indices = relevant_ranges < max_range
+        if np.count_nonzero(close_indices) >= 2:
+            relevant_ranges = relevant_ranges[close_indices]
+            relevant_angles = relevant_angles[close_indices]
 
         # Fit line to the wall
         X = relevant_ranges * np.cos(relevant_angles)
@@ -168,7 +168,7 @@ class WallFollower(Node):
             last_range = math.hypot(final_X[-1], final_Y[-1])
             # TODO need to be tuned for robot
             if (dist > 0.15 and dist > last_range / 2.5) or dist > 0.6:  # Exclude points not on wall
-                continue
+                break
             final_X.append(X[i])
             final_Y.append(Y[i])
         if self.SIDE == 1:
@@ -188,7 +188,7 @@ class WallFollower(Node):
         # self.side_wall_min, self.side_wall_max = math.radians(30), math.radians(90)
 
         # Find wall on the side
-        side_m, side_b, side_X, side_Y = self.find_wall(ranges, angles, self.side_wall_min, self.side_wall_max)
+        side_m, side_b, side_X, side_Y = self.find_wall(ranges, angles, msg.range_max, self.side_wall_min, self.side_wall_max)
         side_dist = abs(side_b) / np.sqrt(1 + side_m**2)
         side_error = side_dist - self.DESIRED_DISTANCE
         angle_error = np.arctan(side_m)

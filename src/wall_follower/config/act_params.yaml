@@ -3,7 +3,7 @@ safety_controller:
     scan_topic: "/scan"
     ackermann_cmd_topic: "vesc/low_level/ackermann_cmd"
     safety_topic: "vesc/low_level/input/safety"
-    stopping_time: 1.0
+    stopping_time: 0.7
     watchdog_period: 0.1
 
 wall_follower:
@@ -14,5 +14,5 @@ wall_follower:
     drive_topic: "drive"
     side: -1
     velocity: 1.0
-    desired_distance: 1.0
+    desired_distance: 0.5
   

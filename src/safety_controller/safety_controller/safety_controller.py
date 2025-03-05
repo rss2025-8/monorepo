@@ -84,8 +84,8 @@ class SafetyController(Node):
     def scan_callback(self, scan: LaserScan) -> None:
         self.scan_timestamp = Time.from_msg(scan.header.stamp)
 
-        min_index = scan_index(scan, -math.pi / 6)
-        max_index = scan_index(scan, math.pi / 6)
+        min_index = scan_index(scan, -math.pi / 12)
+        max_index = scan_index(scan, math.pi / 12)
 
         self.front_distance = min(scan.ranges[min_index : max_index + 1])
 
