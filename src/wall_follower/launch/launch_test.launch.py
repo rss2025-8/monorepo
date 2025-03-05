@@ -29,14 +29,16 @@ def generate_launch_description():
                 "drive_topic": "/wall_follower_topic",
                 "pose_topic": "/pose",
                 "velocity": 1.0,
-                "desired_distance": 1.0,
+                "desired_distance": 0.8,
                 "side": -1,
                 "start_x": -38.51,
                 "start_y": 33.5543,
                 "start_z": 0.0,
-                "end_x": -24.46,
+                # "end_x": -24.46,
+                # "end_y": 33.5543,
+                "end_x": -38.51,
                 "end_y": 33.5543,
-                "name": "short_right_close",
+                "name": "straight",
             }
         ],
         name="test_wall_follower",
@@ -51,59 +53,59 @@ def generate_launch_description():
     test2 = Node(
         package="wall_follower",
         executable="test_wall_follower",
-        namespace="test1",
+        namespace="test2",
         parameters=[
             {
                 "scan_topic": "/scan",
                 "drive_topic": "/wall_follower_topic",
                 "pose_topic": "/pose",
                 "velocity": 1.0,
-                "desired_distance": 1.0,
+                "desired_distance": 0.8,
                 "side": -1,
                 "start_x": -23.2,
                 "start_y": 33.5543,
                 "start_z": 0.0,
                 "end_x": -20.60,
                 "end_y": 29.7061,
-                "name": "short_right_close",
+                "name": "outer_corner_turn",
             }
         ],
         name="test_wall_follower",
         remappings=[
-            ("/test1/pose", "/pose"),
-            ("/test1/map", "/map"),
-            ("/test1/base_link", "/base_link"),
-            ("/test1/tf", "/tf"),
-            ("/test1/tf_static", "/tf_static"),
+            ("/test2/pose", "/pose"),
+            ("/test2/map", "/map"),
+            ("/test2/base_link", "/base_link"),
+            ("/test2/tf", "/tf"),
+            ("/test2/tf_static", "/tf_static"),
         ],
     )
     test3 = Node(
         package="wall_follower",
         executable="test_wall_follower",
-        namespace="test1",
+        namespace="test3",
         parameters=[
             {
                 "scan_topic": "/scan",
                 "drive_topic": "/wall_follower_topic",
                 "pose_topic": "/pose",
                 "velocity": 1.0,
-                "desired_distance": 1.0,
+                "desired_distance": 0.8,
                 "side": -1,
                 "start_x": -20.4564,
-                "start_y":30.0916,
+                "start_y": 30.0916,
                 "start_z": -1.5264,
                 "end_x": -16.63,
                 "end_y": 25.3354,
-                "name": "short_right_close",
+                "name": "inner_corner_turn",
             }
         ],
         name="test_wall_follower",
         remappings=[
-            ("/test1/pose", "/pose"),
-            ("/test1/map", "/map"),
-            ("/test1/base_link", "/base_link"),
-            ("/test1/tf", "/tf"),
-            ("/test1/tf_static", "/tf_static"),
+            ("/test3/pose", "/pose"),
+            ("/test3/map", "/map"),
+            ("/test3/base_link", "/base_link"),
+            ("/test3/tf", "/tf"),
+            ("/test3/tf_static", "/tf_static"),
         ],
     )
 
@@ -591,18 +593,18 @@ def generate_launch_description():
                 OnProcessExit(
                     target_action=test1,
                     on_exit=[
-                        LogInfo(msg='Test 1 finished, Starting Test 2'),
+                        LogInfo(msg="Test 1 finished, Starting Test 2"),
                         test2,
-                        setup_side2_1,
-                        TimerAction(  # Wait 1 second, then run setup_side2 again (trying to increase reliability)
-                            period=1.0,
-                            actions=[setup_side2_2],
-                        ),
-                        TimerAction(  # Wait 4 seconds, then run setup_side2 again (trying to increase reliability)
-                            period=4.0,
-                            actions=[setup_side2_3],
-                        )
-                    ]
+                        # setup_side2_1,
+                        # TimerAction(  # Wait 1 second, then run setup_side2 again (trying to increase reliability)
+                        #     period=1.0,
+                        #     actions=[setup_side2_2],
+                        # ),
+                        # TimerAction(  # Wait 4 seconds, then run setup_side2 again (trying to increase reliability)
+                        #     period=4.0,
+                        #     actions=[setup_side2_3],
+                        # ),
+                    ],
                 )
             ),
             # Start test 3 after test 2 finishes
@@ -610,27 +612,27 @@ def generate_launch_description():
                 OnProcessExit(
                     target_action=test2,
                     on_exit=[
-                        LogInfo(msg='Test 2 finished, Starting Test 3'),
+                        LogInfo(msg="Test 2 finished, Starting Test 3"),
                         test3,
-                        setup_side3_1,
-                        setup_v3_1,
-                        TimerAction(  # Wait 1 second, then run setup_side3 again (trying to increase reliability)
-                            period=1.0,
-                            actions=[setup_side3_2],
-                        ),
-                        TimerAction(  # Wait 1 second, then run setup_v3 again (trying to increase reliability)
-                            period=1.0,
-                            actions=[setup_v3_2],
-                        ),
-                        TimerAction(  # Wait 4 seconds, then run setup_side3 again (trying to increase reliability)
-                            period=4.0,
-                            actions=[setup_side3_3],
-                        ),
-                        TimerAction(  # Wait 4 seconds, then run setup_v3 again (trying to increase reliability)
-                            period=4.0,
-                            actions=[setup_v3_3],
-                        )
-                    ]
+                        # setup_side3_1,
+                        # setup_v3_1,
+                        # TimerAction(  # Wait 1 second, then run setup_side3 again (trying to increase reliability)
+                        #     period=1.0,
+                        #     actions=[setup_side3_2],
+                        # ),
+                        # TimerAction(  # Wait 1 second, then run setup_v3 again (trying to increase reliability)
+                        #     period=1.0,
+                        #     actions=[setup_v3_2],
+                        # ),
+                        # TimerAction(  # Wait 4 seconds, then run setup_side3 again (trying to increase reliability)
+                        #     period=4.0,
+                        #     actions=[setup_side3_3],
+                        # ),
+                        # TimerAction(  # Wait 4 seconds, then run setup_v3 again (trying to increase reliability)
+                        #     period=4.0,
+                        #     actions=[setup_v3_3],
+                        # ),
+                    ],
                 )
             ),
             # # Start test 4 after test 3 finishes
