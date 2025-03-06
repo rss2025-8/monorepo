@@ -14,5 +14,5 @@ wall_follower:
     drive_topic: "drive"
     side: -1
     velocity: 1.0
-    desired_distance: 0.5
+    desired_distance: 1.0
   
