@@ -61,13 +61,23 @@ class WallFollower(Node):
         self.declare_parameter("velocity", 2.0)
         self.declare_parameter("desired_distance", 1.0)
 
-        # Make PID parameters
-        # self.declare_parameter("Kp", 5.7)  # Great for vel 1 & 2
-        self.declare_parameter("Kp", 0.75)  # Great for vel 3
-        # self.declare_parameter("Kp", 0.7)
+        # Good for velocity 1 in simulation: Kp = 5.7, Ap = 4.0, all others = 0.0
+        # Good for velocity 2 in simulation: Kp = 5.7, Ap = 2.5, Ad = 0.05, all others = 0.0
+        # Good for velocity 1 on the racecar: Kp = 0.75, Kd = 0.1, Ap = 0.2, all others = 0.0
+
+        # PID parameters (physical by default)
+        self.declare_parameter("Kp", 0.75)
         self.declare_parameter("Ki", 0.0)
         self.declare_parameter("Kd", 0.1)
-        # self.declare_parameter("Kd", 0.0)  # Great for vel 3
+        self.declare_parameter("Ap", 0.2)
+        self.declare_parameter("Ai", 0.0)
+        self.declare_parameter("Ad", 0.0)
+
+        # Lidar filter parameters
+        self.declare_parameter("side_wall_min", -30.0)  # Degrees
+        self.declare_parameter("side_wall_max", 90.0)  # Degrees
+        self.declare_parameter("max_dist_between_points", 0.6)  # Meters
+        self.declare_parameter("weighted_dist_between_points", 2.5)
 
         # Amount of debug info to print
         self.declare_parameter("debug", 1)
@@ -86,20 +96,25 @@ class WallFollower(Node):
         kp = self.get_parameter("Kp").get_parameter_value().double_value
         ki = self.get_parameter("Ki").get_parameter_value().double_value
         kd = self.get_parameter("Kd").get_parameter_value().double_value
-        self.pid_side = PID(self.get_clock().now(), kp, ki, kd)
+        self.pid_dist = PID(self.get_clock().now(), kp, ki, kd)
 
-        # self.pid2 = PID(self.get_clock().now(), kp=0.1, ki=0, kd=0)
-        # self.pid2 = PID(self.get_clock().now(), kp=1.5, ki=0, kd=0)  # Great for vel 3
-        # self.pid2 = PID(self.get_clock().now(), kp=2.5, ki=0, kd=0.05)  # Great for vel 2
-        self.pid2 = PID(self.get_clock().now(), kp=0.2, ki=0, kd=0.0)  # Great for vel 1
+        ap = self.get_parameter("Ap").get_parameter_value().double_value
+        ai = self.get_parameter("Ai").get_parameter_value().double_value
+        ad = self.get_parameter("Ad").get_parameter_value().double_value
+        self.pid_angle = PID(self.get_clock().now(), ap, ai, ad)
 
         # For debugging (launch file params only update with colcon build)
         self.DEBUG = self.get_parameter("debug").get_parameter_value().integer_value
         # self.SIDE = 1  # Switch to left wall (default is right)
         # self.VELOCITY = 1.0
-        # self.VELOCITY = 2.0
-        # self.VELOCITY = 3.0
-        # self.VELOCITY = 4.0
+
+        # Filter values
+        self.side_wall_min = math.radians(self.get_parameter("side_wall_min").get_parameter_value().double_value)
+        self.side_wall_max = math.radians(self.get_parameter("side_wall_max").get_parameter_value().double_value)
+        self.max_dist_between_points = self.get_parameter("max_dist_between_points").get_parameter_value().double_value
+        self.weighted_dist_between_points = (
+            self.get_parameter("weighted_dist_between_points").get_parameter_value().double_value
+        )
 
         # Init publishers and subscribers
         self.laser_sub = self.create_subscription(LaserScan, self.SCAN_TOPIC, self.on_laser_scan, 10)
@@ -135,7 +150,9 @@ class WallFollower(Node):
         )
         self.drive_pub.publish(AckermannDriveStamped(header=header, drive=drive))
 
-    def find_wall(self, ranges: np.ndarray, angles: np.ndarray, max_range: float,  wall_angle_min: float, wall_angle_max: float):
+    def find_wall(
+        self, ranges: np.ndarray, angles: np.ndarray, max_range: float, wall_angle_min: float, wall_angle_max: float
+    ):
         """Finds the line equation of a wall in [wall_angle_min, wall_angle_max] radians, where 0 is in front.
 
         Returns (m, b, X, Y) such that y ~ mx + b. X and Y are the points in the wall. Accounts for the side parameter.
@@ -167,7 +184,9 @@ class WallFollower(Node):
             dist = math.hypot(X[i] - final_X[-1], Y[i] - final_Y[-1])
             last_range = math.hypot(final_X[-1], final_Y[-1])
             # TODO need to be tuned for robot
-            if (dist > 0.15 and dist > last_range / 2.5) or dist > 0.6:  # Exclude points not on wall
+            if (
+                last_range > self.DESIRED_DISTANCE and dist > last_range / self.weighted_dist_between_points
+            ) or dist > self.max_dist_between_points:  # Exclude points not on wall
                 break
             final_X.append(X[i])
             final_Y.append(Y[i])
@@ -183,36 +202,33 @@ class WallFollower(Node):
         angles = np.linspace(msg.angle_min, msg.angle_max, len(ranges))
         msg_time = rclpy.time.Time.from_msg(msg.header.stamp)
 
-        self.side_wall_min, self.side_wall_max = math.radians(-30), math.radians(90)
-        # self.side_wall_min, self.side_wall_max = math.radians(0), math.radians(90)
-        # self.side_wall_min, self.side_wall_max = math.radians(30), math.radians(90)
-
         # Find wall on the side
-        side_m, side_b, side_X, side_Y = self.find_wall(ranges, angles, msg.range_max, self.side_wall_min, self.side_wall_max)
+        side_m, side_b, side_X, side_Y = self.find_wall(
+            ranges, angles, msg.range_max, self.side_wall_min, self.side_wall_max
+        )
         side_dist = abs(side_b) / np.sqrt(1 + side_m**2)
         side_error = side_dist - self.DESIRED_DISTANCE
         angle_error = np.arctan(side_m)
 
-        # Turn signal from angle
-        steering_2 = self.pid2.update(angle_error, msg_time) * -1
-
         # Turn signal from side wall
-        steering_side = self.pid_side.update(side_error, msg_time) * -self.SIDE
+        steering_dist = self.pid_dist.update(side_error, msg_time) * -self.SIDE
+        # Turn signal from angle
+        steering_angle = self.pid_angle.update(angle_error, msg_time) * -1
 
         # Combine turn signals, clip, and drive
-        steering_angle = steering_2 + steering_side
-        steering_angle = min(max(steering_angle, -math.pi / 2), math.pi / 2)
+        total_steering = steering_dist + steering_angle
+        total_steering = min(max(total_steering, -math.pi / 2), math.pi / 2)
         speed = self.VELOCITY
-        self.drive(steering_angle, speed)
+        self.drive(total_steering, speed)
 
-        steering_2 = min(max(steering_2, -math.pi / 2), math.pi / 2)
-        steering_side = min(max(steering_side, -math.pi / 2), math.pi / 2)
+        steering_dist = min(max(steering_dist, -math.pi / 2), math.pi / 2)
+        steering_angle = min(max(steering_angle, -math.pi / 2), math.pi / 2)
 
         if self.DEBUG >= 1:
             # Visualize turn angles
-            steer_X, steer_Y = [0.0, 0.5 * math.cos(steering_side)], [0.0, 0.5 * math.sin(steering_side)]
-            steer2_X, steer2_Y = [0.0, 0.5 * math.cos(steering_2)], [0.0, 0.5 * math.sin(steering_2)]
-            steerall_X, steerall_Y = [0.0, 1 * math.cos(steering_angle)], [0.0, 1 * math.sin(steering_angle)]
+            steer_X, steer_Y = [0.0, 0.5 * math.cos(steering_dist)], [0.0, 0.5 * math.sin(steering_dist)]
+            steer2_X, steer2_Y = [0.0, 0.5 * math.cos(steering_angle)], [0.0, 0.5 * math.sin(steering_angle)]
+            steerall_X, steerall_Y = [0.0, 1 * math.cos(total_steering)], [0.0, 1 * math.sin(total_steering)]
             # Visualize the line
             # side_X = np.array([-1.0, 1.0])
             # side_Y = side_m * side_X + side_b
@@ -227,7 +243,7 @@ class WallFollower(Node):
             self.get_logger().info(
                 # f"Wall: y = {m:.2f}x + {b:.2f}, "
                 f"Dist: {side_dist:.2f} m, "
-                f"Angle: {steering_angle:5.2f} rad = {math.degrees(steering_angle):3.0f}°, "
+                f"Angle: {total_steering:5.2f} rad = {math.degrees(total_steering):3.0f}°, "
                 f"{speed:.2f} m/s"
             )
 

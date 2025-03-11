@@ -1,8 +1,8 @@
 import rclpy
-from rclpy.node import Node
 
 # ackermann message
 from ackermann_msgs.msg import AckermannDriveStamped
+from rclpy.node import Node
 
 
 class SimDriveMux(Node):
@@ -15,17 +15,13 @@ class SimDriveMux(Node):
 
         self.subscription_safety = self.create_subscription(
             AckermannDriveStamped,
-            self.get_parameter("safety_controller_topic")
-            .get_parameter_value()
-            .string_value,
+            self.get_parameter("safety_controller_topic").get_parameter_value().string_value,
             self.safety_callback,
             10,
         )
         self.subscription_wall = self.create_subscription(
             AckermannDriveStamped,
-            self.get_parameter("wall_follower_topic")
-            .get_parameter_value()
-            .string_value,
+            self.get_parameter("wall_follower_topic").get_parameter_value().string_value,
             self.wall_callback,
             10,
         )
@@ -40,7 +36,7 @@ class SimDriveMux(Node):
         self.get_logger().info("SAFETY CONTROLLER FOUND UNSAFE SITUATION")
         self.unsafe_detection = True
         # Command drive topic to stop
-        self.command_drive(0, 0)
+        self.command_drive(0.0, 0.0)
 
     def wall_callback(self, msg):
         if not self.unsafe_detection:
@@ -50,7 +46,7 @@ class SimDriveMux(Node):
         else:
             self.get_logger().info("OVERRIDING WALL FOLLOWER, STOPPING")
             # Command drive topic to stop
-            self.command_drive(0, 0)
+            self.command_drive(0.0, 0.0)
 
     def command_drive(self, speed, angle):
         msg = AckermannDriveStamped()
