@@ -13,6 +13,6 @@ wall_follower:
     safety_controller_topic: "/vesc/input/safety"
     drive_topic: "drive"
     side: -1
-    velocity: 1.0
+    velocity: 2.0
     desired_distance: 1.0
   

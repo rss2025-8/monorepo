@@ -30,7 +30,7 @@ class LaserScanListener(Node):
             self.get_logger().info(f"Average minimum distance to right wall: {self.avg_min_distance:.3f} meters")
         else:
             left_side_ranges = msg.ranges[num_readings // 2:]
-            valid_ranges = [r for r in left_side_ranges if r > 0.30 and r < msg.range_max]
+            valid_ranges = [r for r in left_side_ranges if r > msg.range_min and r < msg.range_max]
             min_distance = min(valid_ranges) if valid_ranges else float('inf')
             self.global_min_distance = min(self.global_min_distance, min_distance)
             self.get_logger().info(f"Minimum distance to left wall: {min_distance:.3f} meters")
