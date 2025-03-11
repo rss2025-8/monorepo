@@ -8,7 +8,7 @@
     <param from="$(find-pkg-share wall_follower)/config/$(var env)_params.yaml"/> 
   </node>
 
-  <node pkg="safety_controller" name ="safety_controller" exec="safety_controller" output = "screen">
+  <node pkg="safety_controller" name ="safety_controller" exec="safety_controller" output="screen">
     <param from="$(find-pkg-share wall_follower)/config/$(var env)_params.yaml"/> 
   </node>
 
