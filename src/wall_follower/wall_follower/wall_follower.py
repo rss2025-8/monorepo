@@ -65,11 +65,11 @@ class WallFollower(Node):
         # Good for velocity 2 in simulation: Kp = 5.7, Ap = 2.5, Ad = 0.05, all others = 0.0
         # Good for velocity 1 on the racecar: Kp = 0.75, Kd = 0.1, Ap = 0.2, all others = 0.0
 
-        # PID parameters (physical by default)
-        self.declare_parameter("Kp", 0.75)
+        # PID parameters (simulation by default)
+        self.declare_parameter("Kp", 5.7)
         self.declare_parameter("Ki", 0.0)
-        self.declare_parameter("Kd", 0.1)
-        self.declare_parameter("Ap", 0.2)
+        self.declare_parameter("Kd", 0.0)
+        self.declare_parameter("Ap", 4.0)
         self.declare_parameter("Ai", 0.0)
         self.declare_parameter("Ad", 0.0)
 
@@ -183,11 +183,12 @@ class WallFollower(Node):
         for i in range(starting_i, len(X)):
             dist = math.hypot(X[i] - final_X[-1], Y[i] - final_Y[-1])
             last_range = math.hypot(final_X[-1], final_Y[-1])
-            # TODO need to be tuned for robot
+            # Manually tuned for the robot
             if (
                 last_range > self.DESIRED_DISTANCE and dist > last_range / self.weighted_dist_between_points
             ) or dist > self.max_dist_between_points:  # Exclude points not on wall
-                break
+                continue
+                # break
             final_X.append(X[i])
             final_Y.append(Y[i])
         if self.SIDE == 1:
