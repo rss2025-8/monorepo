@@ -34,9 +34,7 @@ def generate_launch_description():
                 "start_x": -38.51,
                 "start_y": 33.5543,
                 "start_z": 0.0,
-                # "end_x": -24.46,
-                # "end_y": 33.5543,
-                "end_x": -38.51,
+                "end_x": -24.46,
                 "end_y": 33.5543,
                 "name": "straight",
             }

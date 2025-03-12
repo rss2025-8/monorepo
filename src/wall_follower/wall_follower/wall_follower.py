@@ -187,8 +187,8 @@ class WallFollower(Node):
             if (
                 last_range > self.DESIRED_DISTANCE and dist > last_range / self.weighted_dist_between_points
             ) or dist > self.max_dist_between_points:  # Exclude points not on wall
-                continue
-                # break
+                # continue
+                break
             final_X.append(X[i])
             final_Y.append(Y[i])
         if self.SIDE == 1:
