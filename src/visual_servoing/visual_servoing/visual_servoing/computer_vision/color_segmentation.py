@@ -39,6 +39,13 @@ def cd_color_segmentation(img, template):
 
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert bgr image to hsv
 
+	# add a mask to allow for line following; make a mask that only allows for the bottom half of the image
+	mask = np.zeros(hsv.shape[:2], dtype="uint8")
+	# make a mask that passes 1/8 to 1/2 of the image
+	
+	mask[hsv.shape[0]//2:, :] = 255
+	hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
+
 	# test 3
 	# upper_color = np.array([27, 255, 255]) #upper-bound value
 	# lower_color = np.array([5, 140, 153]) #lower-bound value
