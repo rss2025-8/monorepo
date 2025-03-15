@@ -21,10 +21,10 @@ from vs_msgs.msg import ConeLocation, ConeLocationPixel
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_IMAGE_PLANE = [[-1, -1],
-                   [-1, -1],
-                   [-1, -1],
-                   [-1, -1]] # dummy points
+PTS_IMAGE_PLANE = [[429, 202],
+                   [254, 202],
+                   [424, 256],
+                   [54, 226]] # dummy points
 ######################################################
 
 # PTS_GROUND_PLANE units are in inches
@@ -32,12 +32,19 @@ PTS_IMAGE_PLANE = [[-1, -1],
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_GROUND_PLANE = [[-1, -1],
-                    [-1, -1],
-                    [-1, -1],
-                    [-1, -1]] # dummy points
+# PTS_GROUND_PLANE = [[55, -17],
+#                     [55, 17],
+#                     [22, -6.5],
+#                     [37.5, 37.5]] # dummy points
 ######################################################
-
+"""Pt 1 (56, -18.5)
+Pt2 (56,14)
+Pt 3 (23,-7)
+Pt 4 (31,34.5)"""
+PTS_GROUND_PLANE = [[56, -18.5],
+                    [56,14],
+                    [23,-7],
+                    [31,34.5]]
 METERS_PER_INCH = 0.0254
 
 
@@ -48,7 +55,7 @@ class HomographyTransformer(Node):
         self.cone_pub = self.create_publisher(ConeLocation, "/relative_cone", 10)
         self.marker_pub = self.create_publisher(Marker, "/cone_marker", 1)
         self.cone_px_sub = self.create_subscription(ConeLocationPixel, "/relative_cone_px", self.cone_detection_callback, 1)
-
+        self.publish_timer = self.create_timer(0.05, self.timer_callback)
         if not len(PTS_GROUND_PLANE) == len(PTS_IMAGE_PLANE):
             rclpy.logerr("ERROR: PTS_GROUND_PLANE and PTS_IMAGE_PLANE should be of same length")
 
@@ -65,11 +72,14 @@ class HomographyTransformer(Node):
         self.h, err = cv2.findHomography(np_pts_image, np_pts_ground)
 
         self.get_logger().info("Homography Transformer Initialized")
-
+    def timer_callback(self):
+        # print("here")
+        self.draw_marker(37.5*METERS_PER_INCH, 37.5*METERS_PER_INCH, "map")
     def cone_detection_callback(self, msg):
         #Extract information from message
         u = msg.u
         v = msg.v
+        self.get_logger().info("Cone detected at pixel location: u = %f, v = %f" % (u, v))
 
         #Call to main function
         x, y = self.transformUvToXy(u, v)
