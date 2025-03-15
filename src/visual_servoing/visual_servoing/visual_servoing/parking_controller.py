@@ -62,10 +62,10 @@ class ParkingController(Node):
         self.declare_parameter("drive_topic", "default")
 
         # Parking controller parameters
-        self.declare_parameter("parking_distance", 0.75 * 3)  # Desired parking distance (meters); play with this!
+        self.declare_parameter("parking_distance", 0.75 * 2)  # Desired parking distance (meters); play with this!
         self.declare_parameter("max_distance_error", 0.03)  # Acceptable distance error (meters)
         self.declare_parameter("max_angle_error", 2.0)  # Acceptable angle error (degrees)
-        self.declare_parameter("max_velocity", 1.0)  # Max velocity (m/s)
+        self.declare_parameter("max_velocity", 0.5)  # Max velocity (m/s)
         self.declare_parameter("min_velocity", 0.01)  # Min velocity that allows the car to move (m/s)
         self.declare_parameter("x_point_turn_length", 0.5)  # Margin above parking_distance to perform turns in (meters)
 
