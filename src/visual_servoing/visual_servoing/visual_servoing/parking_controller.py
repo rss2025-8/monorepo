@@ -107,9 +107,9 @@ class ParkingController(Node):
 
         self.create_subscription(ConeLocation, "/relative_cone", self.relative_cone_callback, 1)
 
-        # Publish drive commands at a minimal rate (20 Hz)
+        # Publish drive commands at a minimal rate (50 Hz)
         self.drive_cmd = AckermannDrive()
-        self.drive_timer = self.create_timer(1 / 20, self.timer_callback)
+        self.drive_timer = self.create_timer(1 / 50, self.timer_callback)
 
         self.state = State.IDLE
         self.relative_x = 0
@@ -168,7 +168,7 @@ class ParkingController(Node):
             velocity = -self.pid_distance.update(distance_error, msg_time)
         elif self.state == State.TOO_CLOSE:
             # Get away from the cone
-            if abs(relative_angle) > math.pi * 2 / 3:  # math.pi / 2 can cause an infinite circling situation
+            if abs(relative_angle) > math.pi / 2:  # math.pi / 2 can cause an infinite circling situation
                 # Go forwards
                 velocity = self.max_velocity
             else:
@@ -193,9 +193,13 @@ class ParkingController(Node):
             visual_drive_X, visual_drive_Y = [], []
         brightness = 0.5 if abs(velocity) == self.max_velocity else 0.0
         VisualizationTools.plot_line(
-            visual_drive_X, visual_drive_Y, self.line_drive_pub, color=(brightness, 1.0, brightness), frame="/laser"
+            visual_drive_X,
+            visual_drive_Y,
+            self.line_drive_pub,
+            color=(brightness, 1.0, brightness),
+            frame="zed_center_link",
         )
-        VisualizationTools.plot_text(self.state.name, 0.0, 0.0, 0.5, 0.2, self.text_state_pub, frame="/laser")
+        VisualizationTools.plot_text(self.state.name, 0.0, 0.0, 0.5, 0.2, self.text_state_pub, frame="zed_center_link")
 
         self.drive(steering_angle, velocity)
         self.error_publisher()
