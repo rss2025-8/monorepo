@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 import numpy as np
+from std_msgs.msg import Float32
 
 class LaserScanListener(Node):
     def __init__(self):
@@ -14,7 +15,9 @@ class LaserScanListener(Node):
         self.subscription  # Prevent unused variable warning
         self.global_min_distance = float('inf')
         self.avg_min_distance = float('inf')
-        self.side = "left"
+        self.side = "right"
+        # Create a publisher to publish the minimum distance
+        self.publisher = self.create_publisher(Float32, 'min_distance', 10)
 
     def scan_callback(self, msg):
         """ Extracts the minimum distance from the right side of the LaserScan message."""
@@ -28,6 +31,10 @@ class LaserScanListener(Node):
             self.get_logger().info(f"Global minimum distance to right wall: {self.global_min_distance:.3f} meters")
             self.avg_min_distance = np.mean([self.global_min_distance, min_distance])
             self.get_logger().info(f"Average minimum distance to right wall: {self.avg_min_distance:.3f} meters")
+            # Publish the minimum distance
+            min_distance_msg = Float32()
+            min_distance_msg.data = min_distance
+            self.publisher.publish(min_distance_msg)
         else:
             left_side_ranges = msg.ranges[num_readings // 2:]
             valid_ranges = [r for r in left_side_ranges if r > msg.range_min and r < msg.range_max]
@@ -37,6 +44,9 @@ class LaserScanListener(Node):
             self.get_logger().info(f"Global minimum distance to left wall: {self.global_min_distance:.3f} meters")
             self.avg_min_distance = np.mean([self.global_min_distance, min_distance])
             self.get_logger().info(f"Average minimum distance to left wall: {self.avg_min_distance:.3f} meters")
+            min_distance_msg = Float32()
+            min_distance_msg.data = min_distance
+            self.publisher.publish(min_distance_msg)
 
 def main(args=None):
     rclpy.init(args=args)

@@ -48,11 +48,13 @@ def cd_color_segmentation(img, template):
 	# lower_color = np.array([5, 160, 155]) #lower-bound value
 
 	# test 5
-	upper_color = np.array([27, 255, 255]) #upper-bound value
-	lower_color = np.array([5, 160, 145]) #lower-bound value
+	upper_color = np.array([10, 255, 255]) #upper-bound value
+	lower_color = np.array([5, 200, 90]) #lower-bound value
 
 	mask = cv2.inRange(hsv, lower_color, upper_color)
-
+	# cv2.imshow("Mask", mask)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
 	contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 	bounding_box = ((0,0), (0, 0))
@@ -61,13 +63,17 @@ def cd_color_segmentation(img, template):
 		largest_contour = max(contours, key=cv2.contourArea)
 		x, y, w, h = cv2.boundingRect(largest_contour)
 		bounding_box = ((x, y), (x + w, y + h))
-	
+		# cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
 	print(f"bounding box:	{bounding_box}")
-
+	hsv_pixel = hsv[228, 55]  # Replace with known cone pixel coordinates
+	print(f"HSV Value of Cone: {hsv_pixel}")
 	# ########### YOUR CODE ENDS HERE ###########
 
 	# Return bounding box
-
+	# cv2.imshow("Detected Cone", img)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
+	
 	return bounding_box
 
 # after running test 3
