@@ -1,0 +1,20 @@
+safety_controller:
+  ros__parameters:
+    scan_topic: "/scan"
+    ackermann_cmd_topic: "vesc/low_level/ackerman_cmd"
+    safety_topic: "vesc/low_level/input/safety"
+    stopping_time: 0.5
+    watchdog_period: 0.1
+
+parking_controller:
+  ros__parameters:
+    drive_topic: "/vesc/high_level/input/nav_0"
+    parking_distance: 0.6
+    max_distance_error: 0.08
+    max_angle_error: 10.0
+    max_velocity: 0.75
+    min_velocity: 0.4
+    Dp: 1.0
+    Dd: 0.1
+    Ap: 0.5
+    Ad: 0.03

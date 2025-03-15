@@ -68,6 +68,4 @@ class VisualizationTools:
         text_marker.color.r = color[0]
         text_marker.color.g = color[1]
         text_marker.color.b = color[2]
-
-        # Publish the line
         publisher.publish(text_marker)
