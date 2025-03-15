@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 #################### X-Y CONVENTIONS #########################
 # 0,0  X  > > > > >
@@ -34,6 +35,8 @@ def cd_color_segmentation(img, template):
 	"""
 	########## YOUR CODE STARTS HERE ##########
 
+	# img = cv2.fastNlMeansDenoisingColored(img,None,10,10,7,21) # made the accuracy worse for some reason?
+
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert bgr image to hsv
 
 	# test 3
@@ -52,9 +55,13 @@ def cd_color_segmentation(img, template):
 	lower_color = np.array([5, 200, 90]) #lower-bound value
 
 	mask = cv2.inRange(hsv, lower_color, upper_color)
+
+	# image_print(mask)
+
 	# cv2.imshow("Mask", mask)
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
+  
 	contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 	bounding_box = ((0,0), (0, 0))
@@ -63,10 +70,13 @@ def cd_color_segmentation(img, template):
 		largest_contour = max(contours, key=cv2.contourArea)
 		x, y, w, h = cv2.boundingRect(largest_contour)
 		bounding_box = ((x, y), (x + w, y + h))
-		# cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+	
 	print(f"bounding box:	{bounding_box}")
-	hsv_pixel = hsv[228, 55]  # Replace with known cone pixel coordinates
-	print(f"HSV Value of Cone: {hsv_pixel}")
+
+
+	# cv2.rectangle(img, (x, y), (x + w, y + h), color=(0, 255, 0), thickness=2)
+
+	# image_print(img)
 	# ########### YOUR CODE ENDS HERE ###########
 
 	# Return bounding box
@@ -76,49 +86,49 @@ def cd_color_segmentation(img, template):
 	
 	return bounding_box
 
-# after running test 3
-# ('./test_images_cone/test1.jpg', 0.9774157719363199)
-# ('./test_images_cone/test2.jpg', 0.9512618296529969)
-# ('./test_images_cone/test3.jpg', 0.9795918367346939)
+# best yet (w/o denoising - avg = 0.87)
+# ('./test_images_cone/test1.jpg', 0.9754755060852547)
+# ('./test_images_cone/test2.jpg', 0.9681285464283821)
+# ('./test_images_cone/test3.jpg', 0.9686325187969925)
 # ('./test_images_cone/test4.jpg', 0.9484536082474226)
-# ('./test_images_cone/test5.jpg', 0.9238521836506159)
-# ('./test_images_cone/test6.jpg', 0.6828295671270878)
-# ('./test_images_cone/test7.jpg', 0.9381818181818182)
-# ('./test_images_cone/test8.jpg', 0.9403546480386888)
-# ('./test_images_cone/test9.jpg', 0.0)
-# ('./test_images_cone/test10.jpg', 0.9302536231884058)
-# ('./test_images_cone/test11.jpg', 0.7266076241817482)
-# ('./test_images_cone/test12.jpg', 0.8717948717948718)
-# ('./test_images_cone/test13.jpg', 0.9756805807622505)
-# ('./test_images_cone/test14.jpg', 0.684863523573201)
-# ('./test_images_cone/test15.jpg', 0.6547619047619048)
-# ('./test_images_cone/test16.jpg', 0.9526542324246772)
-# ('./test_images_cone/test17.jpg', 0.6777173913043478)
-# ('./test_images_cone/test18.jpg', 0.9428571428571428)
-# ('./test_images_cone/test19.jpg', 0.9118421052631579)
-# ('./test_images_cone/test20.jpg', 0.902127659574468)
-
-# best yet (avg = 0.87)
-# ('./test_images_cone/test1.jpg', 0.9774157719363199)
-# ('./test_images_cone/test2.jpg', 0.9595354263894782)
-# ('./test_images_cone/test3.jpg', 0.9781826900023975)
-# ('./test_images_cone/test4.jpg', 0.8556701030927835)
-# ('./test_images_cone/test5.jpg', 0.9238521836506159)
-# ('./test_images_cone/test6.jpg', 0.6828295671270878)
+# ('./test_images_cone/test5.jpg', 0.9300111982082867)
+# ('./test_images_cone/test6.jpg', 0.6988961451771369)
 # ('./test_images_cone/test7.jpg', 0.8993939393939394)
 # ('./test_images_cone/test8.jpg', 0.9403546480386888)
 # ('./test_images_cone/test9.jpg', 0.8214285714285714)
-# ('./test_images_cone/test10.jpg', 0.9184782608695652)
-# ('./test_images_cone/test11.jpg', 0.7069695802849442)
-# ('./test_images_cone/test12.jpg', 0.8717948717948718)
-# ('./test_images_cone/test13.jpg', 0.9756805807622505)
+# ('./test_images_cone/test10.jpg', 0.9302536231884058)
+# ('./test_images_cone/test11.jpg', 0.7462456680785522)
+# ('./test_images_cone/test12.jpg', 0.8974358974358975)
+# ('./test_images_cone/test13.jpg', 0.9843920145190562)
 # ('./test_images_cone/test14.jpg', 0.684863523573201)
 # ('./test_images_cone/test15.jpg', 0.6547619047619048)
 # ('./test_images_cone/test16.jpg', 0.9526542324246772)
-# ('./test_images_cone/test17.jpg', 0.6543478260869565)
+# ('./test_images_cone/test17.jpg', 0.7010869565217391)
 # ('./test_images_cone/test18.jpg', 0.9035714285714286)
-# ('./test_images_cone/test19.jpg', 0.9118421052631579)
-# ('./test_images_cone/test20.jpg', 0.8611218568665377)
+# ('./test_images_cone/test19.jpg', 0.9236842105263158)
+# ('./test_images_cone/test20.jpg', 0.9226305609284333)
+
+# with denoising(avg = 0.82)
+# ('./test_images_cone/test1.jpg', 0.9754755060852547)
+# ('./test_images_cone/test2.jpg', 0.9681285464283821)
+# ('./test_images_cone/test3.jpg', 0.9686325187969925)
+# ('./test_images_cone/test4.jpg', 0.9484536082474226)
+# ('./test_images_cone/test5.jpg', 0.9300111982082867)
+# ('./test_images_cone/test6.jpg', 0.6988961451771369)
+# ('./test_images_cone/test7.jpg', 0.8993939393939394)
+# ('./test_images_cone/test8.jpg', 0.9403546480386888)
+# ('./test_images_cone/test9.jpg', 0.8214285714285714)
+# ('./test_images_cone/test10.jpg', 0.9302536231884058)
+# ('./test_images_cone/test11.jpg', 0.7462456680785522)
+# ('./test_images_cone/test12.jpg', 0.8974358974358975)
+# ('./test_images_cone/test13.jpg', 0.9843920145190562)
+# ('./test_images_cone/test14.jpg', 0.684863523573201)
+# ('./test_images_cone/test15.jpg', 0.6547619047619048)
+# ('./test_images_cone/test16.jpg', 0.9526542324246772)
+# ('./test_images_cone/test17.jpg', 0.7010869565217391)
+# ('./test_images_cone/test18.jpg', 0.9035714285714286)
+# ('./test_images_cone/test19.jpg', 0.9236842105263158)
+# ('./test_images_cone/test20.jpg', 0.9226305609284333)
 
 # img = cv2.imread('test_images_cone/cone.png')
 # hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert bgr image to hsv
