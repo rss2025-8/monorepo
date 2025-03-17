@@ -35,7 +35,7 @@ def cd_color_segmentation(img, template):
 	"""
 	########## YOUR CODE STARTS HERE ##########
 
-	# img = cv2.fastNlMeansDenoisingColored(img,None,10,10,7,21) # made the accuracy worse for some reason?
+	img = cv2.fastNlMeansDenoisingColored(img, None) # made the accuracy worse for some reason?
 
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) #convert bgr image to hsv
 
@@ -50,11 +50,19 @@ def cd_color_segmentation(img, template):
 	# upper_color = np.array([65, 255, 255]) #upper-bound value
 	# lower_color = np.array([5, 160, 155]) #lower-bound value
 
-	# test 5
+	# best
+	# upper_color = np.array([27, 255, 255]) #upper-bound value
+	# lower_color = np.array([5, 160, 145]) #lower-bound value
+
+	# testing
 	upper_color = np.array([27, 255, 255]) #upper-bound value
 	lower_color = np.array([5, 160, 145]) #lower-bound value
 
 	mask = cv2.inRange(hsv, lower_color, upper_color)
+
+	# kernel = np.ones((5, 5), np.uint8) # made no difference except smaller bounding box
+	# mask = cv2.erode(mask, kernel, iterations=2)  # Erosion
+	# mask = cv2.dilate(mask, kernel, iterations=2)  # Dilation
 
 	# image_print(mask)
 
@@ -67,9 +75,7 @@ def cd_color_segmentation(img, template):
 		x, y, w, h = cv2.boundingRect(largest_contour)
 		bounding_box = ((x, y), (x + w, y + h))
 	
-	
 	print(f"bounding box:	{bounding_box}")
-
 
 	# cv2.rectangle(img, (x, y), (x + w, y + h), color=(0, 255, 0), thickness=2)
 

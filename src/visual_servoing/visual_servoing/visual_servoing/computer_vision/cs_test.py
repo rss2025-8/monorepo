@@ -97,7 +97,6 @@ def test_algorithm(detection_func, csv_file_path, template_file_path, swap=False
 
             cv2.rectangle(img, bbox_est[0], bbox_est[1], color=(0, 255, 0), thickness=2)
             cv2.rectangle(img, bbox_true[0], bbox_true[1], color=(255, 0, 0), thickness=2)
-
             image_print(img)
             
             score = iou_score(bbox_est, bbox_true)
