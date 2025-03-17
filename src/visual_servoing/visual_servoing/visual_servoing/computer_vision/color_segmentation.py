@@ -50,6 +50,7 @@ def cd_color_segmentation(img, template):
 	# upper_color = np.array([65, 255, 255]) #upper-bound value
 	# lower_color = np.array([5, 160, 155]) #lower-bound value
 
+<<<<<<< HEAD
 	# best
 	# upper_color = np.array([27, 255, 255]) #upper-bound value
 	# lower_color = np.array([5, 160, 145]) #lower-bound value
@@ -57,6 +58,11 @@ def cd_color_segmentation(img, template):
 	# testing
 	upper_color = np.array([27, 255, 255]) #upper-bound value
 	lower_color = np.array([5, 160, 145]) #lower-bound value
+=======
+	# test 5
+	upper_color = np.array([10, 255, 255]) #upper-bound value
+	lower_color = np.array([5, 200, 90]) #lower-bound value
+>>>>>>> 860915e9d0b19ff4c08eb068d97c07abc1997629
 
 	mask = cv2.inRange(hsv, lower_color, upper_color)
 
@@ -66,6 +72,10 @@ def cd_color_segmentation(img, template):
 
 	# image_print(mask)
 
+	# cv2.imshow("Mask", mask)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
+  
 	contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 	bounding_box = ((0,0), (0, 0))
@@ -80,11 +90,13 @@ def cd_color_segmentation(img, template):
 	# cv2.rectangle(img, (x, y), (x + w, y + h), color=(0, 255, 0), thickness=2)
 
 	# image_print(img)
-
 	# ########### YOUR CODE ENDS HERE ###########
 
 	# Return bounding box
-
+	# cv2.imshow("Detected Cone", img)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
+	
 	return bounding_box
 
 # best yet (w/o denoising - avg = 0.87)
