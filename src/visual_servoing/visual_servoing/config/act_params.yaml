@@ -9,11 +9,11 @@ safety_controller:
 parking_controller:
   ros__parameters:
     drive_topic: "/vesc/high_level/input/nav_0"
-    parking_distance: 0.6
+    parking_distance: 0.1
     max_distance_error: 0.08
-    max_angle_error: 10.0
-    max_velocity: 0.75
-    min_velocity: 0.4
+    max_angle_error: 5.0
+    max_velocity: 2.0
+    min_velocity: 0.5
     Dp: 1.0
     Dd: 0.1
     Ap: 0.5
