@@ -55,14 +55,12 @@ def cd_color_segmentation(img, template):
     # upper_color = np.array([65, 255, 255]) #upper-bound value
     # lower_color = np.array([5, 160, 155]) #lower-bound value
 
-    # test 5
-    upper_color = np.array([40, 255, 255])  # upper-bound value
-    lower_color = np.array([0, 100, 150])  # lower-bound value
-	
+    upper_color = np.array([40, 255, 255]) #upper-bound value 
+    lower_color = np.array([0, 200, 95]) #lower-bound value
     mask = cv2.inRange(hsv, lower_color, upper_color)
     rgb_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-    # image_print(mask)
+    image_print(mask)
 
     # cv2.imshow("Mask", mask)
     # cv2.waitKey(0)
@@ -89,7 +87,8 @@ def cd_color_segmentation(img, template):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-    return bounding_box, rgb_img
+    # return bounding_box, rgb_img
+    return bounding_box
 
 
 # best yet (w/o denoising - avg = 0.87)
