@@ -1,0 +1,3 @@
+[submodule "src/localization"]
+	path = src/localization
+	url = https://github.com/mit-rss/localization.git
