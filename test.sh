@@ -1,7 +1,8 @@
-# Edit this to quickly launch whatever lab we're working on rn
+# Edit this to quickly launch whatever we're working on rn
 
 echo "Building..."
-colcon build --symlink-install
-echo "Launching..."
+PYTHONWARNINGS="ignore" colcon build --symlink-install
 source install/setup.bash
-ros2 launch visual_servoing parking_deploy.launch.xml
+
+echo "Launching..."
+ros2 launch visual_servoing parking_deploy.launch.xml type:=line
