@@ -11,6 +11,6 @@ __pycache__
 .DS_Store
 
 .vscode
-old_racecar_ws
+local
 website
 zellij.sh

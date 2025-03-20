@@ -3,12 +3,12 @@ import math
 import numpy as np
 import rclpy
 import rclpy.time
-from rclpy.time import Time
 from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 from rcl_interfaces.msg import SetParametersResult
 from rclpy.node import Node
+from rclpy.time import Time
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Header, Bool
+from std_msgs.msg import Bool, Header
 from visualization_msgs.msg import Marker
 
 
@@ -34,38 +34,20 @@ class SafetyController(Node):
     def __init__(self):
         super().__init__("safety_controller")
 
-        scan_topic: str = (
-            self.declare_parameter("scan_topic", "scan")
-            .get_parameter_value()
-            .string_value
-        )
+        scan_topic: str = self.declare_parameter("scan_topic", "scan").get_parameter_value().string_value
         ackermann_cmd_topic: str = (
-            self.declare_parameter(
-                "ackermann_cmd_topic", "vesc/low_level/ackermann_cmd"
-            )
+            self.declare_parameter("ackermann_cmd_topic", "vesc/low_level/ackermann_cmd")
             .get_parameter_value()
             .string_value
         )
         safety_topic: str = (
-            self.declare_parameter("safety_topic", "vesc/low_level/input/safety")
-            .get_parameter_value()
-            .string_value
+            self.declare_parameter("safety_topic", "vesc/low_level/input/safety").get_parameter_value().string_value
         )
 
-        self.stopping_time: float = (
-            self.declare_parameter("stopping_time", 1.0)
-            .get_parameter_value()
-            .double_value
-        )
-        self.watchdog_period: float = (
-            self.declare_parameter("watchdog_period", 0.5)
-            .get_parameter_value()
-            .double_value
-        )
+        self.stopping_time: float = self.declare_parameter("stopping_time", 1.0).get_parameter_value().double_value
+        self.watchdog_period: float = self.declare_parameter("watchdog_period", 0.5).get_parameter_value().double_value
 
-        self.scan_sub: Subscription = self.create_subscription(
-            LaserScan, scan_topic, self.scan_callback, 10
-        )
+        self.scan_sub: Subscription = self.create_subscription(LaserScan, scan_topic, self.scan_callback, 10)
         self.ackermann_sub: Subscription = self.create_subscription(
             AckermannDriveStamped, ackermann_cmd_topic, self.ackermann_cmd_callback, 10
         )
@@ -80,6 +62,8 @@ class SafetyController(Node):
         self.front_distance = float("inf")
         self.speed = 0.0
         self.accel = 0.0
+
+        self.get_logger().info("Safety Controller Initialized")
 
     def scan_callback(self, scan: LaserScan) -> None:
         self.scan_timestamp = Time.from_msg(scan.header.stamp)
@@ -119,6 +103,7 @@ class SafetyController(Node):
             self.get_logger().error(
                 f"Minimum lidar distance / commanded speed < stopping time: {self.stopping_time}, safety controller stopping car."
             )
+
 
 def main(args=None):
     rclpy.init(args=args)
