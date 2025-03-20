@@ -39,11 +39,14 @@ def cd_color_segmentation(img, template):
 
     # img = cv2.fastNlMeansDenoisingColored(img,None,10,10,7,21) # made the accuracy worse for some reason?
 
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)  # convert bgr image to hsv
-
-    # test 3
-    # upper_color = np.array([27, 255, 255]) #upper-bound value
-    # lower_color = np.array([5, 140, 153]) #lower-bound value
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = np.zeros(hsv.shape[:2], dtype="uint8")
+    mask[(hsv.shape[0]*2)//3:(hsv.shape[0]*7)//8, :] = 255
+    hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
+    # image_print(hsv)
+	# test 3
+	# upper_color = np.array([27, 255, 255]) #upper-bound value
+	# lower_color = np.array([5, 140, 153]) #lower-bound value
 
     # upper_color = np.array([65, 255, 255]) #upper-bound value
     # lower_color = np.array([5, 140, 150]) #lower-bound value
@@ -52,13 +55,12 @@ def cd_color_segmentation(img, template):
     # upper_color = np.array([65, 255, 255]) #upper-bound value
     # lower_color = np.array([5, 160, 155]) #lower-bound value
 
-    # test 5
-    upper_color = np.array([10, 255, 255])  # upper-bound value
-    lower_color = np.array([5, 200, 178])  # lower-bound value
-
+    upper_color = np.array([40, 255, 255]) #upper-bound value 
+    lower_color = np.array([0, 200, 95]) #lower-bound value
     mask = cv2.inRange(hsv, lower_color, upper_color)
+    rgb_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-    # image_print(mask)
+    image_print(mask)
 
     # cv2.imshow("Mask", mask)
     # cv2.waitKey(0)
@@ -85,6 +87,7 @@ def cd_color_segmentation(img, template):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
+    # return bounding_box, rgb_img
     return bounding_box
 
 
