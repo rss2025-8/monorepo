@@ -35,7 +35,7 @@ class MotionModel:
         ####################################
         result = []
 
-        # adding noise
+        # adding noise, change the bounds (these are just arbitrary and have no meaning)
         if not self.deterministic:
             odometry[0] += np.random.normal(-1, -1) # x-value noise
             odometry[1] += np.random.normal(-1, -1) # y-value noise
