@@ -197,9 +197,9 @@ class ParkingController(Node):
             visual_drive_Y,
             self.line_drive_pub,
             color=(brightness, 1.0, brightness),
-            frame="zed_center_link",
+            frame="/laser",
         )
-        VisualizationTools.plot_text(self.state.name, 0.0, 0.0, 0.5, 0.2, self.text_state_pub, frame="zed_center_link")
+        VisualizationTools.plot_text(self.state.name, 0.0, 0.0, 0.5, 0.2, self.text_state_pub, frame="/laser")
 
         self.drive(steering_angle, velocity)
         self.error_publisher()

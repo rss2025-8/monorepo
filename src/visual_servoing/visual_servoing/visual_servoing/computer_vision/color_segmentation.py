@@ -25,19 +25,29 @@ def image_print(img):
     cv2.destroyAllWindows()
 
 
-def cd_color_segmentation(img, template):
+def cd_color_segmentation(img, template, line_following=False):
     """
     Implement the cone detection using color segmentation algorithm
     Input:
             img: np.3darray; the input image with a cone to be detected. BGR.
             template_file_path; Not required, but can optionally be used to automate setting hue filter values.
+            line_following; Whether to follow a line (mask out part of the image / use different threshold).
     Return:
             bbox: ((x1, y1), (x2, y2)); the bounding box of the cone, unit in px
                             (x1, y1) is the top left of the bbox and (x2, y2) is the bottom right of the bbox
     """
     ########## YOUR CODE STARTS HERE ##########
-	# img = cv2.fastNlMeansDenoisingColored(img, None) # made the accuracy worse for some reason?
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)  # convert bgr image to hsv
+
+    # img = cv2.fastNlMeansDenoisingColored(img,None,10,10,7,21) # made the accuracy worse for some reason?
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    # Hide part of the image (for line following)
+    if line_following:
+        mask = np.zeros(hsv.shape[:2], dtype="uint8")
+        mask[(hsv.shape[0] * 2) // 3 : (hsv.shape[0] * 7) // 8, :] = 255
+        hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
+        # image_print(hsv)
 
     # test 3
     # upper_color = np.array([27, 255, 255]) #upper-bound value
@@ -50,9 +60,33 @@ def cd_color_segmentation(img, template):
     # upper_color = np.array([65, 255, 255]) #upper-bound value
     # lower_color = np.array([5, 160, 155]) #lower-bound value
 
+<<<<<<< HEAD
 	# best
 	# upper_color = np.array([27, 255, 255]) #upper-bound value
 	# lower_color = np.array([5, 160, 145]) #lower-bound value
+=======
+    # test 5 (Cone)
+    if not line_following:
+        upper_color = np.array([40, 255, 255])  # upper-bound value
+        lower_color = np.array([0, 200, 95])  # lower-bound value
+
+    # MUST NOT DETECT (lighting/background):
+    # (20, 107, 158)
+    # (18, 212, 110)
+
+    # MUST DETECT (part of line):
+    # (12, 250, 128)
+    # (12, 191, 199)
+    # (8, 92, 222)
+
+    # Ideally detect (rusty part of line):
+    # (15, 145, 150)
+
+    # Line following
+    if line_following:
+        upper_color = np.array([15, 255, 255])  # upper-bound value
+        lower_color = np.array([0, 80, 100])  # lower-bound value
+>>>>>>> 52e1855503ab9eb4e921ffdf73b26f07d9fcfa35
 
 	# testing
 	# upper_color = np.array([27, 255, 255]) #upper-bound value
@@ -63,11 +97,17 @@ def cd_color_segmentation(img, template):
     lower_color = np.array([5, 200, 90]) #lower-bound value
     
     mask = cv2.inRange(hsv, lower_color, upper_color)
+<<<<<<< HEAD
 	# kernel = np.ones((5, 5), np.uint8) # made no difference except smaller bounding box
 	# mask = cv2.erode(mask, kernel, iterations=2)  # Erosion
 	# mask = cv2.dilate(mask, kernel, iterations=2)  # Dilation
 
 	# image_print(mask)
+=======
+    rgb_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+    image_print(mask)
+>>>>>>> 52e1855503ab9eb4e921ffdf73b26f07d9fcfa35
 
     # cv2.imshow("Mask", mask)
     # cv2.waitKey(0)
@@ -93,6 +133,7 @@ def cd_color_segmentation(img, template):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
+    # return bounding_box, rgb_img
     return bounding_box
 
 

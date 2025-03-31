@@ -22,8 +22,8 @@ class ConeDetector(Node):
 
     def __init__(self):
         super().__init__("cone_detector")
-        # toggle line follower vs cone parker
-        self.LineFollower = False
+        # Toggle line follower vs cone parker
+        self.line_following = self.declare_parameter("line_following", False).get_parameter_value().bool_value
 
         # Subscribe to ZED camera RGB frames
         self.cone_pub = self.create_publisher(ConeLocationPixel, "/relative_cone_px", 10)
@@ -50,7 +50,7 @@ class ConeDetector(Node):
         # img = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
 
         image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
-        bounding_box = cd_color_segmentation(image, None)
+        bounding_box, hsv = cd_color_segmentation(image, None, line_following=self.line_following)
         if bounding_box is not None:
             print("Bounding box: ", bounding_box)
             u = (bounding_box[0][0] + bounding_box[1][0]) // 2
@@ -59,9 +59,9 @@ class ConeDetector(Node):
             cone_msg.u = float(u)
             cone_msg.v = float(v)
             self.cone_pub.publish(cone_msg)
-            cv2.rectangle(image, *bounding_box, color=[0, 255, 0], thickness=2)
+            cv2.rectangle(hsv, *bounding_box, color=[0, 255, 0], thickness=2)
             # image_print(image)
-        debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
+        debug_msg = self.bridge.cv2_to_imgmsg(hsv, "bgr8")
         self.debug_pub.publish(debug_msg)
 
 
