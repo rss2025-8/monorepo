@@ -159,7 +159,22 @@ class SensorModel:
         # to perform ray tracing from all the particles.
         # This produces a matrix of size N x num_beams_per_particle 
 
+        # TODO downsample
+
         scans = self.scan_sim.scan(particles)
+
+        # TODO could optimize
+        scans_pixels = scans / (self.resolution * self.lidar_scale_to_map_scale)
+        scans_pixels = (np.clip(scans_pixels, 0, self.table_width - 1) + 0.5).astype(int)  # N x K
+        measured_pixels = observation / (self.resolution * self.lidar_scale_to_map_scale)
+        measured_pixels = (np.clip(measured_pixels, 0, self.table_width - 1) + 0.5).astype(int)  # N
+
+        # scan_probs[i][j] = P(measured z_j pixels | d_j pixels at particle pose i)
+        scan_probs = self.sensor_model_table[measured_pixels[None, :], scans_pixels]  # N x K
+
+        # particle_probs[i] = P(particle i has all valid scans)
+        particle_probs = np.prod(scan_probs, axis=1)  # N
+        return particle_probs
 
         ####################################
 
