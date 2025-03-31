@@ -67,8 +67,10 @@ def cd_sift_ransac(img, template):
 		pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
 
 		########## YOUR CODE STARTS HERE ##########
-
-		x_min = y_min = x_max = y_max = 0
+		dst = cv2.perspectiveTransform(pts, M)
+		print(dst.shape)
+		x_min, y_min = np.int32(dst.min(axis=0)).ravel()
+		x_max, y_max = np.int32(dst.max(axis=0)).ravel()
 
 		########### YOUR CODE ENDS HERE ###########
 
@@ -104,6 +106,7 @@ def cd_template_matching(img, template):
 
 	# Loop over different scales of image
 	for scale in np.linspace(1.5, .5, 50):
+		# print("Here?")
 		# Resize the image
 		resized_template = imutils.resize(template_canny, width = int(template_canny.shape[1] * scale))
 		(h,w) = resized_template.shape[:2]
@@ -117,7 +120,12 @@ def cd_template_matching(img, template):
 
 		# Remember to resize the bounding box using the highest scoring scale
 		# x1,y1 pixel will be accurate, but x2,y2 needs to be correctly scaled
-		bounding_box = ((0,0),(0,0))
+		# bounding_box = ((0,0),(0,0))
+		result = cv2.matchTemplate(img_canny, resized_template, cv2.TM_CCOEFF_NORMED)
+		(_, max_val, _, max_loc) = cv2.minMaxLoc(result)
+		if best_match is None or max_val > best_match[0]:
+			best_match = (max_val, max_loc, scale)
+			bounding_box = ((max_loc[0], max_loc[1]), (max_loc[0] + resized_template.shape[1], max_loc[1] + resized_template.shape[0]))	
 		########### YOUR CODE ENDS HERE ###########
-
+	print("Bounding box: ", bounding_box)
 	return bounding_box
