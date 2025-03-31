@@ -56,18 +56,3 @@ class MotionModel:
             result.append([pose[0][2], pose[1][2], math.atan2(pose[1][0],pose[0][0])])
         # self.node.get_logger().info(f"result: {result}")
         return np.array(result)
-            
-
-        # homogeneous_particles = np.hstack((particles[:, :2], np.ones((num_particles, 1)))) 
-        # print(homogeneous_particles)
-
-        # transformed_particles = (homogeneous_particles[] @ odom_matrix)
-
-        # updated_theta = particles[:, 2] + odometry[2]
-
-        # updated_particles = np.column_stack((transformed_particles[:, :2], updated_theta))
-
-        # return updated_particles
-
-        ####################################
-
