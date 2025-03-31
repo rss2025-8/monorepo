@@ -31,11 +31,11 @@ class SensorModel:
 
         ####################################
         # Adjust these parameters
-        self.alpha_hit = 0
-        self.alpha_short = 0
-        self.alpha_max = 0
-        self.alpha_rand = 0
-        self.sigma_hit = 0
+        self.alpha_hit = 0.74
+        self.alpha_short = 0.07
+        self.alpha_max = 0.07
+        self.alpha_rand = 0.12
+        self.sigma_hit = 8.0
 
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
@@ -66,6 +66,36 @@ class SensorModel:
             self.map_topic,
             self.map_callback,
             1)
+    
+    def p_hit(self, z, d, sigma, z_max):
+        valid = np.logical_and(z >= 0, z <= z_max)
+        prob = (1 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5 * ((z - d) / sigma) ** 2)
+        return np.where(valid, prob, 0)
+
+    def p_short(self, z, d):
+        valid = np.logical_and(z >= 0, z <= d)
+        prob = (2 / d) * (1 - z / d)
+        return np.where(np.logical_and(valid, d != 0), prob, 0)
+
+    def p_max(self, z, z_max):
+        return np.where(z == z_max, 1 , 0)
+
+    def p_rand(self, z, z_max):
+        valid = np.logical_and(z >= 0, z <= z_max)
+        return np.where(valid, 1 / z_max, 0)
+
+    def sensor_model(self, z, d, sigma, z_max):
+        p_hit_result = self.p_hit(z, d, sigma, z_max)
+        #normalize across the columns
+        p_hit_result = p_hit_result / np.sum(p_hit_result, axis=0)
+        full_table = self.alpha_hit * p_hit_result + \
+                    self.alpha_short * self.p_short(z, d) + \
+                    self.alpha_max * self.p_max(z, z_max) + \
+                    self.alpha_rand * self.p_rand(z, z_max)
+        # Normalize across the columns
+        full_table = full_table / np.sum(full_table, axis=0)
+        return full_table
+
 
     def precompute_sensor_model(self):
         """
@@ -86,8 +116,16 @@ class SensorModel:
         returns:
             No return type. Directly modify `self.sensor_model_table`.
         """
-
-        raise NotImplementedError
+        d_values = np.array(range(self.table_width))
+        z_values = np.array(range(self.table_width))
+        # Create a meshgrid for d and z values
+        Z, D = np.meshgrid(z_values, d_values)
+        self.sensor_model_table = self.sensor_model(
+            Z,
+            D, 
+            self.sigma_hit, 
+            self.table_width - 1,
+        )
 
     def evaluate(self, particles, observation):
         """
@@ -155,3 +193,9 @@ class SensorModel:
         self.map_set = True
 
         print("Map initialized")
+
+
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+# Graph a 3d plot of the sensor model table to verify correctness no ros
