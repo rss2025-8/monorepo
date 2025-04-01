@@ -67,35 +67,31 @@ class SensorModel:
             self.map_callback,
             1)
     
-    def p_hit(self, z, d, sigma, z_max):
-        valid = np.logical_and(z >= 0, z <= z_max)
-        prob = (1 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5 * ((z - d) / sigma) ** 2)
-        return np.where(valid, prob, 0)
+    def p_hit(self, z, d, z_max):
+        if 0 <= z <= z_max:
+            return (1 / np.sqrt(2 * np.pi * self.sigma_hit**2)) * np.exp(-0.5 * ((z - d) / self.sigma_hit) ** 2)
+        return 0
 
     def p_short(self, z, d):
-        valid = np.logical_and(z >= 0, z <= d)
-        prob = (2 / d) * (1 - z / d)
-        return np.where(np.logical_and(valid, d != 0), prob, 0)
+        if 0 <= z <= d and d != 0:
+            return (2 / d) * (1 - (z / d))
+        return 0
 
     def p_max(self, z, z_max):
-        return np.where(z == z_max, 1 , 0)
+        if z == z_max:
+            return 1
+        return 0
 
     def p_rand(self, z, z_max):
-        valid = np.logical_and(z >= 0, z <= z_max)
-        return np.where(valid, 1 / z_max, 0)
+        if 0 <= z <= z_max:
+            return 1 / z_max
+        return 0
 
-    def sensor_model(self, z, d, sigma, z_max):
-        p_hit_result = self.p_hit(z, d, sigma, z_max)
-        #normalize across the columns
-        p_hit_result = p_hit_result / np.sum(p_hit_result, axis=0)
-        full_table = self.alpha_hit * p_hit_result + \
-                    self.alpha_short * self.p_short(z, d) + \
-                    self.alpha_max * self.p_max(z, z_max) + \
-                    self.alpha_rand * self.p_rand(z, z_max)
-        # Normalize across the columns
-        full_table = full_table / np.sum(full_table, axis=0)
-        return full_table
-
+    def probability_without_hit(self, z, d, z_max):
+        p_short = self.alpha_short * self.p_short(z, d)
+        p_max = self.alpha_max * self.p_max(z, z_max)
+        p_rand = self.alpha_rand * self.p_rand(z, z_max)
+        return p_short + p_max + p_rand
 
     def precompute_sensor_model(self):
         """
@@ -116,16 +112,20 @@ class SensorModel:
         returns:
             No return type. Directly modify `self.sensor_model_table`.
         """
-        d_values = np.array(range(self.table_width))
-        z_values = np.array(range(self.table_width))
-        # Create a meshgrid for d and z values
-        Z, D = np.meshgrid(z_values, d_values)
-        self.sensor_model_table = self.sensor_model(
-            Z,
-            D, 
-            self.sigma_hit, 
-            self.table_width - 1,
-        )
+        # iterate over all possible z_k and d_k values
+        # d should be columns and z should be rows
+        p_hit_result = np.zeros((self.table_width, self.table_width))
+        no_hit_result = np.zeros((self.table_width, self.table_width))
+        for z in range(self.table_width):
+            for d in range(self.table_width):
+                no_hit_result[z, d] = self.probability_without_hit(z, d, self.table_width - 1)
+                p_hit_result[z, d] = self.p_hit(z, d, self.table_width - 1)
+        # Normalize across columns for p_hit_result
+        p_hit_result = p_hit_result / np.sum(p_hit_result, axis=0, keepdims=True)
+        # add in the p hit into the no hit result
+        self.sensor_model_table = (self.alpha_hit * p_hit_result) + no_hit_result
+        # Normalize across columns
+        self.sensor_model_table = self.sensor_model_table / np.sum(self.sensor_model_table, axis=0, keepdims=True)
 
     def evaluate(self, particles, observation):
         """
