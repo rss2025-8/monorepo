@@ -208,9 +208,3 @@ class SensorModel:
         self.map_set = True
 
         print("Map initialized")
-
-
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-# Graph a 3d plot of the sensor model table to verify correctness no ros
