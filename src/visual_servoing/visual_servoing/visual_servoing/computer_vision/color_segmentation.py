@@ -82,10 +82,26 @@ def cd_color_segmentation(img, template, line_following=False):
         upper_color = np.array([15, 255, 255])  # upper-bound value
         lower_color = np.array([0, 80, 100])  # lower-bound value
 
+	# testing
+	# upper_color = np.array([27, 255, 255]) #upper-bound value
+	# lower_color = np.array([5, 160, 145]) #lower-bound value
+
+	# test 5
+    upper_color = np.array([10, 255, 255]) #upper-bound value
+    lower_color = np.array([5, 200, 90]) #lower-bound value
+    
     mask = cv2.inRange(hsv, lower_color, upper_color)
+<<<<<<< HEAD
+	# kernel = np.ones((5, 5), np.uint8) # made no difference except smaller bounding box
+	# mask = cv2.erode(mask, kernel, iterations=2)  # Erosion
+	# mask = cv2.dilate(mask, kernel, iterations=2)  # Dilation
+
+	# image_print(mask)
+=======
     rgb_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
     image_print(mask)
+>>>>>>> 52e1855503ab9eb4e921ffdf73b26f07d9fcfa35
 
     # cv2.imshow("Mask", mask)
     # cv2.waitKey(0)
@@ -94,7 +110,6 @@ def cd_color_segmentation(img, template, line_following=False):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     bounding_box = ((0, 0), (0, 0))
-
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest_contour)
