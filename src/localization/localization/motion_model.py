@@ -9,7 +9,7 @@ class MotionModel:
         # model here.
 
         # change this to False when not deterministic/adding noise
-        self.deterministic = True
+        self.deterministic = False
         self.node = node
 
         ####################################
@@ -36,17 +36,24 @@ class MotionModel:
         result = []
 
         # adding noise, change the bounds (these are just arbitrary and have no meaning)
-        if not self.deterministic:
-            odometry[0] += np.random.normal(-1, -1) # x-value noise
-            odometry[1] += np.random.normal(-1, -1) # y-value noise
-            odometry[2] += np.random.norma(-math.pi, math.pi) #theta noise
+        # if not self.deterministic:
+        #     odometry[0] += np.random.normal() # x-value noise
+        #     odometry[1] += np.random.normal() # y-value noise
+        #     odometry[2] += np.random.normal(scale=math.pi) #theta noise
 
-        odom_matrix = np.array([
-        [math.cos(odometry[2]), -math.sin(odometry[2]), odometry[0]],
-        [math.sin(odometry[2]),  math.cos(odometry[2]), odometry[1]],
-        [0,                      0,                     1]])
+        # odom_matrix = np.array([
+        # [math.cos(odometry[2]), -math.sin(odometry[2]), odometry[0]],
+        # [math.sin(odometry[2]),  math.cos(odometry[2]), odometry[1]],
+        # [0,                      0,                     1]])
 
         for particle in particles:
+            tmp_odom = odometry + (np.random.normal(scale=(0.01, 0.01, math.pi / 1000), size=(3)) if not self.deterministic else 0)
+
+            odom_matrix = np.array([
+            [math.cos(tmp_odom[2]), -math.sin(tmp_odom[2]), tmp_odom[0]],
+            [math.sin(tmp_odom[2]),  math.cos(tmp_odom[2]), tmp_odom[1]],
+            [0,                      0,                     1]])
+
             particle = np.array([
             [math.cos(particle[2]), -math.sin(particle[2]), particle[0]],
             [math.sin(particle[2]),  math.cos(particle[2]), particle[1]],
