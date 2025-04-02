@@ -33,26 +33,34 @@ class MotionModel:
                 same size
         """
         ####################################
-        result = []
-
-        # adding noise
+        ## adding noise
         if not self.deterministic:
             odometry[0] += np.random.normal(-1, -1) # x-value noise
             odometry[1] += np.random.normal(-1, -1) # y-value noise
-            odometry[2] += np.random.norma(-math.pi, math.pi) #theta noise
+            odometry[2] += np.random.normal(-math.pi, math.pi) #theta noise
+
+        cos_theta = math.cos(odometry[2])
+        sin_theta = math.sin(odometry[2])
 
         odom_matrix = np.array([
-        [math.cos(odometry[2]), -math.sin(odometry[2]), odometry[0]],
-        [math.sin(odometry[2]),  math.cos(odometry[2]), odometry[1]],
-        [0,                      0,                     1]])
+        [cos_theta, -sin_theta, odometry[0]],
+        [sin_theta,  cos_theta, odometry[1]],
+        [0,          0,         1]])
 
-        for particle in particles:
-            particle = np.array([
-            [math.cos(particle[2]), -math.sin(particle[2]), particle[0]],
-            [math.sin(particle[2]),  math.cos(particle[2]), particle[1]],
-            [0,                      0,                     1]])
-            pose = (particle@odom_matrix).tolist()
-            # self.node.get_logger().info(f"{pose}")
-            result.append([pose[0][2], pose[1][2], math.atan2(pose[1][0],pose[0][0])])
-        # self.node.get_logger().info(f"result: {result}")
-        return np.array(result)
+        particles = np.array(particles)
+
+        cos_theta_p = np.cos(particles[:, 2])
+        sin_theta_p = np.sin(particles[:, 2])
+
+        particle_matrices = np.zeros((len(particles), 3, 3))
+        particle_matrices[:, 0, 0] = cos_theta_p
+        particle_matrices[:, 0, 1] = -sin_theta_p
+        particle_matrices[:, 0, 2] = particles[:, 0]
+        particle_matrices[:, 1, 0] = sin_theta_p
+        particle_matrices[:, 1, 1] = cos_theta_p
+        particle_matrices[:, 1, 2] = particles[:, 1]
+        particle_matrices[:, 2, 2] = 1
+
+        transformed = np.einsum('ijk,kl->ijl', particle_matrices, odom_matrix)
+
+        return np.column_stack((transformed[:, 0, 2], transformed[:, 1, 2], np.arctan2(transformed[:, 1, 0], transformed[:, 0, 0])))
