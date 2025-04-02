@@ -60,11 +60,6 @@ def cd_color_segmentation(img, template, line_following=False):
     # upper_color = np.array([65, 255, 255]) #upper-bound value
     # lower_color = np.array([5, 160, 155]) #lower-bound value
 
-<<<<<<< HEAD
-	# best
-	# upper_color = np.array([27, 255, 255]) #upper-bound value
-	# lower_color = np.array([5, 160, 145]) #lower-bound value
-=======
     # test 5 (Cone)
     if not line_following:
         upper_color = np.array([40, 255, 255])  # upper-bound value
@@ -86,7 +81,6 @@ def cd_color_segmentation(img, template, line_following=False):
     if line_following:
         upper_color = np.array([15, 255, 255])  # upper-bound value
         lower_color = np.array([0, 80, 100])  # lower-bound value
->>>>>>> 52e1855503ab9eb4e921ffdf73b26f07d9fcfa35
 
 	# testing
 	# upper_color = np.array([27, 255, 255]) #upper-bound value
