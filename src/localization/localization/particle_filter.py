@@ -41,7 +41,7 @@ def point_to_pose(x, y, theta) -> Pose:
         position=Point(
             x=x,
             y=y,
-            z=0
+            z=0.0
         ),
         orientation=Quaternion(
             x=quaternion[0],
@@ -173,7 +173,8 @@ class ParticleFilter(Node):
         weights = self.sensor_model.evaluate(self.particles, scan.ranges)
 
         # resample (probably broken)
-        self.particles = np.random.choice(self.particles, self.num_particles, p=weights)
+        indices = np.random.choice(self.particles.shape[0], self.num_particles, p=weights)
+        self.particles = self.particles[indices]
         self.publish_average_pose()
 
     def publish_average_pose(self) -> None:
@@ -181,8 +182,8 @@ class ParticleFilter(Node):
         x, y = np.mean(self.particles[:, :2], axis=0)
 
         angles = self.particles[:2]
-        sigma_sin = sum(np.sin(angles))
-        sigma_cos = sum(np.cos(angles))
+        sigma_sin = np.sum(np.sin(angles))
+        sigma_cos = np.sum(np.cos(angles))
         theta = np.arctan2(sigma_sin, sigma_cos)
 
         self.odom_avg_mut.pose.pose = point_to_pose(x, y, theta)        
