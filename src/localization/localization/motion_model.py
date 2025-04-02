@@ -33,11 +33,7 @@ class MotionModel:
                 same size
         """
         ####################################
-        # adding noise, change the bounds (these are just arbitrary and have no meaning)
-        if not self.deterministic:
-            odometry[0] += np.random.normal(-1, -1) # x-value noise
-            odometry[1] += np.random.normal(-1, -1) # y-value noise
-            odometry[2] += np.random.normal(-math.pi, math.pi) #theta noise
+        noise = 0
 
         cos_theta = math.cos(odometry[2])
         sin_theta = math.sin(odometry[2])
@@ -48,6 +44,11 @@ class MotionModel:
         [0,          0,         1]])
 
         particles = np.array(particles)
+
+        # adding noise, change the bounds (these are just arbitrary and have no meaning)
+        if not self.deterministic:
+            noise = np.random.normal(loc=[0, 0, 0], scale=[1, 1, math.pi], size=(len(particles), 3))
+        particles += noise
 
         cos_theta_p = np.cos(particles[:, 2])
         sin_theta_p = np.sin(particles[:, 2])
