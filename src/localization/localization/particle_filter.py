@@ -173,6 +173,12 @@ class ParticleFilter(Node):
 
         lin_vel = odom.twist.twist.linear
         rot_vel = odom.twist.twist.angular
+
+        # TODO add intentional drift to odometry
+        # lin_vel.x += np.random.normal(loc=0, scale=0.1)
+        # lin_vel.y += np.random.normal(loc=0, scale=0.1)
+        # rot_vel.z += np.random.normal(loc=0, scale=np.pi / 12)
+
         delta_pose = np.array([lin_vel.x * dt, lin_vel.y * dt, rot_vel.z * dt])
         if self.flip_odometry:
             delta_pose *= -1

@@ -37,41 +37,22 @@ class MotionModel:
                 same size
         """
         ####################################
-        result = []
 
-        # adding noise, change the bounds (these are just arbitrary and have no meaning)
-        # if not self.deterministic:
-        #     odometry[0] += np.random.normal() # x-value noise
-        #     odometry[1] += np.random.normal() # y-value noise
-        #     odometry[2] += np.random.normal(scale=math.pi) #theta noise
+        # TODO add noise in a way such that laggy odometry (small vs. large dt) doesn't change noise "amount"
+        # Also noise should increase when linear and/or angular velocity is high
 
-        # odom_matrix = np.array([
-        # [math.cos(odometry[2]), -math.sin(odometry[2]), odometry[0]],
-        # [math.sin(odometry[2]),  math.cos(odometry[2]), odometry[1]],
-        # [0,                      0,                     1]])
+        # Add noise if needed (odometry is ~50 Hz)
+        if not self.deterministic:
+            noise = np.random.normal(loc=0, scale=(0.01, 0.01, np.pi / 300), size=particles.shape)
+            particles += noise
 
-        for particle in particles:
-            tmp_odom = odometry + (
-                np.random.normal(scale=(0.01, 0.01, math.pi / 1000), size=(3)) if not self.deterministic else 0
-            )
+        dx, dy, dtheta = odometry
+        cos_theta = np.cos(particles[:, 2])
+        sin_theta = np.sin(particles[:, 2])
 
-            odom_matrix = np.array(
-                [
-                    [math.cos(tmp_odom[2]), -math.sin(tmp_odom[2]), tmp_odom[0]],
-                    [math.sin(tmp_odom[2]), math.cos(tmp_odom[2]), tmp_odom[1]],
-                    [0, 0, 1],
-                ]
-            )
-
-            particle = np.array(
-                [
-                    [math.cos(particle[2]), -math.sin(particle[2]), particle[0]],
-                    [math.sin(particle[2]), math.cos(particle[2]), particle[1]],
-                    [0, 0, 1],
-                ]
-            )
-            pose = (particle @ odom_matrix).tolist()
-            # self.node.get_logger().info(f"{pose}")
-            result.append([pose[0][2], pose[1][2], math.atan2(pose[1][0], pose[0][0])])
-        # self.node.get_logger().info(f"result: {result}")
-        return np.array(result)
+        # Apply 2D pose composition formulas directly
+        new_x = particles[:, 0] + cos_theta * dx - sin_theta * dy
+        new_y = particles[:, 1] + sin_theta * dx + cos_theta * dy
+        new_theta = particles[:, 2] + dtheta
+        new_theta = (new_theta + np.pi) % (2 * np.pi) - np.pi  # Faster arctan2 to make theta in [-pi, pi]
+        return np.column_stack((new_x, new_y, new_theta))

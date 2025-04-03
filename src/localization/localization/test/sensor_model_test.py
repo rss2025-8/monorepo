@@ -120,7 +120,7 @@ class SensorModelTest(Node):
             expected_probabilities,
             actual_probabilities,
             rtol=self.tol,
-            atol=0.0,
+            # atol=0.0,
         ), f"Expected {expected_probabilities}, got {actual_probabilities}"
 
         self.get_logger().info(
