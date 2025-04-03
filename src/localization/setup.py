@@ -1,7 +1,8 @@
 import glob
 import os
+
 from Cython.Build import cythonize
-from setuptools import setup, find_packages, Extension
+from setuptools import Extension, find_packages, setup
 
 package_name = 'localization'
 
@@ -24,10 +25,11 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
          ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml', 'localization/params.yaml', 'localization/test/test_params.yaml']),
+        ('share/' + package_name, ['package.xml', 'localization/test/test_params.yaml']),
         ('share/localization/launch',
          glob.glob(os.path.join('launch', '*launch.*')) + glob.glob(os.path.join('launch/unit_tests', '*launch.*'))),
         ('share/localization/test_map', glob.glob(os.path.join('test_map', '*'))),
+        ('share/localization/config', glob.glob(os.path.join('config', '*.yaml'))),
     ],
     install_requires=['setuptools', "Cython"],
     zip_safe=True,

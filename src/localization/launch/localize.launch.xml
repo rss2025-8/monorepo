@@ -1,5 +1,6 @@
 <launch>
+    <arg name="env" default="sim"/>
     <node pkg="localization" exec="particle_filter" name="particle_filter" output="screen">
-        <param from="$(find-pkg-share localization)/params.yaml"/>
+        <param from="$(find-pkg-share localization)/config/$(var env)_params.yaml"/>
     </node>
 </launch>
