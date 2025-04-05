@@ -15,7 +15,7 @@ class MotionModel:
         # change this to False when not deterministic/adding noise
         node.declare_parameter("deterministic", False)
         self.deterministic = node.get_parameter("deterministic").get_parameter_value().bool_value
-
+        self.noise_level = 0.3
         ####################################
 
     def evaluate(self, particles, odometry):
@@ -43,8 +43,9 @@ class MotionModel:
 
         # Add noise if needed (odometry is ~50 Hz)
         if not self.deterministic:
-            noise = np.random.normal(loc=0, scale=(0.01, 0.01, np.pi / 300), size=particles.shape)
+            noise = np.random.normal(loc=0, scale=(self.noise_level, self.noise_level, np.pi / 100), size=particles.shape)
             particles += noise
+        
 
         dx, dy, dtheta = odometry
         cos_theta = np.cos(particles[:, 2])
