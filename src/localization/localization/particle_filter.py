@@ -1,3 +1,5 @@
+import threading
+
 import numpy as np
 import rclpy
 import tf2_ros
@@ -15,7 +17,7 @@ from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Header, String, Float32
+from std_msgs.msg import Float32, Header, String
 
 from localization.motion_model import MotionModel
 from localization.sensor_model import SensorModel
@@ -132,7 +134,7 @@ class ParticleFilter(Node):
         self.motion_model = MotionModel(self)
         self.get_logger().info("noise level: " + str(self.motion_model.noise_level))
         self.sensor_model = SensorModel(self)
-        self.gt_pose = None # For graphing the difference in calculated vs ground truth pose
+        self.gt_pose = None  # For graphing the difference in calculated vs ground truth pose
         self.initial_pose_msg = None
         self.get_logger().info("=============+READY+=============")
 
@@ -161,11 +163,18 @@ class ParticleFilter(Node):
 
         self.prev_time: Time = self.get_clock().now()
 
+        self.lock = threading.Lock()  # Protects particles from race conditions
+
     def pose_callback(self, initial_pose: PoseWithCovarianceStamped) -> None:
-        self.gt_pose = pose_to_vec(initial_pose.pose.pose)
-        self.particles = np.tile(pose_to_vec(initial_pose.pose.pose), (self.num_particles, 1)) + np.random.normal(
-            scale=0.1, size=(self.num_particles, 3)
-        )
+        # self.gt_pose = pose_to_vec(initial_pose.pose.pose)
+        initial_vec = pose_to_vec(initial_pose.pose.pose)
+        # TODO add intentional drift to initial pose
+        # initial_vec += np.random.normal(loc=0, scale=[1, 1, np.pi / 16], size=3)
+        with self.lock:
+            self.particles = np.tile(initial_vec, (self.num_particles, 1)) + np.random.normal(
+                scale=0.1, size=(self.num_particles, 3)
+            )
+
     def odom_callback(self, odom: Odometry) -> None:
         """
         Run prediction step
@@ -173,45 +182,41 @@ class ParticleFilter(Node):
         new_time = Time.from_msg(odom.header.stamp)
         dt = (new_time - self.prev_time).nanoseconds / 1e9
         self.prev_time = new_time
+        self.gt_pose = np.array([odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.orientation.z])
 
         lin_vel = odom.twist.twist.linear
         rot_vel = odom.twist.twist.angular
 
         # TODO add intentional drift to odometry
-        # lin_vel.x += np.random.normal(loc=0, scale=0.1)
-        # lin_vel.y += np.random.normal(loc=0, scale=0.1)
-        # rot_vel.z += np.random.normal(loc=0, scale=np.pi / 12)
+        # lin_vel.x += np.random.normal(loc=-0.5, scale=0.5)
+        # lin_vel.y += np.random.normal(loc=0, scale=0.5)
+        # rot_vel.z += np.random.normal(loc=0, scale=np.pi / 3)
 
         delta_pose = np.array([lin_vel.x * dt, lin_vel.y * dt, rot_vel.z * dt])
-        
         if self.flip_odometry:
             delta_pose *= -1
-        if self.gt_pose is not None:
-            theta = self.gt_pose[2]
-            dx_world = lin_vel.x * np.cos(theta) - lin_vel.y * np.sin(theta)
-            dy_world = lin_vel.x * np.sin(theta) + lin_vel.y * np.cos(theta)
-            delta_pose = np.array([dx_world * dt, dy_world * dt, rot_vel.z * dt])
-            self.gt_pose += delta_pose
-        self.get_logger().info(f"odometry: {delta_pose.round(4)}")
+        # self.get_logger().info(f"odometry: {delta_pose.round(4)}")
 
-        self.particles = self.motion_model.evaluate(self.particles, delta_pose)
-        self.publish_average_pose()
+        with self.lock:
+            self.particles = self.motion_model.evaluate(self.particles, delta_pose)
+            self.publish_average_pose()
 
     def laser_callback(self, scan: LaserScan) -> None:
         # TODO move particles a bit with motion model to align with scan time (better accuracy)
         # ~1,081 ranges, [-2.356194496154785, 2.356194496154785]
-        weights = self.sensor_model.evaluate(self.particles, scan.ranges)
-        if weights is None:
-            self.get_logger().warning("SENSOR MODEL NOT UPDATING, RELAUNCH MAP")
-            return
-        if self.debug:
-            sorted_weights = weights[np.argsort(weights)][::-1].round(3)
-            self.get_logger().info(f"sensor: {sorted_weights[:3]}...")
+        with self.lock:
+            weights = self.sensor_model.evaluate(self.particles, scan.ranges)
+            if weights is None:
+                self.get_logger().warning("SENSOR MODEL NOT UPDATING, RELAUNCH MAP")
+                return
+            # if self.debug:
+            #     sorted_weights = weights[np.argsort(weights)][::-1].round(3)
+            #     self.get_logger().info(f"sensor: {sorted_weights[:3]}...")
 
-        # Resample
-        indices = np.random.choice(self.particles.shape[0], self.num_particles, p=weights)
-        self.particles = self.particles[indices]
-        self.publish_average_pose()
+            # Resample
+            indices = np.random.choice(self.particles.shape[0], self.num_particles, p=weights)
+            self.particles = self.particles[indices]
+            self.publish_average_pose()
 
     def publish_average_pose(self) -> None:
         # TODO maybe publish pose every 100 Hz or something (using rough odometry estimate in between updates)
@@ -236,14 +241,18 @@ class ParticleFilter(Node):
         if self.debug:
             self.debug_particle_array_mut.poses = [point_to_pose(x, y, theta) for x, y, theta in self.particles]
             self.debug_particles_pub.publish(self.debug_particle_array_mut)
+
+        # Find error
         if self.gt_pose is not None:
-            estimated_pose = np.array([x, y, theta])
-            error = np.linalg.norm(self.gt_pose[:-1] - estimated_pose[:-1])
-            self.get_logger().info(f"ground truth: {self.gt_pose[:-1]}")
-            self.get_logger().info(f"estimated: {estimated_pose[:-1]}")
+            truth_pose = self.gt_pose
+            estimated_pose = [x, y, theta]
+            error = np.linalg.norm(truth_pose[:-1] - estimated_pose[:-1])
+            # self.get_logger().info(f"ground truth: {truth_pose[:-1]}")
+            # self.get_logger().info(f"estimated: {estimated_pose[:-1]}")
+            # self.get_logger().info(f"error: {error:.4f}")
             msg = Float32(data=error)
             self.pose_error_pub.publish(msg)
-            self.get_logger().info(f"error: {error:.4f}")
+
 
 def main(args=None):
     rclpy.init(args=args)
