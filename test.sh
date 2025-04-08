@@ -4,5 +4,5 @@ echo "Building..."
 PYTHONWARNINGS="ignore" colcon build --symlink-install
 source install/setup.bash
 
-echo "Launching..."
-ros2 launch visual_servoing parking_deploy.launch.xml type:=line
+echo "Launching (**remember to also re-launch map!**)..."
+ros2 launch localization localize.launch.xml env:=act

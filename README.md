@@ -2,6 +2,23 @@
 
 All our code will be in here!
 
+## Lab 5: Monte Carlo Localization
+
+Testing localization in simulation:
+```sh
+ros2 launch wall_follower wall_follower.launch.xml
+ros2 launch localization localize.launch.xml env:=sim
+# Launch this last, then make sure the debug logs for the localizer have no warnings!
+ros2 launch racecar_simulator simulate.launch.xml
+```
+
+Testing localization on the car:
+```sh
+ros2 launch localization localize.launch.xml env:=act
+# Launch this last, then make sure the debug logs for the localizer have no warnings!
+ros2 launch racecar_simulator localization_simulate.launch.xml
+```
+
 ## Lab 4: Vision
 
 To run vision tests:
