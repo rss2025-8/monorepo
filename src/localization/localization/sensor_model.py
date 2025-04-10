@@ -2,15 +2,11 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.animation import FuncAnimation
+import range_libc
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
-from scan_simulator_2d import PyScanSimulator2D
+from sensor_msgs.msg import LaserScan
 from tf_transformations import euler_from_quaternion
-
-# Try to change to just `from scan_simulator_2d import PyScanSimulator2D`
-# if any error re: scan_simulator_2d occurs
-
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -24,21 +20,12 @@ class SensorModel:
 
     def __init__(self, node: Node):
         self.node = node
-        node.declare_parameter("map_topic", "default")
-        node.declare_parameter("num_beams_per_particle", 1)
-        node.declare_parameter("scan_theta_discretization", 1.0)
-        node.declare_parameter("scan_field_of_view", 1.0)
-        node.declare_parameter("lidar_scale_to_map_scale", 1.0)
 
-        self.map_topic = node.get_parameter("map_topic").get_parameter_value().string_value
-        self.num_beams_per_particle = node.get_parameter("num_beams_per_particle").get_parameter_value().integer_value
-        self.scan_theta_discretization = (
-            node.get_parameter("scan_theta_discretization").get_parameter_value().double_value
-        )
-        self.scan_field_of_view = node.get_parameter("scan_field_of_view").get_parameter_value().double_value
-        self.lidar_scale_to_map_scale = (
-            node.get_parameter("lidar_scale_to_map_scale").get_parameter_value().double_value
-        )
+        self.map_topic = node.declare_parameter("map_topic", "default").value
+        self.num_beams_per_particle = node.declare_parameter("num_beams_per_particle", 1).value
+        self.scan_theta_discretization = node.declare_parameter("scan_theta_discretization", 1.0).value
+        self.scan_field_of_view = node.declare_parameter("scan_field_of_view", 1.0).value
+        self.lidar_scale_to_map_scale = node.declare_parameter("lidar_scale_to_map_scale", 1.0).value
 
         ####################################
         # Adjust these parameters
@@ -48,9 +35,9 @@ class SensorModel:
         self.alpha_rand = 0.12
         self.sigma_hit = 8.0
 
-        # self.alpha_hit = 0.78
-        # self.alpha_short = 0.1
-        # self.alpha_max = 0.00
+        # self.alpha_hit = 0.8
+        # self.alpha_short = 0.01
+        # self.alpha_max = 0.07
         # self.alpha_rand = 0.12
         # self.sigma_hit = 8.0
 
@@ -60,33 +47,18 @@ class SensorModel:
         # self.alpha_rand = 0.2
         # self.sigma_hit = 16.0
 
-        # self.alpha_hit = 0.73
-        # self.alpha_short = 0.1
-        # self.alpha_max = 0.06
-        # self.alpha_rand = 0.11
-        # self.sigma_hit = 8.0
-
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
         ####################################
-
-        self.node.get_logger().info("Map topic: %s" % self.map_topic)
-        self.node.get_logger().info("# beams per particle: %s" % self.num_beams_per_particle)
-        self.node.get_logger().info("Scan theta discretization: %s" % self.scan_theta_discretization)
-        self.node.get_logger().info("Scan field of view: %s" % self.scan_field_of_view)
 
         # Precompute the sensor model table
         self.sensor_model_table = np.empty((self.table_width, self.table_width))
         self.precompute_sensor_model()
 
-        # Create a simulated laser scan
-        self.scan_sim = PyScanSimulator2D(
-            self.num_beams_per_particle,
-            self.scan_field_of_view,
-            0,  # This is not the simulator, don't add noise
-            0.01,  # This is used as an epsilon
-            self.scan_theta_discretization,
-        )
+        # Cached variables
+        self.scans = np.empty(self.node.num_particles * self.num_beams_per_particle, dtype=np.float32)  # NK, cached
+        self.indices = None
+        self.angles = None
 
         # Subscribe to the map
         self.map = None
@@ -165,7 +137,7 @@ class SensorModel:
         # Normalize across columns
         self.sensor_model_table = self.sensor_model_table / np.sum(self.sensor_model_table, axis=0, keepdims=True)
 
-    def evaluate(self, particles: np.ndarray, raw_observation: list):
+    def evaluate(self, particles: np.ndarray, scan: LaserScan):
         """
         Evaluate how likely each particle is given
         the observed scan.
@@ -177,8 +149,7 @@ class SensorModel:
                 [x1 y0 theta1]
                 [    ...     ]
 
-            raw_observation: A vector of lidar data measured
-                from the actual lidar. THIS IS Z_K. Each range in Z_K is Z_K^i
+            scan: The actual LIDAR scan
 
         returns:
            probabilities: A vector of length N representing
@@ -187,25 +158,25 @@ class SensorModel:
         """
         if not self.map_set:
             return  # Need a map to evaluate sensor model
+        assert particles.shape[0] == self.node.num_particles
+
+        if self.indices is None:
+            # Precompute relevant indices and angles
+            self.indices = fast_round(np.linspace(0, len(scan.ranges) - 1, self.num_beams_per_particle))
+            self.angles = np.array(self.indices, dtype=np.float32) * scan.angle_increment + scan.angle_min
+            # self.node.get_logger().info(f"indices: {indices[:5]}")
+            # self.node.get_logger().info(f"angles: {angles[:5]}")
 
         # Downsample LIDAR scans
-        indices = fast_round(np.linspace(0, len(raw_observation) - 1, self.num_beams_per_particle))
-        observation = np.array(raw_observation)[indices]
+        raw_observation = scan.ranges
+        observation = np.array(raw_observation, dtype=np.float32)[self.indices]
 
         # Get ground truth with raytracing
-        scans = self.scan_sim.scan(particles)  # N x K
-
-        # Convert to pixels
-        z_max = self.table_width - 1
-        scans_pixels = scans / (self.resolution * self.lidar_scale_to_map_scale)
-        scans_pixels = fast_round(np.clip(scans_pixels, 0, z_max))  # N x K
-        observation_pixels = observation / (self.resolution * self.lidar_scale_to_map_scale)
-        observation_pixels = fast_round(np.clip(observation_pixels, 0, z_max))  # K
-
-        # scan_probs[i, j] = P(measured z_j pixels | d_j pixels at particle pose i)
-        scan_probs = self.sensor_model_table[observation_pixels[None, :], scans_pixels]  # N x K
-        # particle_probs[i] = P(particle i has all valid scans)
-        particle_probs = np.prod(scan_probs, axis=1)  # N
+        particle_probs = np.ones(particles.shape[0], dtype=np.float64)  # N
+        self.range_method.calc_range_repeat_angles(particles.astype(np.float32), self.angles, self.scans)
+        self.range_method.eval_sensor_model(
+            observation, self.scans, particle_probs, self.num_beams_per_particle, particles.shape[0]
+        )
 
         # Normalize probabilities
         particle_probs = particle_probs / np.sum(particle_probs)
@@ -218,17 +189,18 @@ class SensorModel:
         self.map = np.clip(self.map, 0, 1)
         self.resolution = map_msg.info.resolution
 
-        # Convert the origin to a tuple
-        origin_p = map_msg.info.origin.position
-        origin_o = map_msg.info.origin.orientation
-        origin_o = euler_from_quaternion((origin_o.x, origin_o.y, origin_o.z, origin_o.w))
-        origin = (origin_p.x, origin_p.y, origin_o[2])
-
-        # Initialize a map with the laser scan
-        self.scan_sim.set_map(
-            self.map, map_msg.info.height, map_msg.info.width, map_msg.info.resolution, origin, 0.5
-        )  # Consider anything < 0.5 to be free
-
         # Make the map set
         self.map_set = True
+
+        # Setup range_libc
+
+        if self.node.on_racecar:
+            self.node.get_logger().info("Using racecar range method (ray marching + GPU)...")
+            oMap = range_libc.PyOMap(map_msg)
+            self.range_method = range_libc.PyRayMarchingGPU(oMap, self.table_width - 1)
+        else:
+            self.node.get_logger().info("Using local range method (ray marching)...")
+            oMap = range_libc.PyOMap(map_msg)
+            self.range_method = range_libc.PyRayMarching(oMap, self.table_width - 1)
+        self.range_method.set_sensor_model(self.sensor_model_table)
         self.node.get_logger().info("Map and sensor model initialized!")

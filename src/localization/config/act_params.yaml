@@ -21,9 +21,9 @@ particle_filter:
     # Discretize the theta space for faster ray tracing
     scan_theta_discretization: 500.0
 
-    # Lidar is slightly in front of base_link
-    # lidar_offset: 0.25
-    lidar_offset: 0.0
+    # Lidar is ~0.25 m in front of base_link, but localization lags
+    # Offset accounts for both, larger = Further ahead of the robot
+    forward_offset: 0.0
 
     # The names of topics to listen and publish to
     map_topic: "/map"

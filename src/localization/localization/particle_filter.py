@@ -82,7 +82,7 @@ class ParticleFilter(Node):
 
         self.debug: bool = self.declare_parameter("debug", False).value
         self.num_particles: int = self.declare_parameter("num_particles", 200).value
-        self.lidar_offset: float = self.declare_parameter("lidar_offset", 0.25).value
+        self.forward_offset: float = self.declare_parameter("forward_offset", 0.0).value
         self.deterministic: bool = self.declare_parameter("deterministic", False).value
         self.on_racecar: bool = self.declare_parameter("on_racecar", False).value
         self.particle_filter_frame: str = self.declare_parameter("particle_filter_frame", "default").value
@@ -119,7 +119,6 @@ class ParticleFilter(Node):
         self.pose_error_pub = self.create_publisher(Float32, "/pf/pose/error", 1)
 
         self.debug_particles_pub = self.create_publisher(PoseArray, "/debug_particles", 1)
-        self.debug_particle_array_mut = PoseArray(header=Header(frame_id="/map"))
 
         # Initialize the models
         self.motion_model = MotionModel(self)
@@ -127,8 +126,11 @@ class ParticleFilter(Node):
         self.true_pose = None
         self.initial_pose_msg = None
 
+        self.get_logger().info(f"# particles: {self.num_particles}")
+        self.get_logger().info(f"# beams per particle: {self.sensor_model.num_beams_per_particle}")
+
         if self.debug:
-            self.get_logger().warning("Debug mode enabled, expect slow performance!")
+            self.get_logger().warning("NOTE: Debug mode enabled, expect slow performance!")
         self.get_logger().info("=============+READY+=============")
 
         # Implement the MCL algorithm
@@ -160,7 +162,7 @@ class ParticleFilter(Node):
         self.prev_time = new_time
         self.prev_odom = odom
         # self.get_logger().info(f"odom dt:  {dt:.4f}")
-        self.true_pose = np.array([odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.orientation.z])
+        self.true_pose = pose_to_vec(odom.pose.pose)
 
         lin_vel = odom.twist.twist.linear
         rot_vel = odom.twist.twist.angular
@@ -174,6 +176,10 @@ class ParticleFilter(Node):
 
         self.particles = self.motion_model.evaluate(self.particles, delta_pose, dt)
         self.publish_average_pose(new_time)
+
+        latency = (self.get_clock().now() - new_time).nanoseconds / 1e9
+        if latency > 0.015:
+            self.get_logger().warning(f"high odom callback latency: {latency:.4f}s")
 
     def laser_callback(self, scan: LaserScan) -> None:
         """Run update step. Runs at ~40 Hz (car), ~50 Hz (sim).
@@ -193,8 +199,8 @@ class ParticleFilter(Node):
             moved_particles = self.particles
 
         # Find particle weights
-        weights = self.sensor_model.evaluate(moved_particles, scan.ranges)
-        # weights = self.sensor_model.evaluate(self.particles, scan.ranges)
+        weights = self.sensor_model.evaluate(moved_particles, scan)
+        # weights = self.sensor_model.evaluate(self.particles, scan)
         if weights is None:
             if self.sensor_model_working:
                 self.get_logger().warning("SENSOR MODEL NOT UPDATING, RELAUNCH MAP")
@@ -208,6 +214,10 @@ class ParticleFilter(Node):
         # Resample
         indices = np.random.choice(self.particles.shape[0], self.num_particles, p=weights)
         self.particles = self.particles[indices]
+
+        latency = (self.get_clock().now() - new_time).nanoseconds / 1e9
+        if latency > 0.015:
+            self.get_logger().warning(f"high laser callback latency: {latency:.4f}s")
 
     def publish_average_pose(self, time: Time) -> None:
         """Publish the average pose of the particles at the given time.
@@ -224,8 +234,8 @@ class ParticleFilter(Node):
         theta = np.arctan2(sigma_sin, sigma_cos)
 
         # Move (x, y) to account for lidar being slightly in front of the robot
-        x -= self.lidar_offset * math.cos(theta)
-        y -= self.lidar_offset * math.sin(theta)
+        x += self.forward_offset * math.cos(theta)
+        y += self.forward_offset * math.sin(theta)
 
         # Publish average pose and TF transform
         self.odom_avg_mut.pose.pose = point_to_pose(x, y, theta)
@@ -237,17 +247,20 @@ class ParticleFilter(Node):
         if self.debug:
             # Publish some of the particles, but not all (very slow)
             num_to_publish = min(len(self.particles), 20)
-            self.debug_particle_array_mut.poses = [
-                point_to_pose(x - self.lidar_offset * math.cos(theta), y - self.lidar_offset * math.sin(theta), theta)
+            debug_msg = PoseArray(header=Header(frame_id="/map"))
+            debug_msg.poses = [
+                point_to_pose(
+                    x + self.forward_offset * math.cos(theta), y + self.forward_offset * math.sin(theta), theta
+                )
                 for x, y, theta in self.particles[:num_to_publish]
             ]
-            self.debug_particles_pub.publish(self.debug_particle_array_mut)
+            self.debug_particles_pub.publish(debug_msg)
 
             # Find error
             if self.true_pose is not None:
                 truth_pose = self.true_pose
                 estimated_pose = [x, y, theta]
-                error = np.linalg.norm(truth_pose - estimated_pose)
+                error = np.linalg.norm(truth_pose[:2] - estimated_pose[:2])
                 msg = Float32(data=error)
                 self.pose_error_pub.publish(msg)
 
@@ -274,4 +287,5 @@ def main(args=None):
     rclpy.init(args=args)
     pf = ParticleFilter()
     rclpy.spin(pf)
+    rclpy.shutdown()
     rclpy.shutdown()
