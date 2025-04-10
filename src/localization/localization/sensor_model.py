@@ -42,17 +42,29 @@ class SensorModel:
 
         ####################################
         # Adjust these parameters
-        # self.alpha_hit = 0.74
-        # self.alpha_short = 0.07
-        # self.alpha_max = 0.07
+        self.alpha_hit = 0.74
+        self.alpha_short = 0.07
+        self.alpha_max = 0.07
+        self.alpha_rand = 0.12
+        self.sigma_hit = 8.0
+
+        # self.alpha_hit = 0.78
+        # self.alpha_short = 0.1
+        # self.alpha_max = 0.00
         # self.alpha_rand = 0.12
         # self.sigma_hit = 8.0
 
-        self.alpha_hit = 0.73
-        self.alpha_short = 0.1
-        self.alpha_max = 0.06
-        self.alpha_rand = 0.11
-        self.sigma_hit = 8.0
+        # self.alpha_hit = 0.6
+        # self.alpha_short = 0.1
+        # self.alpha_max = 0.1
+        # self.alpha_rand = 0.2
+        # self.sigma_hit = 16.0
+
+        # self.alpha_hit = 0.73
+        # self.alpha_short = 0.1
+        # self.alpha_max = 0.06
+        # self.alpha_rand = 0.11
+        # self.sigma_hit = 8.0
 
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
@@ -80,8 +92,6 @@ class SensorModel:
         self.map = None
         self.map_set = False
         self.map_subscriber = node.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, 1)
-        self.gen_plot_k = None  # 10
-        # self.gen_plot_k = 10
 
         # Plot sensor model distribution
         # D = 150
@@ -94,28 +104,6 @@ class SensorModel:
         # ax.set_title("Sensor Model Distribution")
         # plt.tight_layout()
         # plt.show()
-
-        if self.gen_plot_k:
-            # Plot probability distribution
-            fig, ax = plt.subplots()
-            self.particle_probs = np.ones(self.gen_plot_k) / self.gen_plot_k
-
-            # Cumulative probability
-            (self.line,) = ax.plot([], [])
-            self.line.set_data(range(self.gen_plot_k), self.particle_probs)
-
-            # self.bars = ax.bar(range(self.gen_plot_k), [0] * self.gen_plot_k)
-            # for bar, val in zip(self.bars, self.particle_probs):
-            #     bar.set_height(val)
-            ax.set_xlim(0, self.gen_plot_k - 1)
-            ax.set_ylim(0, 1)
-            ax.set_xlabel("Particle Index")
-            ax.set_ylabel("Probability")
-            ax.set_title("Sensor Model Particle Probabilities")
-
-            plt.ion()  # Turn on interactive mode
-            plt.tight_layout()
-            plt.show()
 
     def p_hit(self, z, d, z_max):
         if 0 <= z <= z_max:
@@ -162,7 +150,7 @@ class SensorModel:
         returns:
             No return type. Directly modify `self.sensor_model_table`.
         """
-        # iterate over all possible z_k and d_k values
+        # Iterate over all possible z_k and d_k values
         # d should be columns and z should be rows
         p_hit_result = np.zeros((self.table_width, self.table_width))
         no_hit_result = np.zeros((self.table_width, self.table_width))
@@ -197,35 +185,15 @@ class SensorModel:
                the probability of each particle existing
                given the observation and the map.
         """
-
         if not self.map_set:
-            # self.node.get_logger().warning("MAP NOT SET, SENSOR MODEL NOT EVALUATING")
-            return
-
-        ####################################
-        # TODO
-        # Evaluate the sensor model here!
-        #
-        # You will probably want to use this function
-        # to perform ray tracing from all the particles.
-        # This produces a matrix of size N x num_beams_per_particle
+            return  # Need a map to evaluate sensor model
 
         # Downsample LIDAR scans
-        # self.node.get_logger().info(f"Downsampling from {len(raw_observation)} to {self.num_beams_per_particle} beams")
         indices = fast_round(np.linspace(0, len(raw_observation) - 1, self.num_beams_per_particle))
-        # self.node.get_logger().info(f"Indices: {indices}")
         observation = np.array(raw_observation)[indices]
-        # self.node.get_logger().info(f"observation: {max(observation)}")
 
-        # Get "ground truth" scans from each particle, knowing the lidar is slightly in front of the robot's center
-        dist_in_front = 0.25
-        # Move [dx, dy, dtheta] in the robot's frame of reference for each particle
-        # lidar_offset = (
-        #     np.stack([np.cos(particles[:, 2]), np.sin(particles[:, 2]), np.zeros(len(particles))], axis=1)
-        #     * dist_in_front
-        # )
-        # scans = self.scan_sim.scan(particles + lidar_offset)
-        scans = self.scan_sim.scan(particles)
+        # Get ground truth with raytracing
+        scans = self.scan_sim.scan(particles)  # N x K
 
         # Convert to pixels
         z_max = self.table_width - 1
@@ -236,42 +204,18 @@ class SensorModel:
 
         # scan_probs[i, j] = P(measured z_j pixels | d_j pixels at particle pose i)
         scan_probs = self.sensor_model_table[observation_pixels[None, :], scans_pixels]  # N x K
-
         # particle_probs[i] = P(particle i has all valid scans)
         particle_probs = np.prod(scan_probs, axis=1)  # N
 
-        # (P1 * P2 * P3 * ... * Pn)^(1/n)
-        # log(P1 * P2 * P3 * ... * Pn)^(1/n) = (1/n) * (log(P1) + log(P2) + log(P3) + ... + log(Pn))
-        scaling_factor = 1 / self.num_beams_per_particle
-        # Unsquash probabilities
-        scaling_factor *= 50
-        # scaling_factor *= 10
-        # scaling_factor *= self.num_beams_per_particle
-        # Decrease to squash more
-        particle_probs = np.exp(np.log(particle_probs) * scaling_factor)
-
-        # TODO fine tune / adjust probability distribution
         # Normalize probabilities
         particle_probs = particle_probs / np.sum(particle_probs)
-
-        if self.gen_plot_k:
-            self.particle_probs = particle_probs[np.argsort(particle_probs)[::-1]][: self.gen_plot_k]
-            self.line.set_data(range(len(self.particle_probs)), self.particle_probs)
-            # for bar, val in zip(self.bars, self.particle_probs):
-            #     bar.set_height(val)
-            plt.ylim(0, 1.0)
-            plt.tight_layout()
-            plt.pause(0.01)
-
         return particle_probs
 
-        ####################################
-
     def map_callback(self, map_msg):
+        self.node.get_logger().info("Initializing map and sensor model...")
         # Convert the map to a numpy array
         self.map = np.array(map_msg.data, np.double) / 100.0
         self.map = np.clip(self.map, 0, 1)
-
         self.resolution = map_msg.info.resolution
 
         # Convert the origin to a tuple
@@ -287,5 +231,4 @@ class SensorModel:
 
         # Make the map set
         self.map_set = True
-
         self.node.get_logger().info("Map and sensor model initialized!")

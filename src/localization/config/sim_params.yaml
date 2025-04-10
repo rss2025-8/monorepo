@@ -8,11 +8,18 @@ particle_filter:
     # so long as you downsample properly
     num_beams_per_particle: 100
 
+    # Whether to show debug info
+    debug: true
+
     # The field of view centered around theta=0
     scan_field_of_view: 4.71 # radians
 
     # Discretize the theta space for faster ray tracing
     scan_theta_discretization: 500.0
+
+    # Lidar is slightly in front of base_link
+    # lidar_offset: 0.25
+    lidar_offset: 0.0
 
     # The names of topics to listen and publish to
     map_topic: "/map"
@@ -26,6 +33,6 @@ particle_filter:
     deterministic: false
 
     # Flag to flip odometry (for the real car)
-    flip_odometry: false
+    on_racecar: false
 
     lidar_scale_to_map_scale: 1.0
