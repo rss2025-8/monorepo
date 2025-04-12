@@ -174,7 +174,7 @@ class ParticleFilter(Node):
         delta_pose = (-1 if self.on_racecar else 1) * dt * vel
         # self.get_logger().info(f"odometry: {delta_pose.round(4)}")
 
-        self.particles = self.motion_model.evaluate(self.particles, delta_pose, dt)
+        self.motion_model.evaluate(self.particles, delta_pose, dt)
         self.publish_average_pose(new_time)
 
         latency = (self.get_clock().now() - new_time).nanoseconds / 1e9
@@ -194,7 +194,8 @@ class ParticleFilter(Node):
             rot_vel = self.prev_odom.twist.twist.angular
             prev_vel = np.array([lin_vel.x, lin_vel.y, rot_vel.z])
             delta_pose = (-1 if self.on_racecar else 1) * dt * prev_vel
-            moved_particles = self.motion_model.evaluate(self.particles, delta_pose, dt, deterministic=True)
+            moved_particles = self.particles.copy()
+            self.motion_model.evaluate(moved_particles, delta_pose, dt, deterministic=True)
         else:
             moved_particles = self.particles
 

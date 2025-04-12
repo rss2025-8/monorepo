@@ -13,6 +13,7 @@ class MotionModel:
         """
         Update the particles to reflect probable
         future states given the odometry data.
+        Updates the particles in place.
 
         args:
             particles: An Nx3 matrix of the form:
@@ -26,10 +27,6 @@ class MotionModel:
             dt: Time since last odometry update
 
             deterministic: Whether to force determinism
-
-        returns:
-            particles: An updated matrix of the
-                same size
         """
         # Add a base amount of noise to the odometry in m/s or rad/s
         # Also add noise proportional to linear/angular "velocity"
@@ -72,8 +69,6 @@ class MotionModel:
         # Apply 2D pose composition formulas directly
         cos_theta = np.cos(particles[:, 2])
         sin_theta = np.sin(particles[:, 2])
-        new_x = particles[:, 0] + cos_theta * dx - sin_theta * dy
-        new_y = particles[:, 1] + sin_theta * dx + cos_theta * dy
-        new_theta = particles[:, 2] + dtheta
-        new_theta = (new_theta + np.pi) % (2 * np.pi) - np.pi  # Faster arctan2 to make theta in [-pi, pi]
-        return np.column_stack((new_x, new_y, new_theta))
+        particles[:, :2] += np.column_stack([cos_theta * dx - sin_theta * dy, sin_theta * dx + cos_theta * dy])
+        # Faster arctan2 to make theta in [-pi, pi]
+        particles[:, 2] = (particles[:, 2] + dtheta + np.pi) % (2 * np.pi) - np.pi
