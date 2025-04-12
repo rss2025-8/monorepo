@@ -167,8 +167,8 @@ class ParticleFilter(Node):
         lin_vel = odom.twist.twist.linear
         rot_vel = odom.twist.twist.angular
         # Experiments: Add intentional drift to odometry
-        # lin_vel.x += np.random.normal(loc=-0.5, scale=0.5)
-        # lin_vel.y += np.random.normal(loc=0, scale=0.5)
+        # lin_vel.x += np.random.normal(loc=0, scale=2.0)
+        # lin_vel.y += np.random.normal(loc=0, scale=2.0)
         # rot_vel.z += np.random.normal(loc=0, scale=np.pi / 3)
         vel = np.array([lin_vel.x, lin_vel.y, rot_vel.z])
         delta_pose = (-1 if self.on_racecar else 1) * dt * vel
@@ -246,7 +246,8 @@ class ParticleFilter(Node):
 
         if self.debug:
             # Publish some of the particles, but not all (very slow)
-            num_to_publish = min(len(self.particles), 20)
+            # num_to_publish = min(len(self.particles), 20)
+            num_to_publish = len(self.particles)
             debug_msg = PoseArray(header=Header(frame_id="/map"))
             debug_msg.poses = [
                 point_to_pose(

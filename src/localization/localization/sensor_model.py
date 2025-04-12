@@ -2,11 +2,19 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import range_libc
+
+try:
+    import range_libc
+except ImportError:
+    print("Error: range_libc module not found. Run the setup script outside of Docker, ask Kyle")
+    exit()
+
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-from tf_transformations import euler_from_quaternion
+from visualization_msgs.msg import Marker
+
+from localization.visualization_tools import VisualizationTools
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -29,6 +37,12 @@ class SensorModel:
 
         ####################################
         # Adjust these parameters
+        # self.alpha_hit = 0.65
+        # self.alpha_short = 0.1
+        # self.alpha_max = 0.2
+        # self.alpha_rand = 0.05
+        # self.sigma_hit = 8.0
+
         self.alpha_hit = 0.74
         self.alpha_short = 0.07
         self.alpha_max = 0.07
@@ -64,6 +78,8 @@ class SensorModel:
         self.map = None
         self.map_set = False
         self.map_subscriber = node.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, 1)
+
+        self.debug_raytracing_pub = node.create_publisher(Marker, "/debug_raytracing", 1)
 
         # Plot sensor model distribution
         # D = 150
@@ -178,6 +194,23 @@ class SensorModel:
             observation, self.scans, particle_probs, self.num_beams_per_particle, particles.shape[0]
         )
 
+        # Visualize the raytracing
+        if self.node.debug:
+            # Get points from the raytracing particle with highest probability
+            best_idx = np.argmax(particle_probs)
+            # best_particle = particles[best_idx]
+            # Get points from the raytracing
+            best_scans = self.scans[best_idx * self.num_beams_per_particle + np.arange(self.num_beams_per_particle)]
+            # best_scans = observation
+            X = (best_scans * np.cos(self.angles)).tolist()
+            Y = (best_scans * np.sin(self.angles)).tolist()
+            # Visualize the points
+            VisualizationTools.plot_points(X, Y, self.debug_raytracing_pub)
+
+        # Squash probabilities to be equivalent to 30 beams
+        particle_probs **= 10 / self.num_beams_per_particle
+        # particle_probs **= 30 / self.num_beams_per_particle
+
         # Normalize probabilities
         particle_probs = particle_probs / np.sum(particle_probs)
         return particle_probs
@@ -193,7 +226,6 @@ class SensorModel:
         self.map_set = True
 
         # Setup range_libc
-
         if self.node.on_racecar:
             self.node.get_logger().info("Using racecar range method (ray marching + GPU)...")
             oMap = range_libc.PyOMap(map_msg)

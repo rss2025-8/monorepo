@@ -6,7 +6,7 @@ particle_filter:
     # each particle. This doesn't need to be
     # equal to the actual number (>1000)
     # so long as you downsample properly
-    num_beams_per_particle: 36
+    num_beams_per_particle: 100
 
     # Whether to show debug info
     debug: true
