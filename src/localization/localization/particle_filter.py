@@ -85,6 +85,7 @@ class ParticleFilter(Node):
         self.forward_offset: float = self.declare_parameter("forward_offset", 0.0).value
         self.deterministic: bool = self.declare_parameter("deterministic", False).value
         self.on_racecar: bool = self.declare_parameter("on_racecar", False).value
+        self.use_gpu: bool = self.declare_parameter("use_gpu", False).value
         self.particle_filter_frame: str = self.declare_parameter("particle_filter_frame", "default").value
 
         #  *Important Note #1:* It is critical for your particle
@@ -126,10 +127,10 @@ class ParticleFilter(Node):
         self.true_pose = None
         self.initial_pose_msg = None
 
-        self.get_logger().info(f"# particles: {self.num_particles}")
+        self.get_logger().info(f"# particles: {self.num_particles}, on car: {self.on_racecar}, gpu: {self.use_gpu}")
         self.get_logger().info(
-            "# beams per particle | normalized: "
-            f"{self.sensor_model.num_beams_per_particle} | {self.sensor_model.normalized_beams}"
+            f"# beams per particle: {self.sensor_model.num_beams_per_particle}"
+            f", normalized: {self.sensor_model.normalized_beams}"
         )
 
         if self.debug:
@@ -156,7 +157,7 @@ class ParticleFilter(Node):
         # Experiments: Add intentional drift to initial pose
         # initial_vec += np.random.normal(loc=0, scale=(1, 1, np.pi / 16), size=3)
         self.particles = np.tile(initial_vec, (self.num_particles, 1)) + np.random.normal(
-            loc=0, scale=(0.3, 0.3, np.pi / 6), size=(self.num_particles, 3)
+            loc=0, scale=(0.2, 0.2, np.pi / 12), size=(self.num_particles, 3)
         )
 
     def odom_callback(self, odom: Odometry) -> None:
@@ -191,23 +192,25 @@ class ParticleFilter(Node):
 
         Assumes this function consistently takes <1/50 of a second to run."""
         call_time = self.get_clock().now()
-        new_time = Time.from_msg(scan.header.stamp)
-        dt = (new_time - self.prev_time).nanoseconds / 1e9
-        if dt > 0.01:
-            # Move particles with motion model / last known odometry to align with scan time
-            # self.get_logger().info(f"high laser dt: {dt:.4f}")
-            lin_vel = self.prev_odom.twist.twist.linear
-            rot_vel = self.prev_odom.twist.twist.angular
-            prev_vel = np.array([lin_vel.x, lin_vel.y, rot_vel.z])
-            delta_pose = (-1 if self.on_racecar else 1) * dt * prev_vel
-            moved_particles = self.particles.copy()
-            self.motion_model.evaluate(moved_particles, delta_pose, dt, deterministic=True)
-        else:
-            moved_particles = self.particles
+        # new_time = Time.from_msg(scan.header.stamp)
+        # This doesn't seem to have a noticeable effect
+        # dt = (new_time - self.prev_time).nanoseconds / 1e9
+        # if dt > 0.01:
+        #     # Move particles with motion model / last known odometry to align with scan time
+        #     # self.get_logger().info(f"high laser dt: {dt:.4f}")
+        #     lin_vel = self.prev_odom.twist.twist.linear
+        #     rot_vel = self.prev_odom.twist.twist.angular
+        #     prev_vel = np.array([lin_vel.x, lin_vel.y, rot_vel.z])
+        #     delta_pose = (-1 if self.on_racecar else 1) * dt * prev_vel
+        #     moved_particles = self.particles.copy()
+        #     self.motion_model.evaluate(moved_particles, delta_pose, dt, deterministic=True)
+        # else:
+        #     moved_particles = self.particles
+        # moved_particles = self.particles
+        # weights = self.sensor_model.evaluate(moved_particles, scan)
 
         # Find particle weights
-        weights = self.sensor_model.evaluate(moved_particles, scan)
-        # weights = self.sensor_model.evaluate(self.particles, scan)
+        weights = self.sensor_model.evaluate(self.particles, scan)
         if weights is None:
             if self.sensor_model_working:
                 self.get_logger().warning("SENSOR MODEL NOT UPDATING, RELAUNCH MAP")

@@ -29,12 +29,12 @@ class SensorModel:
     def __init__(self, node: Node):
         self.node = node
 
-        self.map_topic = node.declare_parameter("map_topic", "default").value
-        self.num_beams_per_particle = node.declare_parameter("num_beams_per_particle", 1).value
-        self.normalized_beams = node.declare_parameter("normalized_beams", 10).value
-        self.scan_theta_discretization = node.declare_parameter("scan_theta_discretization", 1.0).value
-        self.scan_field_of_view = node.declare_parameter("scan_field_of_view", 1.0).value
-        self.lidar_scale_to_map_scale = node.declare_parameter("lidar_scale_to_map_scale", 1.0).value
+        self.map_topic: str = node.declare_parameter("map_topic", "default").value
+        self.num_beams_per_particle: int = node.declare_parameter("num_beams_per_particle", 1).value
+        self.normalized_beams: int = node.declare_parameter("normalized_beams", 10).value
+        self.scan_theta_discretization: float = node.declare_parameter("scan_theta_discretization", 1.0).value
+        self.scan_field_of_view: float = node.declare_parameter("scan_field_of_view", 1.0).value
+        self.lidar_scale_to_map_scale: float = node.declare_parameter("lidar_scale_to_map_scale", 1.0).value
 
         ####################################
         # Adjust these parameters
@@ -226,7 +226,7 @@ class SensorModel:
         self.map_set = True
 
         # Setup range_libc
-        if self.node.on_racecar:
+        if self.node.use_gpu:
             self.node.get_logger().info("Using racecar range method (ray marching + GPU)...")
             oMap = range_libc.PyOMap(map_msg)
             self.range_method = range_libc.PyRayMarchingGPU(oMap, self.table_width - 1)

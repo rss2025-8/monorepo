@@ -22,8 +22,8 @@ particle_filter:
 
     # The names of topics to listen and publish to
     map_topic: "/map"
-    scan_topic: "/scan"
-    odom_topic: "/vesc/odom"
+    scan_topic: "/bag/scan"
+    odom_topic: "/bag/vesc/odom"
 
     # The frame you should publish your transform to
     particle_filter_frame: "/base_link"
@@ -32,7 +32,7 @@ particle_filter:
     deterministic: false
 
     on_racecar: true  # Flag to flip odometry (for the real car)
-    use_gpu: true  # Flag to use GPU
+    use_gpu: false  # Flag to use GPU
 
     lidar_scale_to_map_scale: 1.0
 

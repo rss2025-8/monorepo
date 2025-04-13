@@ -31,8 +31,8 @@ particle_filter:
     # Deterministic flag; set to true to remove all added noise
     deterministic: false
 
-    # Flag to flip odometry (for the real car)
-    on_racecar: false
+    on_racecar: false  # Flag to flip odometry (for the real car)
+    use_gpu: false  # Flag to use GPU
 
     lidar_scale_to_map_scale: 1.0
 
