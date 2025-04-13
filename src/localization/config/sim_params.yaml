@@ -2,24 +2,23 @@ particle_filter:
   ros__parameters:
     num_particles: 200
 
-    # The number of lidar beams emitted from
-    # each particle. This doesn't need to be
-    # equal to the actual number (>1000)
-    # so long as you downsample properly
+    # The number of lidar beams emitted from each particle (downsampling).
+    # Actual number of beams: 100 in sim, 1081 on car
     num_beams_per_particle: 100
 
-    # Whether to show debug info
-    debug: true
-
-    # The field of view centered around theta=0
-    scan_field_of_view: 4.71 # radians
-
-    # Discretize the theta space for faster ray tracing
-    scan_theta_discretization: 500.0
+    # The number of equivalent beams one LIDAR scan counts as.
+    # Can be treated as multiplying this number of probabilities.
+    # The higher this is, the more peaked the particle's probability distribution will be.
+    normalized_beams: 10
 
     # Lidar is ~0.25 m in front of base_link, but localization lags
     # Offset accounts for both, larger = Further ahead of the robot
-    forward_offset: 0.0
+    forward_offset: -0.25
+
+    # Other parameters in files: Motion model noise, sensor model alphas
+
+    # Whether to show debug info
+    debug: false
 
     # The names of topics to listen and publish to
     map_topic: "/map"
@@ -36,3 +35,9 @@ particle_filter:
     on_racecar: false
 
     lidar_scale_to_map_scale: 1.0
+
+    # Currently unused
+    # The field of view centered around theta=0
+    scan_field_of_view: 4.71 # radians
+    # Discretize the theta space for faster ray tracing
+    scan_theta_discretization: 500.0

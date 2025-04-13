@@ -33,33 +33,12 @@ class MotionModel:
         # (Odometry is ~50 Hz in both sim and real)
         dx, dy, dtheta = odometry
 
-        # # 6.0 m/s base noise, 1/2 * dx added noise
-        # x_dev = 6.0 * dt + 0.5 * np.abs(dx)
-        # # 2.0 m/s base noise, 1/2 * dy added noise
-        # y_dev = 2.0 * dt + 0.5 * np.abs(dy)
-        # # pi/3 rad/s base noise, 1/2 * dtheta added noise
-        # theta_dev = np.pi / 3 * dt + 0.5 * np.abs(dtheta)
-
-        # # 2.0 m/s base noise, 1/2 * dx added noise
-        # x_dev = 2.0 * dt + 0.5 * np.abs(dx)
-        # # 1.0 m/s base noise, 1/2 * dy added noise
-        # y_dev = 1.0 * dt + 0.5 * np.abs(dy)
-        # # pi/3 rad/s base noise, 1/2 * dtheta added noise
-        # theta_dev = np.pi / 3 * dt + 0.5 * np.abs(dtheta)
-
         # 1.0 m/s base noise, 1/3 * dx added noise
         x_dev = 1.0 * dt + np.abs(dx) / 3
         # 0.5 m/s base noise, 1/3 * dy added noise
         y_dev = 0.5 * dt + np.abs(dy) / 3
         # pi/6 rad/s base noise, 1/2 * dtheta added noise
         theta_dev = np.pi / 6 * dt + np.abs(dtheta) / 2
-
-        # # 0.5 m/s base noise, 1/4 * dx added noise
-        # x_dev = 0.5 * dt + 0.25 * np.abs(dx)
-        # # 0.25 m/s base noise, 1/4 * dy added noise
-        # y_dev = 0.25 * dt + 0.25 * np.abs(dy)
-        # # pi/8 rad/s base noise, 1/4 * dtheta added noise
-        # theta_dev = np.pi / 8 * dt + 0.25 * np.abs(dtheta)
 
         # Add noise if needed
         if not deterministic and not self.node.deterministic:

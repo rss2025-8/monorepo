@@ -31,6 +31,7 @@ class SensorModel:
 
         self.map_topic = node.declare_parameter("map_topic", "default").value
         self.num_beams_per_particle = node.declare_parameter("num_beams_per_particle", 1).value
+        self.normalized_beams = node.declare_parameter("normalized_beams", 10).value
         self.scan_theta_discretization = node.declare_parameter("scan_theta_discretization", 1.0).value
         self.scan_field_of_view = node.declare_parameter("scan_field_of_view", 1.0).value
         self.lidar_scale_to_map_scale = node.declare_parameter("lidar_scale_to_map_scale", 1.0).value
@@ -207,9 +208,8 @@ class SensorModel:
             # Visualize the points
             VisualizationTools.plot_points(X, Y, self.debug_raytracing_pub)
 
-        # Squash probabilities to be equivalent to 30 beams
-        particle_probs **= 10 / self.num_beams_per_particle
-        # particle_probs **= 30 / self.num_beams_per_particle
+        # Squash probabilities to be equivalent to having K beams of information
+        particle_probs **= self.normalized_beams / self.num_beams_per_particle
 
         # Normalize probabilities
         particle_probs = particle_probs / np.sum(particle_probs)

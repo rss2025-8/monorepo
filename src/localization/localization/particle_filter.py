@@ -127,10 +127,14 @@ class ParticleFilter(Node):
         self.initial_pose_msg = None
 
         self.get_logger().info(f"# particles: {self.num_particles}")
-        self.get_logger().info(f"# beams per particle: {self.sensor_model.num_beams_per_particle}")
+        self.get_logger().info(
+            "# beams per particle | normalized: "
+            f"{self.sensor_model.num_beams_per_particle} | {self.sensor_model.normalized_beams}"
+        )
 
         if self.debug:
             self.get_logger().warning("NOTE: Debug mode enabled, expect slow performance!")
+            self.get_logger().warning("Debug particle publisher only gives the first ~100 particles.")
         self.get_logger().info("=============+READY+=============")
 
         # Implement the MCL algorithm
@@ -150,13 +154,14 @@ class ParticleFilter(Node):
     def pose_callback(self, initial_pose: PoseWithCovarianceStamped) -> None:
         initial_vec = pose_to_vec(initial_pose.pose.pose)
         # Experiments: Add intentional drift to initial pose
-        # initial_vec += np.random.normal(loc=0, scale=[1, 1, np.pi / 16], size=3)
+        # initial_vec += np.random.normal(loc=0, scale=(1, 1, np.pi / 16), size=3)
         self.particles = np.tile(initial_vec, (self.num_particles, 1)) + np.random.normal(
-            scale=0.1, size=(self.num_particles, 3)
+            loc=0, scale=(0.3, 0.3, np.pi / 6), size=(self.num_particles, 3)
         )
 
     def odom_callback(self, odom: Odometry) -> None:
         """Run prediction step. Should run consistently at 50 Hz."""
+        call_time = self.get_clock().now()
         new_time = Time.from_msg(odom.header.stamp)
         dt = (new_time - self.prev_time).nanoseconds / 1e9
         self.prev_time = new_time
@@ -177,14 +182,15 @@ class ParticleFilter(Node):
         self.motion_model.evaluate(self.particles, delta_pose, dt)
         self.publish_average_pose(new_time)
 
-        latency = (self.get_clock().now() - new_time).nanoseconds / 1e9
+        latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
         if latency > 0.015:
-            self.get_logger().warning(f"high odom callback latency: {latency:.4f}s")
+            self.get_logger().info(f"high odom callback latency, check debug or num_particles: {latency:.4f}s")
 
     def laser_callback(self, scan: LaserScan) -> None:
         """Run update step. Runs at ~40 Hz (car), ~50 Hz (sim).
 
         Assumes this function consistently takes <1/50 of a second to run."""
+        call_time = self.get_clock().now()
         new_time = Time.from_msg(scan.header.stamp)
         dt = (new_time - self.prev_time).nanoseconds / 1e9
         if dt > 0.01:
@@ -216,9 +222,9 @@ class ParticleFilter(Node):
         indices = np.random.choice(self.particles.shape[0], self.num_particles, p=weights)
         self.particles = self.particles[indices]
 
-        latency = (self.get_clock().now() - new_time).nanoseconds / 1e9
+        latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
         if latency > 0.015:
-            self.get_logger().warning(f"high laser callback latency: {latency:.4f}s")
+            self.get_logger().info(f"high laser callback latency, check debug or num_particles: {latency:.4f}s")
 
     def publish_average_pose(self, time: Time) -> None:
         """Publish the average pose of the particles at the given time.
@@ -245,10 +251,17 @@ class ParticleFilter(Node):
         map_to_base_link = pose_to_tf(self.odom_avg_mut.pose.pose, "map", self.particle_filter_frame, time)
         self.transform_broadcaster.sendTransform(map_to_base_link)
 
+        # Find error in sim
+        if not self.on_racecar and self.true_pose is not None:
+            truth_pose = self.true_pose
+            estimated_pose = [x, y, theta]
+            error = np.linalg.norm(truth_pose[:2] - estimated_pose[:2])
+            msg = Float32(data=error)
+            self.pose_error_pub.publish(msg)
+
         if self.debug:
             # Publish some of the particles, but not all (very slow)
-            # num_to_publish = min(len(self.particles), 20)
-            num_to_publish = len(self.particles)
+            num_to_publish = min(len(self.particles), 100)
             debug_msg = PoseArray(header=Header(frame_id="/map"))
             debug_msg.poses = [
                 point_to_pose(
@@ -257,14 +270,6 @@ class ParticleFilter(Node):
                 for x, y, theta in self.particles[:num_to_publish]
             ]
             self.debug_particles_pub.publish(debug_msg)
-
-            # Find error
-            if self.true_pose is not None:
-                truth_pose = self.true_pose
-                estimated_pose = [x, y, theta]
-                error = np.linalg.norm(truth_pose[:2] - estimated_pose[:2])
-                msg = Float32(data=error)
-                self.pose_error_pub.publish(msg)
 
 
 # For profiling
