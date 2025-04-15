@@ -2,6 +2,23 @@
 
 All our code will be in here!
 
+## Lab 6: Path Planning
+
+Testing path planning/following in simulation:
+```sh
+# Load the planning.rviz file in path_planning for a cool visual!
+ros2 launch path_planning sim_plan_follow.launch.xml  # Ground truth odometry
+ros2 launch path_planning pf_sim_plan_follow.launch.xml  # With MCL
+```
+
+Testing path planning/following on the car:
+```sh
+# Load the planning.rviz file in path_planning for a cool visual!
+ros2 launch path_planning real.launch.xml
+```
+
+Use "2D Goal Pose" to set end point, "2D Pose Estimate" to set start point.
+
 ## Lab 5: Monte Carlo Localization
 
 Testing localization in simulation:
