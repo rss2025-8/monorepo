@@ -4,7 +4,7 @@
         <param from="$(find-pkg-share localization)/config/act_params.yaml"/>
     </node>
     <!-- Launch map after a delay -->
-    <timer period="4.0">
+    <timer period="3.0">
         <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml"/>
     </timer>
 </launch>

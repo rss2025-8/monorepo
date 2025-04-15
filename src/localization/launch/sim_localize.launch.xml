@@ -7,7 +7,7 @@
         <param from="$(find-pkg-share wall_follower)/params.yaml"/>
     </node>
     <!-- Launch map after a delay -->
-    <timer period="4.0">
+    <timer period="3.0">
         <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml"/>
     </timer>
 </launch>

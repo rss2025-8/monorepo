@@ -47,10 +47,6 @@ class SensorModel:
         self.table_width = 201
         ####################################
 
-        # Precompute the sensor model table
-        self.sensor_model_table = np.empty((self.table_width, self.table_width))
-        self.precompute_sensor_model()
-
         # Cached variables
         self.scans = np.empty(self.node.num_particles * self.num_beams_per_particle, dtype=np.float32)  # NK, cached
         self.indices = None
@@ -60,6 +56,10 @@ class SensorModel:
         self.map = None
         self.map_set = False
         self.map_subscriber = node.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, 1)
+
+        # Precompute the sensor model table
+        self.sensor_model_table = np.empty((self.table_width, self.table_width))
+        self.precompute_sensor_model()
 
         self.debug_raytracing_pub = node.create_publisher(Marker, "/debug_raytracing", 1)
 

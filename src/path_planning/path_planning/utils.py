@@ -1,21 +1,21 @@
-import rclpy
-
-import numpy as np
-from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Pose, PoseArray, Point
-from std_msgs.msg import Header
+import json
 import os
 from typing import List, Tuple
-import json
+
+import numpy as np
+import rclpy
+from geometry_msgs.msg import Point, Pose, PoseArray
+from std_msgs.msg import Header
+from visualization_msgs.msg import Marker
 
 EPSILON = 0.00000000001
 
-''' These data structures can be used in the search function
-'''
+""" These data structures can be used in the search function
+"""
 
 
 class LineTrajectory:
-    """ A class to wrap and work with piecewise linear trajectories. """
+    """A class to wrap and work with piecewise linear trajectories."""
 
     def __init__(self, node, viz_namespace=None):
         self.points: List[Tuple[float, float]] = []
@@ -48,7 +48,8 @@ class LineTrajectory:
     def distance_to_end(self, t):
         if not len(self.points) == len(self.distances):
             print(
-                "WARNING: Different number of distances and points, this should never happen! Expect incorrect results. See LineTrajectory class.")
+                "WARNING: Different number of distances and points, this should never happen! Expect incorrect results. See LineTrajectory class."
+            )
         dat = self.distance_along_trajectory(t)
         if dat == None:
             return None
@@ -87,7 +88,7 @@ class LineTrajectory:
         data["points"] = []
         for p in self.points:
             data["points"].append({"x": p[0], "y": p[1]})
-        with open(path, 'w') as outfile:
+        with open(path, "w") as outfile:
             json.dump(data, outfile)
 
     def mark_dirty(self):
@@ -131,9 +132,7 @@ class LineTrajectory:
 
     def publish_start_point(self, duration=0.0, scale=0.1):
         should_publish = len(self.points) > 0
-        self.node.get_logger().info("Before Publishing start point")
         if self.visualize and self.start_pub.get_subscription_count() > 0:
-            self.node.get_logger().info("Publishing start point")
             marker = Marker()
             marker.header = self.make_header("/map")
             marker.ns = self.viz_namespace + "/trajectory"
@@ -216,7 +215,7 @@ class LineTrajectory:
                 # delete
                 marker.action = marker.DELETE
             self.traj_pub.publish(marker)
-            print('publishing traj')
+            print("publishing traj")
         elif self.traj_pub.get_subscription_count() == 0:
             print("Not publishing trajectory, no subscribers")
 

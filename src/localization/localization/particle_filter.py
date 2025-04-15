@@ -127,6 +127,10 @@ class ParticleFilter(Node):
         self.true_pose = None
         self.initial_pose_msg = None
 
+        # Track runtime
+        self.timing_motion_model = [0, 0.0]
+        self.timing_sensor_model = [0, 0.0]
+
         self.get_logger().info(f"# particles: {self.num_particles}, on car: {self.on_racecar}, gpu: {self.use_gpu}")
         self.get_logger().info(
             f"# beams per particle: {self.sensor_model.num_beams_per_particle}"
@@ -184,8 +188,16 @@ class ParticleFilter(Node):
         self.publish_average_pose(new_time)
 
         latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
-        if latency > 0.02:
-            self.get_logger().warning(f"high odom callback latency, check debug or num_particles: {latency:.4f}s")
+        self.timing_motion_model[0] += 1
+        self.timing_motion_model[1] += latency
+        if self.timing_motion_model[0] == 50:
+            # Average over a second
+            avg_latency = self.timing_motion_model[1] / 50
+            if avg_latency > 0.01:
+                self.get_logger().warning(
+                    f"high odom callback latency, check debug or num_particles: {avg_latency:.4f}s"
+                )
+            self.timing_motion_model = [0, 0.0]
 
     def laser_callback(self, scan: LaserScan) -> None:
         """Run update step. Runs at ~40 Hz (car), ~50 Hz (sim).
@@ -210,8 +222,16 @@ class ParticleFilter(Node):
         self.particles = self.particles[indices]
 
         latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
-        if latency > 0.02:
-            self.get_logger().info(f"high laser callback latency, check debug or num_particles: {latency:.4f}s")
+        self.timing_sensor_model[0] += 1
+        self.timing_sensor_model[1] += latency
+        if self.timing_sensor_model[0] == 50:
+            # Average over a second
+            avg_latency = self.timing_sensor_model[1] / 50
+            if avg_latency > 0.015:
+                self.get_logger().warning(
+                    f"high laser callback latency, check debug or num_particles: {avg_latency:.4f}s"
+                )
+            self.timing_sensor_model = [0, 0.0]
 
     def publish_average_pose(self, time: Time) -> None:
         """Publish the average pose of the particles at the given time.

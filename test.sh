@@ -4,5 +4,5 @@ echo "Building..."
 PYTHONWARNINGS="ignore" colcon build --symlink-install
 source install/setup.bash
 
-echo "Launching..."
-ros2 launch localization act_localize.launch.xml
+echo "Launching (Lab 6 on car)..."
+ros2 launch path_planning real.launch.xml

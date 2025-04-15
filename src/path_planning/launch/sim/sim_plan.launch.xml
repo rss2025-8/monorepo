@@ -2,4 +2,8 @@
     <node pkg="path_planning" exec="trajectory_planner" name="trajectory_planner" output="screen">
         <param from="$(find-pkg-share path_planning)/config/sim/sim_config.yaml"/>
     </node>
+    <!-- Launch map after a delay -->
+    <timer period="3.0">
+        <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml"/>
+    </timer>
 </launch>
