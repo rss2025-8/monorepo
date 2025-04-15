@@ -5,9 +5,13 @@ import numpy as np
 
 try:
     import range_libc
+
+    fallback = False
 except ImportError:
-    print("Error: range_libc module not found. Run the setup script outside of Docker, ask Kyle")
-    exit()
+    from scan_simulator_2d import PyScanSimulator2D
+    from tf_transformations import euler_from_quaternion
+
+    fallback = True
 
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
@@ -16,7 +20,7 @@ from visualization_msgs.msg import Marker
 
 from localization.visualization_tools import VisualizationTools
 
-np.set_printoptions(threshold=sys.maxsize)
+# np.set_printoptions(threshold=sys.maxsize)
 
 
 class SensorModel:
@@ -33,29 +37,11 @@ class SensorModel:
 
         ####################################
         # Adjust these parameters
-        # self.alpha_hit = 0.65
-        # self.alpha_short = 0.1
-        # self.alpha_max = 0.2
-        # self.alpha_rand = 0.05
-        # self.sigma_hit = 8.0
-
         self.alpha_hit = 0.74
         self.alpha_short = 0.07
         self.alpha_max = 0.07
         self.alpha_rand = 0.12
         self.sigma_hit = 8.0
-
-        # self.alpha_hit = 0.8
-        # self.alpha_short = 0.01
-        # self.alpha_max = 0.07
-        # self.alpha_rand = 0.12
-        # self.sigma_hit = 8.0
-
-        # self.alpha_hit = 0.6
-        # self.alpha_short = 0.1
-        # self.alpha_max = 0.1
-        # self.alpha_rand = 0.2
-        # self.sigma_hit = 16.0
 
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
@@ -76,6 +62,16 @@ class SensorModel:
         self.map_subscriber = node.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, 1)
 
         self.debug_raytracing_pub = node.create_publisher(Marker, "/debug_raytracing", 1)
+
+        if fallback:
+            # Create a simulated laser scan
+            self.scan_sim = PyScanSimulator2D(
+                self.num_beams_per_particle,
+                self.scan_field_of_view,
+                0,  # This is not the simulator, don't add noise
+                0.01,  # This is used as an epsilon
+                self.scan_theta_discretization,
+            )
 
         # Plot sensor model distribution
         # D = 150
@@ -183,15 +179,31 @@ class SensorModel:
         raw_observation = scan.ranges
         observation = np.array(raw_observation, dtype=np.float32)[self.indices]
 
-        # Get ground truth with raytracing
-        particle_probs = np.ones(particles.shape[0], dtype=np.float64)  # N
-        self.range_method.calc_range_repeat_angles(particles.astype(np.float32), self.angles, self.scans)
-        self.range_method.eval_sensor_model(
-            observation, self.scans, particle_probs, self.num_beams_per_particle, particles.shape[0]
-        )
+        if not fallback:
+            # Get ground truth with raytracing
+            particle_probs = np.ones(particles.shape[0], dtype=np.float64)  # N
+            self.range_method.calc_range_repeat_angles(particles.astype(np.float32), self.angles, self.scans)
+            self.range_method.eval_sensor_model(
+                observation, self.scans, particle_probs, self.num_beams_per_particle, particles.shape[0]
+            )
+        else:
+            # Get ground truth with raytracing
+            scans = self.scan_sim.scan(particles)  # N x K
+            # Convert to pixels
+            z_max = self.table_width - 1
+            scans_pixels = scans / (self.resolution * self.lidar_scale_to_map_scale)
+            scans_pixels = np.rint(np.clip(scans_pixels, 0, z_max)).astype(int)  # N x K
+            observation_pixels = observation / (self.resolution * self.lidar_scale_to_map_scale)
+            observation_pixels = np.rint(np.clip(observation_pixels, 0, z_max)).astype(int)  # K
+            # scan_probs[i, j] = P(measured z_j pixels | d_j pixels at particle pose i)
+            scan_probs = self.sensor_model_table[observation_pixels[None, :], scans_pixels]  # N x K
+            # particle_probs[i] = P(particle i has all valid scans)
+            particle_probs = np.prod(scan_probs, axis=1)  # N
 
         # Visualize the raytracing
         if self.node.debug:
+            if fallback:
+                self.scans = scans.flatten()
             # Get points from the raytracing particle with highest probability
             best_idx = np.argmax(particle_probs)
             # best_particle = particles[best_idx]
@@ -212,22 +224,43 @@ class SensorModel:
 
     def map_callback(self, map_msg):
         self.node.get_logger().info("Initializing map and sensor model...")
-        # Convert the map to a numpy array
+
+        # Add a 1px wall (value 100) around edges of map (of type array.array) for range_libc
+        for i in range(map_msg.info.width):
+            map_msg.data[i] = 100
+            map_msg.data[i + map_msg.info.width * (map_msg.info.height - 1)] = 100
+        for i in range(map_msg.info.height):
+            map_msg.data[i * map_msg.info.width] = 100
+            map_msg.data[i * map_msg.info.width + map_msg.info.width - 1] = 100
+
+        # Convert the map to a numpy array (-1 -> 0, 0 -> 0, 100 -> 1)
         self.map = np.array(map_msg.data, np.double) / 100.0
         self.map = np.clip(self.map, 0, 1)
         self.resolution = map_msg.info.resolution
-
-        # Make the map set
         self.map_set = True
 
-        # Setup range_libc
-        if self.node.use_gpu:
-            self.node.get_logger().info("Using racecar range method (ray marching + GPU)...")
-            oMap = range_libc.PyOMap(map_msg)
-            self.range_method = range_libc.PyRayMarchingGPU(oMap, self.table_width - 1)
+        if not fallback:
+            # Setup range_libc
+            if self.node.use_gpu:
+                self.node.get_logger().info("Using racecar range method (ray marching + GPU)...")
+                oMap = range_libc.PyOMap(map_msg)
+                self.range_method = range_libc.PyRayMarchingGPU(oMap, self.table_width - 1)
+            else:
+                self.node.get_logger().info("Using local range method (ray marching)...")
+                oMap = range_libc.PyOMap(map_msg)
+                self.range_method = range_libc.PyRayMarching(oMap, self.table_width - 1)
+            self.range_method.set_sensor_model(self.sensor_model_table)
         else:
-            self.node.get_logger().info("Using local range method (ray marching)...")
-            oMap = range_libc.PyOMap(map_msg)
-            self.range_method = range_libc.PyRayMarching(oMap, self.table_width - 1)
-        self.range_method.set_sensor_model(self.sensor_model_table)
+            self.node.get_logger().warning("***range_libc module not found, falling back to PyScanSimulator***")
+            # Convert the origin to a tuple
+            origin_p = map_msg.info.origin.position
+            origin_o = map_msg.info.origin.orientation
+            origin_o = euler_from_quaternion((origin_o.x, origin_o.y, origin_o.z, origin_o.w))
+            origin = (origin_p.x, origin_p.y, origin_o[2])
+
+            # Initialize a map with the laser scan
+            self.scan_sim.set_map(
+                self.map, map_msg.info.height, map_msg.info.width, map_msg.info.resolution, origin, 0.5
+            )  # Consider anything < 0.5 to be free
+
         self.node.get_logger().info("Map and sensor model initialized!")

@@ -18,7 +18,7 @@ particle_filter:
     # Other parameters in files: Motion model noise, sensor model alphas
 
     # Whether to show debug info
-    debug: true
+    debug: false
 
     # The names of topics to listen and publish to
     map_topic: "/map"

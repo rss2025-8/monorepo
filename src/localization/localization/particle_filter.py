@@ -184,30 +184,14 @@ class ParticleFilter(Node):
         self.publish_average_pose(new_time)
 
         latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
-        if latency > 0.015:
-            self.get_logger().info(f"high odom callback latency, check debug or num_particles: {latency:.4f}s")
+        if latency > 0.02:
+            self.get_logger().warning(f"high odom callback latency, check debug or num_particles: {latency:.4f}s")
 
     def laser_callback(self, scan: LaserScan) -> None:
         """Run update step. Runs at ~40 Hz (car), ~50 Hz (sim).
 
         Assumes this function consistently takes <1/50 of a second to run."""
         call_time = self.get_clock().now()
-        # new_time = Time.from_msg(scan.header.stamp)
-        # This doesn't seem to have a noticeable effect
-        # dt = (new_time - self.prev_time).nanoseconds / 1e9
-        # if dt > 0.01:
-        #     # Move particles with motion model / last known odometry to align with scan time
-        #     # self.get_logger().info(f"high laser dt: {dt:.4f}")
-        #     lin_vel = self.prev_odom.twist.twist.linear
-        #     rot_vel = self.prev_odom.twist.twist.angular
-        #     prev_vel = np.array([lin_vel.x, lin_vel.y, rot_vel.z])
-        #     delta_pose = (-1 if self.on_racecar else 1) * dt * prev_vel
-        #     moved_particles = self.particles.copy()
-        #     self.motion_model.evaluate(moved_particles, delta_pose, dt, deterministic=True)
-        # else:
-        #     moved_particles = self.particles
-        # moved_particles = self.particles
-        # weights = self.sensor_model.evaluate(moved_particles, scan)
 
         # Find particle weights
         weights = self.sensor_model.evaluate(self.particles, scan)
@@ -226,7 +210,7 @@ class ParticleFilter(Node):
         self.particles = self.particles[indices]
 
         latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
-        if latency > 0.015:
+        if latency > 0.02:
             self.get_logger().info(f"high laser callback latency, check debug or num_particles: {latency:.4f}s")
 
     def publish_average_pose(self, time: Time) -> None:
