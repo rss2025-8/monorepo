@@ -8,7 +8,7 @@ from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 from geometry_msgs.msg import Pose, PoseArray
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Float32
 from visualization_msgs.msg import Marker
 
 from . import visualize
@@ -47,6 +47,8 @@ class PurePursuit(Node):
 
         self.get_logger().info("Trajectory follower initialized")
         self.run_tests()  # TODO debug
+
+        self.pose_to_traj_error_pub = self.create_publisher(Float32, "pose_to_traj_error", 1)
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
         """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
@@ -128,6 +130,7 @@ class PurePursuit(Node):
             eta = math.atan2(local_y, local_x)
             steering_angle = math.atan((2 * self.wheelbase_length * math.sin(eta)) / self.base_lookahead)
             self.drive(steering_angle, self.base_speed)
+            self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
 
         # Debug
         # self.get_logger().info(f"Nearest point: {nearest_point}")
@@ -236,6 +239,16 @@ class PurePursuit(Node):
         )  # Single point circle
         self.get_logger().info("All tests passed!")
 
+    def publish_pose_to_traj_error(self, car_pose, nearest_segment_idx):
+        s1 = self.traj_points[nearest_segment_idx]
+        s2 = self.traj_points[nearest_segment_idx + 1]
+
+        error = point_to_segment_distance(car_pose, s1, s2)
+
+        error_msg = Float32()
+        error_msg.data = float(error)
+        self.pose_to_traj_error_pub.publish(error_msg)
+
 
 def pose_to_vec(msg: Pose) -> np.ndarray:
     """Convert a Pose message to a 3D vector [x, y, yaw]."""
@@ -291,7 +304,6 @@ def circle_segment_intersections(c: np.ndarray, r: float, s1: np.ndarray, s2: np
         return np.array(intersections)
     else:
         return np.empty((0, 2), dtype=float)
-
 
 def main(args=None):
     rclpy.init(args=args)
