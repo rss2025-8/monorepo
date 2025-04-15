@@ -19,11 +19,6 @@ from localization.visualization_tools import VisualizationTools
 np.set_printoptions(threshold=sys.maxsize)
 
 
-def fast_round(x: np.ndarray) -> np.ndarray:
-    """Fast version of np.round(x) for non-negative x."""
-    return (x + 0.5).astype(int)
-
-
 class SensorModel:
 
     def __init__(self, node: Node):
@@ -179,7 +174,7 @@ class SensorModel:
 
         if self.indices is None:
             # Precompute relevant indices and angles
-            self.indices = fast_round(np.linspace(0, len(scan.ranges) - 1, self.num_beams_per_particle))
+            self.indices = np.rint(np.linspace(0, len(scan.ranges) - 1, self.num_beams_per_particle)).astype(int)
             self.angles = np.array(self.indices, dtype=np.float32) * scan.angle_increment + scan.angle_min
             # self.node.get_logger().info(f"indices: {indices[:5]}")
             # self.node.get_logger().info(f"angles: {angles[:5]}")
