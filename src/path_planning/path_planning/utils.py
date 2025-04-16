@@ -74,6 +74,10 @@ class LineTrajectory:
         self.update_distances()
         self.mark_dirty()
 
+    def reverse(self) -> None:
+        self.points.reverse()
+        self.distances.reverse()
+
     def clear(self):
         self.points = []
         self.distances = []
