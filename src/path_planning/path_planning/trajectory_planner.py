@@ -11,6 +11,8 @@ import rclpy
 from rclpy.node import Node
 
 assert rclpy
+import queue
+
 import numpy as np
 from geometry_msgs.msg import Pose, PoseArray, PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
@@ -40,6 +42,8 @@ class PathPlan(Node):
 
         self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory")
         self.grid = None
+        self.dist_to_obstacle_grid = None
+        self.downsample_factor = 4
         self.resolution = None
         self.origin_x = None
         self.origin_y = None
@@ -60,17 +64,47 @@ class PathPlan(Node):
         obstacle_mask = (self.grid != 0).astype(np.uint8)  # 0 is free, -1 is unknown, 100 is obstacle
 
         # Dilate the obstacles with a kernel (size controls buffer)
-        kernel_size = 12  # TODO play with this value
+        kernel_size = 10  # TODO play with this value
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         dilated_obstacle_mask = cv2.dilate(obstacle_mask, kernel, iterations=1)
 
         # Update grid: obstacles=100, free = original value
         self.grid = np.where(dilated_obstacle_mask == 1, 100, self.grid)
-
         self.resolution = msg.info.resolution
         self.origin_x = msg.info.origin.position.x
         self.origin_y = msg.info.origin.position.y
-        self.get_logger().info(f"Received map data (dilated) of shape {self.grid.shape}")
+
+        # Precompute distance to the nearest obstacle for each cell with BFS, in meters
+        # Downsample for faster computation
+        self.get_logger().info(f"Precomputing distance to obstacle grid (downsampled by {self.downsample_factor})...")
+        small_grid = cv2.resize(
+            self.grid,
+            (self.grid.shape[1] // self.downsample_factor, self.grid.shape[0] // self.downsample_factor),
+            interpolation=cv2.INTER_NEAREST,
+        )
+        self.dist_to_obstacle_grid = np.full_like(small_grid, np.inf, dtype=np.float32)
+        visited = np.zeros_like(small_grid, dtype=bool)
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        # Starting states
+        q = queue.Queue()
+        for i in range(small_grid.shape[0]):
+            for j in range(small_grid.shape[1]):
+                if small_grid[i, j] == 100:
+                    q.put((i, j))
+                    visited[i, j] = True
+                    self.dist_to_obstacle_grid[i, j] = 0
+        # BFS
+        while not q.empty():
+            i, j = q.get()
+            for di, dj in directions:
+                ni, nj = i + di, j + dj
+                if 0 <= ni < small_grid.shape[0] and 0 <= nj < small_grid.shape[1] and not visited[ni, nj]:
+                    visited[ni, nj] = True
+                    self.dist_to_obstacle_grid[ni, nj] = (
+                        self.dist_to_obstacle_grid[i, j] + self.resolution * self.downsample_factor
+                    )
+
+        self.get_logger().info(f"Processed map data of shape {self.grid.shape}, dilation {kernel_size}")
         visualize.plot_debug_text("Ready", self.debug_text_pub, color=(0.0, 0.0, 1.0))
 
     def pose_cb(self, pose):
@@ -106,8 +140,8 @@ class PathPlan(Node):
 
         def is_free(x, y):
             """Check if a point (x, y) is free in the grid."""
-            grid_x = int((self.origin_x - x) / self.resolution)
-            grid_y = int((self.origin_y - y) / self.resolution)
+            grid_x = min(int((self.origin_x - x) / self.resolution), self.grid.shape[1] - 1)
+            grid_y = min(int((self.origin_y - y) / self.resolution), self.grid.shape[0] - 1)
 
             if 0 <= grid_x < self.grid.shape[1] and 0 <= grid_y < self.grid.shape[0]:
                 return self.grid[grid_y, grid_x] == 0
@@ -145,6 +179,31 @@ class PathPlan(Node):
                     return False
             return True
 
+        def segment_dist_to_obstacle(p1, p2):
+            """Check approximately how close a line segment gets to an obstacle."""
+            # TODO can optimize with range_libc
+            x1, y1 = p1
+            x2, y2 = p2
+            dx = x2 - x1
+            dy = y2 - y1
+            dist = math.hypot(dx, dy)
+            steps = int(dist / 0.5 * 4) + 1  # Approximate is fine
+            min_dist = np.inf
+            for i in range(steps + 1):
+                t = i / steps
+                x = x1 + t * dx
+                y = y1 + t * dy
+                grid_x = min(
+                    int((self.origin_x - x) / self.resolution / self.downsample_factor),
+                    self.dist_to_obstacle_grid.shape[1] - 1,
+                )
+                grid_y = min(
+                    int((self.origin_y - y) / self.resolution / self.downsample_factor),
+                    self.dist_to_obstacle_grid.shape[0] - 1,
+                )
+                min_dist = min(min_dist, self.dist_to_obstacle_grid[grid_y, grid_x])
+            return min_dist
+
         N = 2000  # TODO number of samples
         start_time = self.get_clock().now()
         points = [sample_free() for _ in range(N)]
@@ -177,9 +236,10 @@ class PathPlan(Node):
             pose.position.y = neighbor[1]
             pose.position.z = 0.0
             neighbors_pose_array.poses.append(pose)
-
-        self.neighbors_pub.publish(neighbors_pose_array)
+        if self.neighbors_pub.get_subscription_count() > 0:
+            self.neighbors_pub.publish(neighbors_pose_array)
         self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+
         # Build path by implementing A*
         start_time = self.get_clock().now()
         queue = [(0, start_point)]
@@ -199,8 +259,17 @@ class PathPlan(Node):
                 break
 
             for neighbor in graph[current_point]:
-                new_cost = costs[current_point] + math.hypot(
-                    neighbor[0] - current_point[0], neighbor[1] - current_point[1]
+                # Add a tunable cost based on approximate distance to the nearest obstacle
+                # Based on potential fields, force is proportional to 1/r^2
+                dist_to_obstacle = segment_dist_to_obstacle(current_point, neighbor)
+                # TODO play with these
+                potential_field_weight = 2.0
+                potential_field_power = 1.0
+                potential_field_base = 1.0
+                new_cost = (
+                    costs[current_point]
+                    + math.hypot(neighbor[0] - current_point[0], neighbor[1] - current_point[1])
+                    + (potential_field_weight / (dist_to_obstacle + potential_field_base) ** potential_field_power)
                 )
                 if neighbor not in costs or new_cost < costs[neighbor]:
                     costs[neighbor] = new_cost
