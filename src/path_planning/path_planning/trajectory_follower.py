@@ -8,7 +8,7 @@ from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 from geometry_msgs.msg import Pose, PoseArray
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from std_msgs.msg import Header, Float32
+from std_msgs.msg import Float32, Header
 from visualization_msgs.msg import Marker
 
 from . import visualize
@@ -23,8 +23,8 @@ class PurePursuit(Node):
         self.odom_topic = self.declare_parameter("odom_topic", "default").value
         self.drive_topic = self.declare_parameter("drive_topic", "default").value
 
-        self.base_lookahead = 1.5
-        self.base_speed = 2.0
+        self.base_lookahead = 1.0
+        self.base_speed = 1.0
         self.wheelbase_length = 0.33  # Between front and rear axles
 
         self.trajectory = LineTrajectory("/followed_trajectory")
@@ -48,7 +48,7 @@ class PurePursuit(Node):
         self.get_logger().info("Trajectory follower initialized")
         self.run_tests()  # TODO debug
 
-        self.pose_to_traj_error_pub = self.create_publisher(Float32, "pose_to_traj_error", 1)
+        self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
         """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
@@ -114,8 +114,8 @@ class PurePursuit(Node):
 
         if lookahead_point is None:
             # Use last drive command
-            self.get_logger().warn("No lookahead point found")
-            self.drive(use_last_cmd=True)
+            # self.get_logger().warn("No lookahead point found")
+            self.drive(0.0, 0.0)
             visualize.plot_debug_text("No lookahead point", self.debug_text_pub)
         else:
             visualize.clear_marker(self.debug_text_pub)
@@ -304,6 +304,7 @@ def circle_segment_intersections(c: np.ndarray, r: float, s1: np.ndarray, s2: np
         return np.array(intersections)
     else:
         return np.empty((0, 2), dtype=float)
+
 
 def main(args=None):
     rclpy.init(args=args)

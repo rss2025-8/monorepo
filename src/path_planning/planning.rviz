@@ -142,9 +142,9 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 21.173141479492188
+      Max Intensity: 31.691131591796875
       Min Color: 0; 0; 0
-      Min Intensity: 1.311417818069458
+      Min Intensity: 1.0967868566513062
       Name: LaserScan
       Position Transformer: XYZ
       Selectable: true
@@ -274,10 +274,23 @@ Visualization Manager:
         Value: /pf/pose/odom
       Value: false
     - Class: rviz_default_plugins/Marker
-      Enabled: false
+      Enabled: true
+      Name: Debug Text
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /trajectory/debug_text
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
       Name: Start Pose
       Namespaces:
-        {}
+        /planned_trajectory/trajectory: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -285,7 +298,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /planned_trajectory/start_point
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Planned Path
@@ -300,10 +313,10 @@ Visualization Manager:
         Value: /planned_trajectory/path
       Value: true
     - Class: rviz_default_plugins/Marker
-      Enabled: false
+      Enabled: true
       Name: End Pose
       Namespaces:
-        {}
+        /planned_trajectory/trajectory: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -311,7 +324,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /planned_trajectory/end_pose
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Nearest Segment
@@ -327,19 +340,6 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
-      Name: Lookahead Point
-      Namespaces:
-        "": true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /pure_pursuit/lookahead_point
-      Value: true
-    - Class: rviz_default_plugins/Marker
-      Enabled: true
       Name: Lookahead Circle
       Namespaces:
         "": true
@@ -351,6 +351,40 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /pure_pursuit/lookahead_circle
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Lookahead Point
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /pure_pursuit/lookahead_point
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz_default_plugins/PoseArray
+      Color: 255; 25; 0
+      Enabled: false
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /trajectory/end_point_neighbors
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -397,25 +431,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 13.41466236114502
+      Distance: 24.759634017944336
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.4777733087539673
-        Y: 0.5546703338623047
-        Z: -0.8977913856506348
+        X: 0
+        Y: 0
+        Z: 0
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9253991842269897
+      Pitch: 1.2454012632369995
       Target Frame: base_link
       Value: Orbit (rviz_default_plugins)
-      Yaw: 5.8044939041137695
+      Yaw: 5.953093528747559
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 10
@@ -471,5 +505,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1143
-  X: -5
+  X: 64
   Y: 0
