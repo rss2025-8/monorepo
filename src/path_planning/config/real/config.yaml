@@ -4,11 +4,14 @@ trajectory_planner:
     map_topic: "/map"
     scan_topic: "/scan"
     initial_pose_topic: "/initialpose"
+    debug: true
 
 trajectory_follower:
   ros__parameters:
     odom_topic: "/pf/pose/odom"
     drive_topic: "/vesc/high_level/input/nav_0"
+    debug: true
+    realistic: false  # Already in reality
 
 safety_controller:
   ros__parameters:

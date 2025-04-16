@@ -4,8 +4,11 @@ trajectory_planner:
     map_topic: "/map"
     scan_topic: "/scan"
     initial_pose_topic: "/initialpose"
+    debug: true
 
 trajectory_follower:
   ros__parameters:
     odom_topic: "/pf/pose/odom"
     drive_topic: "/drive"
+    debug: true
+    realistic: true  # This adds constraints in sim that hopefully make it closer to reality

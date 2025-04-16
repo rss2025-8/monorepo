@@ -4,7 +4,6 @@ Tunable parameters: kernel_size (dilation of obstacles), N (number of samples)
 """
 
 import math
-from tracemalloc import start
 
 import cv2
 import rclpy
@@ -33,6 +32,7 @@ class PathPlan(Node):
         self.odom_topic = self.declare_parameter("odom_topic", "default").value
         self.map_topic = self.declare_parameter("map_topic", "default").value
         self.initial_pose_topic = self.declare_parameter("initial_pose_topic", "default").value
+        self.debug = self.declare_parameter("debug", False).value
 
         self.map_sub = self.create_subscription(OccupancyGrid, self.map_topic, self.map_cb, 1)
         self.goal_sub = self.create_subscription(PoseStamped, "/goal_pose", self.goal_cb, 10)
@@ -40,7 +40,7 @@ class PathPlan(Node):
         self.pose_sub = self.create_subscription(PoseWithCovarianceStamped, self.initial_pose_topic, self.pose_cb, 10)
         self.neighbors_pub = self.create_publisher(PoseArray, "/trajectory/end_point_neighbors", 10)
 
-        self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory")
+        self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory" if self.debug else None)
         self.grid = None
         self.dist_to_obstacle_grid = None
         self.downsample_factor = 4
@@ -98,14 +98,21 @@ class PathPlan(Node):
             i, j = q.get()
             for di, dj in directions:
                 ni, nj = i + di, j + dj
-                if 0 <= ni < small_grid.shape[0] and 0 <= nj < small_grid.shape[1] and not visited[ni, nj]:
+                if (
+                    0 <= ni < small_grid.shape[0]
+                    and 0 <= nj < small_grid.shape[1]
+                    and small_grid[ni, nj] != 100
+                    and not visited[ni, nj]
+                ):
                     visited[ni, nj] = True
                     self.dist_to_obstacle_grid[ni, nj] = (
                         self.dist_to_obstacle_grid[i, j] + self.resolution * self.downsample_factor
                     )
+                    q.put((ni, nj))
 
         self.get_logger().info(f"Processed map data of shape {self.grid.shape}, dilation {kernel_size}")
-        visualize.plot_debug_text("Ready", self.debug_text_pub, color=(0.0, 0.0, 1.0))
+        if self.debug:
+            visualize.plot_debug_text("Ready", self.debug_text_pub, color=(0.0, 0.0, 1.0))
 
     def pose_cb(self, pose):
         self.pose_x = pose.pose.pose.position.x
@@ -123,20 +130,24 @@ class PathPlan(Node):
         self.trajectory.clear()
         if self.grid is None:
             self.get_logger().warning(f"NO MAP! (Relaunch the map)")
-            visualize.plot_debug_text("No map (relaunch)", self.debug_text_pub)
+            if self.debug:
+                visualize.plot_debug_text("No map (relaunch)", self.debug_text_pub)
             return
 
         if start_point[0] is None:
             self.get_logger().warning(f"NO START POINT!")
-            visualize.plot_debug_text("No start point", self.debug_text_pub)
+            if self.debug:
+                visualize.plot_debug_text("No start point", self.debug_text_pub)
             return
 
         if end_point[0] is None:
             self.get_logger().warning(f"NO GOAL POINT!")
-            visualize.plot_debug_text("No goal point", self.debug_text_pub)
+            if self.debug:
+                visualize.plot_debug_text("No goal point", self.debug_text_pub)
             return
 
-        visualize.clear_marker(self.debug_text_pub)
+        if self.debug:
+            visualize.clear_marker(self.debug_text_pub)
 
         def is_free(x, y):
             """Check if a point (x, y) is free in the grid."""
@@ -236,7 +247,7 @@ class PathPlan(Node):
             pose.position.y = neighbor[1]
             pose.position.z = 0.0
             neighbors_pose_array.poses.append(pose)
-        if self.neighbors_pub.get_subscription_count() > 0:
+        if self.debug and self.neighbors_pub.get_subscription_count() > 0:
             self.neighbors_pub.publish(neighbors_pose_array)
         self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
 
@@ -260,16 +271,14 @@ class PathPlan(Node):
 
             for neighbor in graph[current_point]:
                 # Add a tunable cost based on approximate distance to the nearest obstacle
-                # Based on potential fields, force is proportional to 1/r^2
+                # Force is proportional to 1/r
                 dist_to_obstacle = segment_dist_to_obstacle(current_point, neighbor)
                 # TODO play with these
-                potential_field_weight = 2.0
-                potential_field_power = 1.0
-                potential_field_base = 1.0
+                potential_field_weight = 0.5
                 new_cost = (
                     costs[current_point]
                     + math.hypot(neighbor[0] - current_point[0], neighbor[1] - current_point[1])
-                    + (potential_field_weight / (dist_to_obstacle + potential_field_base) ** potential_field_power)
+                    + (potential_field_weight / (dist_to_obstacle + 0.25))
                 )
                 if neighbor not in costs or new_cost < costs[neighbor]:
                     costs[neighbor] = new_cost
@@ -291,7 +300,8 @@ class PathPlan(Node):
             self.trajectory.addPoint(point)
 
         self.traj_pub.publish(self.trajectory.toPoseArray())
-        self.trajectory.publish_viz()
+        if self.debug:
+            self.trajectory.publish_viz()
 
 
 def main(args=None):

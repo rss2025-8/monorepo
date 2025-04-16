@@ -239,7 +239,6 @@ class ParticleFilter(Node):
         Publishes only on every odometry update (~50 Hz), for consistency when being used later.
         Could be changed.
         """
-
         # Get average x, y, and theta (circular mean)
         x, y = np.mean(self.particles[:, :2], axis=0)
         angles = self.particles[:, 2]
@@ -259,14 +258,14 @@ class ParticleFilter(Node):
         self.transform_broadcaster.sendTransform(map_to_base_link)
 
         # Find error in sim
-        if not self.on_racecar and self.true_pose is not None:
+        if self.debug and self.pose_error_pub.get_subscription_count() > 0 and not self.on_racecar and self.true_pose:
             truth_pose = self.true_pose
             estimated_pose = [x, y, theta]
             error = np.linalg.norm(truth_pose[:2] - estimated_pose[:2])
             msg = Float32(data=error)
             self.pose_error_pub.publish(msg)
 
-        if self.debug:
+        if self.debug and self.debug_particles_pub.get_subscription_count() > 0:
             # Publish some of the particles, but not all (very slow)
             num_to_publish = min(len(self.particles), 100)
             debug_msg = PoseArray(header=Header(frame_id="/map"))
@@ -279,7 +278,7 @@ class ParticleFilter(Node):
             self.debug_particles_pub.publish(debug_msg)
 
 
-# For profiling
+# # For profiling
 # import atexit
 # import cProfile
 

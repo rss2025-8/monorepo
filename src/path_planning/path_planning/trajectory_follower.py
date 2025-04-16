@@ -22,9 +22,14 @@ class PurePursuit(Node):
         super().__init__("trajectory_follower")
         self.odom_topic = self.declare_parameter("odom_topic", "default").value
         self.drive_topic = self.declare_parameter("drive_topic", "default").value
+        self.debug = self.declare_parameter("debug", False).value
+        self.realistic = self.declare_parameter("realistic", False).value
 
-        self.base_lookahead = 1.0
-        self.base_speed = 1.0
+        # self.base_lookahead = 1.25
+        # self.base_speed = 0.75
+
+        self.base_lookahead = 1.5
+        self.base_speed = 3.0
         self.wheelbase_length = 0.33  # Between front and rear axles
 
         self.trajectory = LineTrajectory("/followed_trajectory")
@@ -46,7 +51,7 @@ class PurePursuit(Node):
         self.timing = [0, 0.0]
 
         self.get_logger().info("Trajectory follower initialized")
-        self.run_tests()  # TODO debug
+        # self.run_tests()  # TODO debug
 
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
 
@@ -97,11 +102,12 @@ class PurePursuit(Node):
         car_x, car_y, car_theta = car_pose
         car_loc = np.array([car_x, car_y])
 
-        # Check if we're at the goal
-        allowed_dist = self.base_lookahead
-        if np.linalg.norm(self.traj_points[-1] - car_loc) <= allowed_dist:
+        # Check if we're at the goal (2nd to last point)
+        allowed_dist = self.base_lookahead / 4
+        if np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist:
             self.get_logger().info(f"Goal reached (dist < {allowed_dist}). Stopping.")
-            visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
+            if self.debug:
+                visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
             self.drive(0.0, 0.0)
             self.is_active = False
             return
@@ -115,10 +121,12 @@ class PurePursuit(Node):
         if lookahead_point is None:
             # Use last drive command
             # self.get_logger().warn("No lookahead point found")
-            self.drive(0.0, 0.0)
-            visualize.plot_debug_text("No lookahead point", self.debug_text_pub)
+            self.drive(use_last_cmd=True)
+            if self.debug:
+                visualize.plot_debug_text("No lookahead point", self.debug_text_pub)
         else:
-            visualize.clear_marker(self.debug_text_pub)
+            if self.debug:
+                visualize.clear_marker(self.debug_text_pub)
             # Drive towards the lookahead point with Ackermann steering
             dx, dy = lookahead_point[0] - car_x, lookahead_point[1] - car_y
             # Converting from global to robot frame (opposite of odometry from robot to global frame)
@@ -135,33 +143,34 @@ class PurePursuit(Node):
         # Debug
         # self.get_logger().info(f"Nearest point: {nearest_point}")
         # self.get_logger().info(f"Lookahead point: {lookahead_point}")
-        visualize.plot_line(
-            self.traj_points[[nearest_segment_idx, nearest_segment_idx + 1], 0],
-            self.traj_points[[nearest_segment_idx, nearest_segment_idx + 1], 1],
-            self.debug_nearest_segment_pub,
-            color=(0.7, 0.7, 0),
-            scale=0.3,
-            z=0.025,
-            frame="/map",
-        )
-        if lookahead_point is not None:
-            visualize.plot_point(
-                lookahead_point[0],
-                lookahead_point[1],
-                self.debug_lookahead_point_pub,
-                color=(0, 1, 0),
+        if self.debug:
+            visualize.plot_line(
+                self.traj_points[[nearest_segment_idx, nearest_segment_idx + 1], 0],
+                self.traj_points[[nearest_segment_idx, nearest_segment_idx + 1], 1],
+                self.debug_nearest_segment_pub,
+                color=(0.7, 0.7, 0),
+                scale=0.3,
+                z=0.025,
                 frame="/map",
             )
-        else:
-            visualize.clear_marker(self.debug_lookahead_point_pub)
-        visualize.plot_circle(
-            car_x,
-            car_y,
-            self.base_lookahead,
-            self.debug_lookahead_circle_pub,
-            z=0.05,
-            frame="/map",
-        )
+            if lookahead_point is not None:
+                visualize.plot_point(
+                    lookahead_point[0],
+                    lookahead_point[1],
+                    self.debug_lookahead_point_pub,
+                    color=(0, 1, 0),
+                    frame="/map",
+                )
+            else:
+                visualize.clear_marker(self.debug_lookahead_point_pub)
+            visualize.plot_circle(
+                car_x,
+                car_y,
+                self.base_lookahead,
+                self.debug_lookahead_circle_pub,
+                z=0.05,
+                frame="/map",
+            )
 
         latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
         self.timing[0] += 1
@@ -180,8 +189,14 @@ class PurePursuit(Node):
             return
         self.trajectory.clear()
         self.trajectory.fromPoseArray(msg)
-        self.trajectory.publish_viz(duration=0.0)
+        if self.debug:
+            self.trajectory.publish_viz(duration=0.0)
         self.traj_points = np.array(self.trajectory.points)  # N x 2
+        # Add an extra point at the end of the trajectory that extends the last segment by 5 meters
+        norm_vec = self.traj_points[-1] - self.traj_points[-2]
+        norm_vec = norm_vec / np.linalg.norm(norm_vec)
+        end_point = self.traj_points[-1] + norm_vec * 5
+        self.traj_points = np.concatenate([self.traj_points, [end_point]])
         self.is_active = True
 
     def drive(self, steering_angle=0.0, velocity=0.0, use_last_cmd=False):
@@ -259,10 +274,10 @@ def pose_to_vec(msg: Pose) -> np.ndarray:
 
 def point_to_segment_distance(p: np.ndarray, s1: np.ndarray, s2: np.ndarray) -> float:
     """Returns the minimum distance from a 2D point p to the line segment from s1 to s2."""
-    l2 = np.dot(s2 - s1, s2 - s1)  # Squared length of segment
-    if np.allclose(l2, 0):
+    if np.all(s1 == s2):
         return np.linalg.norm(p - s1)  # Single point
 
+    l2 = np.dot(s2 - s1, s2 - s1)  # Squared length of segment
     t = np.dot(p - s1, s2 - s1) / l2  # Projection of p onto s1s2
     t = np.clip(t, 0, 1)  # So the projection is on the segment
 
@@ -306,7 +321,25 @@ def circle_segment_intersections(c: np.ndarray, r: float, s1: np.ndarray, s2: np
         return np.empty((0, 2), dtype=float)
 
 
+# For profiling
+import atexit
+import cProfile
+
+profiler = cProfile.Profile()
+
+
+def save_profile():
+    profiler.disable()
+    profiler.dump_stats("profile.prof")
+    print("Saved profile to profile.prof")
+
+
+atexit.register(save_profile)
+
+
 def main(args=None):
+    profiler.enable()
+
     rclpy.init(args=args)
     follower = PurePursuit()
     rclpy.spin(follower)

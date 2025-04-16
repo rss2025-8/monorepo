@@ -13,13 +13,13 @@ particle_filter:
 
     # Lidar is ~0.25 m in front of base_link, but localization lags
     # Offset accounts for both, larger = Further ahead of the robot
-    # forward_offset: -0.25
-    forward_offset: -0.5
+    forward_offset: -0.25
+    # forward_offset: -0.5
 
     # Other parameters in files: Motion model noise, sensor model alphas
 
     # Whether to show debug info
-    debug: true
+    debug: false
 
     # The names of topics to listen and publish to
     map_topic: "/map"
