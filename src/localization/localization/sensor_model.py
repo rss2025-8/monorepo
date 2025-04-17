@@ -37,10 +37,17 @@ class SensorModel:
 
         ####################################
         # Adjust these parameters
-        self.alpha_hit = 0.74
-        self.alpha_short = 0.07
-        self.alpha_max = 0.07
-        self.alpha_rand = 0.12
+        # self.alpha_hit = 0.74
+        # self.alpha_short = 0.07
+        # self.alpha_max = 0.07
+        # self.alpha_rand = 0.12
+        # self.sigma_hit = 8.0
+
+        # Higher likelihood of unknown obstacles in the environment
+        self.alpha_hit = 0.73
+        self.alpha_short = 0.1
+        self.alpha_max = 0.06
+        self.alpha_rand = 0.11
         self.sigma_hit = 8.0
 
         # Your sensor table will be a `table_width` x `table_width` np array:
@@ -170,10 +177,22 @@ class SensorModel:
 
         if self.indices is None:
             # Precompute relevant indices and angles
-            self.indices = np.rint(np.linspace(0, len(scan.ranges) - 1, self.num_beams_per_particle)).astype(int)
+            num_beams = len(scan.ranges)
+            if self.node.on_racecar:
+                # Ignore the first and last 5% of the scan (wires)
+                num_beams_to_ignore = int(num_beams * 0.05)
+            else:
+                num_beams_to_ignore = 0
+            self.indices = np.rint(
+                np.linspace(num_beams_to_ignore, num_beams - num_beams_to_ignore - 1, self.num_beams_per_particle)
+            ).astype(int)
             self.angles = np.array(self.indices, dtype=np.float32) * scan.angle_increment + scan.angle_min
             # self.node.get_logger().info(f"indices: {indices[:5]}")
             # self.node.get_logger().info(f"angles: {angles[:5]}")
+
+        # Account for LIDAR being slightly in front of the robot
+        particles[:, 0] -= self.node.forward_offset * np.cos(particles[:, 2])
+        particles[:, 1] -= self.node.forward_offset * np.sin(particles[:, 2])
 
         # Downsample LIDAR scans
         raw_observation = scan.ranges
@@ -199,6 +218,10 @@ class SensorModel:
             scan_probs = self.sensor_model_table[observation_pixels[None, :], scans_pixels]  # N x K
             # particle_probs[i] = P(particle i has all valid scans)
             particle_probs = np.prod(scan_probs, axis=1)  # N
+
+        # Revert particles to original position
+        particles[:, 0] += self.node.forward_offset * np.cos(particles[:, 2])
+        particles[:, 1] += self.node.forward_offset * np.sin(particles[:, 2])
 
         # Visualize the raytracing
         if self.node.debug:

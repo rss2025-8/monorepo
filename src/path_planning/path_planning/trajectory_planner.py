@@ -29,10 +29,10 @@ class PathPlan(Node):
 
     def __init__(self):
         super().__init__("trajectory_planner")
-        self.odom_topic = self.declare_parameter("odom_topic", "default").value
-        self.map_topic = self.declare_parameter("map_topic", "default").value
-        self.initial_pose_topic = self.declare_parameter("initial_pose_topic", "default").value
-        self.debug = self.declare_parameter("debug", False).value
+        self.odom_topic: str = self.declare_parameter("odom_topic", "default").value
+        self.map_topic: str = self.declare_parameter("map_topic", "default").value
+        self.initial_pose_topic: str = self.declare_parameter("initial_pose_topic", "default").value
+        self.debug: bool = self.declare_parameter("debug", False).value
 
         self.map_sub = self.create_subscription(OccupancyGrid, self.map_topic, self.map_cb, 1)
         self.goal_sub = self.create_subscription(PoseStamped, "/goal_pose", self.goal_cb, 10)

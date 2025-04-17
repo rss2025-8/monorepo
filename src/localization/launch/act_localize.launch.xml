@@ -5,6 +5,8 @@
     </node>
     <!-- Launch map after a delay -->
     <timer period="3.0">
-        <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml"/>
+        <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml">
+            <arg name="map" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+        </include>
     </timer>
 </launch>

@@ -40,6 +40,7 @@ setup(
         ),
         ("share/localization/test_map", glob.glob(os.path.join("test_map", "*"))),
         ("share/localization/config", glob.glob(os.path.join("config", "*.yaml"))),
+        ("share/localization/maps", glob.glob(os.path.join("maps", "*"))),
     ],
     install_requires=["setuptools", "Cython"],
     zip_safe=True,

@@ -9,6 +9,7 @@ Testing path planning/following in simulation:
 # Load the planning.rviz file in path_planning for a cool visual!
 ros2 launch path_planning sim_plan_follow.launch.xml  # Ground truth odometry
 ros2 launch path_planning pf_sim_plan_follow.launch.xml  # With MCL
+ros2 launch path_planning noisy_sim_plan_follow.launch.xml  # More realistic Ackermann dynamics
 ```
 
 Testing path planning/following on the car:

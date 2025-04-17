@@ -20,8 +20,8 @@ from rclpy.time import Time
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32, Header, String
 
-from localization.motion_model import MotionModel
-from localization.sensor_model import SensorModel
+from .motion_model import MotionModel
+from .sensor_model import SensorModel
 
 assert rclpy
 
@@ -79,8 +79,9 @@ class ParticleFilter(Node):
         super().__init__("particle_filter")
         self.prev_time: Time = self.get_clock().now()
         self.prev_odom: Odometry = Odometry()
-
         self.debug: bool = self.declare_parameter("debug", False).value
+        self.realistic: bool = self.declare_parameter("realistic", False).value
+
         self.num_particles: int = self.declare_parameter("num_particles", 200).value
         self.forward_offset: float = self.declare_parameter("forward_offset", 0.0).value
         self.deterministic: bool = self.declare_parameter("deterministic", False).value
@@ -136,10 +137,11 @@ class ParticleFilter(Node):
             f"# beams per particle: {self.sensor_model.num_beams_per_particle}"
             f", normalized: {self.sensor_model.normalized_beams}"
         )
-
         if self.debug:
             self.get_logger().warning("NOTE: Debug mode enabled, expect slow performance!")
             self.get_logger().warning("Debug particle publisher only gives the first ~100 particles.")
+        if self.realistic:
+            self.get_logger().info("Realistic mode enabled, intentional drift/noise is being added!")
         self.get_logger().info("=============+READY+=============")
 
         # Implement the MCL algorithm
@@ -176,10 +178,10 @@ class ParticleFilter(Node):
 
         lin_vel = odom.twist.twist.linear
         rot_vel = odom.twist.twist.angular
-        # Experiments: Add intentional drift to odometry
-        # lin_vel.x += np.random.normal(loc=0, scale=2.0)
-        # lin_vel.y += np.random.normal(loc=0, scale=2.0)
-        # rot_vel.z += np.random.normal(loc=0, scale=np.pi / 3)
+        if self.realistic:
+            # Experiments: Add intentional drift to odometry
+            lin_vel.x += np.random.normal(loc=lin_vel.x * -0.1, scale=abs(lin_vel.x * 0.1))
+            rot_vel.z += np.random.normal(loc=rot_vel.z * -0.2, scale=abs(rot_vel.z * 0.2))
         vel = np.array([lin_vel.x, lin_vel.y, rot_vel.z])
         delta_pose = (-1 if self.on_racecar else 1) * dt * vel
         # self.get_logger().info(f"odometry: {delta_pose.round(4)}")
@@ -204,6 +206,18 @@ class ParticleFilter(Node):
 
         Assumes this function consistently takes <1/50 of a second to run."""
         call_time = self.get_clock().now()
+
+        if self.realistic:
+            # Experiments: Add intentional drift to laser scan
+            ranges = np.array(scan.ranges)
+            ranges += np.random.normal(loc=ranges * 0.02, scale=abs(ranges * 0.02))
+            # Make 5% of ranges return a value in [0, original range] to simulate obstacles
+            ranges = np.where(
+                np.random.rand(len(ranges)) < 0.05,
+                np.random.rand(len(ranges)) * ranges,
+                ranges,
+            )
+            scan.ranges = ranges.tolist()
 
         # Find particle weights
         weights = self.sensor_model.evaluate(self.particles, scan)
@@ -246,9 +260,9 @@ class ParticleFilter(Node):
         sigma_cos = np.sum(np.cos(angles))
         theta = np.arctan2(sigma_sin, sigma_cos)
 
-        # Move (x, y) to account for lidar being slightly in front of the robot
-        x += self.forward_offset * math.cos(theta)
-        y += self.forward_offset * math.sin(theta)
+        # # Move (x, y) to account for lidar being slightly in front of the robot
+        # x += self.forward_offset * math.cos(theta)
+        # y += self.forward_offset * math.sin(theta)
 
         # Publish average pose and TF transform
         self.odom_avg_mut.pose.pose = point_to_pose(x, y, theta)
@@ -270,9 +284,10 @@ class ParticleFilter(Node):
             num_to_publish = min(len(self.particles), 100)
             debug_msg = PoseArray(header=Header(frame_id="/map"))
             debug_msg.poses = [
-                point_to_pose(
-                    x + self.forward_offset * math.cos(theta), y + self.forward_offset * math.sin(theta), theta
-                )
+                # point_to_pose(
+                #     x + self.forward_offset * math.cos(theta), y + self.forward_offset * math.sin(theta), theta
+                # )
+                point_to_pose(x, y, theta)
                 for x, y, theta in self.particles[:num_to_publish]
             ]
             self.debug_particles_pub.publish(debug_msg)

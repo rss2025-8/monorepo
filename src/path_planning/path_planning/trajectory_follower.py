@@ -1,4 +1,5 @@
 import math
+import random
 from typing import Optional
 
 import numpy as np
@@ -20,18 +21,22 @@ class PurePursuit(Node):
 
     def __init__(self):
         super().__init__("trajectory_follower")
-        self.odom_topic = self.declare_parameter("odom_topic", "default").value
-        self.drive_topic = self.declare_parameter("drive_topic", "default").value
-        self.debug = self.declare_parameter("debug", False).value
-        self.realistic = self.declare_parameter("realistic", False).value
+        self.odom_topic: str = self.declare_parameter("odom_topic", "default").value
+        self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
+        self.debug: bool = self.declare_parameter("debug", False).value
+        self.realistic: bool = self.declare_parameter("realistic", False).value
 
-        # self.base_lookahead = 1.25
+        # self.base_lookahead = 1.0
         # self.base_speed = 0.75
+        # self.k_slip = 0.03  # Experimentally determined
 
-        self.base_lookahead = 1.5
-        self.base_speed = 3.0
+        self.base_lookahead = 2.0
+        self.base_speed = 1.0
+
+        # self.base_lookahead = 1.5
+        # self.base_speed = 3.0
+
         self.wheelbase_length = 0.33  # Between front and rear axles
-
         self.trajectory = LineTrajectory("/followed_trajectory")
         self.traj_points = np.array([])  # Empty
         self.is_active = False
@@ -40,31 +45,28 @@ class PurePursuit(Node):
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.pose_callback, 1)
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 1)
         self.drive_cmd = AckermannDrive()
-        self.drive(0.0, 0.0)
 
         self.debug_nearest_segment_pub = self.create_publisher(Marker, "/pure_pursuit/nearest_segment", 1)
         self.debug_lookahead_point_pub = self.create_publisher(Marker, "/pure_pursuit/lookahead_point", 1)
         self.debug_lookahead_circle_pub = self.create_publisher(Marker, "/pure_pursuit/lookahead_circle", 1)
+        self.debug_drive_line_pub = self.create_publisher(Marker, "/pure_pursuit/drive_line", 1)
         self.debug_text_pub = self.create_publisher(Marker, "/trajectory/debug_text", 1)
 
         # Track runtime
         self.timing = [0, 0.0]
 
         self.get_logger().info("Trajectory follower initialized")
-        # self.run_tests()  # TODO debug
+        if self.realistic:
+            self.get_logger().info("Realistic mode enabled, intentional drift/noise is being added!")
+        self.run_tests()  # TODO debug
 
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
         """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
-        min_dist = float("inf")
-        min_idx = None
-        for i in range(len(self.traj_points) - 1):
-            dist = point_to_segment_distance(car_loc, self.traj_points[i], self.traj_points[i + 1])
-            if dist < min_dist:
-                min_dist = dist
-                min_idx = i
-        return min_idx
+        car_locs = np.tile(car_loc, (len(self.traj_points) - 1, 1))  # N x 2, N (# of segments) copies of car_loc
+        dists = vectorized_point_to_segment_distance(car_locs, self.traj_points[:-1], self.traj_points[1:])
+        return np.argmin(dists)
 
     def get_lookahead_point(
         self, car_pose: np.ndarray, lookahead_dist: float, nearest_segment_idx: int
@@ -204,6 +206,12 @@ class PurePursuit(Node):
         Publishes to the drive topic with the given steering angle (radians) and velocity (m/s).
         If `use_last_cmd` is set, uses the last drive command.
         """
+        if abs(steering_angle) > math.pi / 2:
+            self.get_logger().warn(f"Steering angle {steering_angle} is too large")
+        # [-0.34, 0.34 radians] on actual car
+        max_steering_angle = 0.34
+        steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
+
         header = Header(stamp=self.get_clock().now().to_msg())
         if not use_last_cmd:
             self.drive_cmd = AckermannDrive(
@@ -214,6 +222,15 @@ class PurePursuit(Node):
                 jerk=0.0,
             )
         self.drive_pub.publish(AckermannDriveStamped(header=header, drive=self.drive_cmd))
+
+        if self.debug:
+            visualize.plot_line(
+                [0.0, math.cos(steering_angle / max_steering_angle * math.pi / 2) * velocity],
+                [0.0, math.sin(steering_angle / max_steering_angle * math.pi / 2) * velocity],
+                self.debug_drive_line_pub,
+                color=(0.0, 0.0, 1.0),
+                z=0.1,
+            )
 
     def run_tests(self):
         # point_to_segment_distance
@@ -228,6 +245,17 @@ class PurePursuit(Node):
         )
         assert np.isclose(
             point_to_segment_distance(np.array([-5, 3]), np.array([9, 61]), np.array([-10, -91])), 6.69787566782
+        )
+
+        # point_to_segments_distances
+        # Combine all tests above
+        assert np.allclose(
+            vectorized_point_to_segment_distance(
+                np.array([[4, 2], [4, 2], [4, 2], [4.5, 2.3], [4, 2], [-5, 3]]),
+                np.array([[2, 1], [2, 1], [2, 1], [-0.7, 1.3], [1, 1], [9, 61]]),
+                np.array([[8, 4], [4, 2], [2, 1], [8.1, 1.3], [3, 1], [-10, -91]]),
+            ),
+            np.array([0, 0, 2.2360679775, 1, 1.41421356237, 6.69787566782]),
         )
 
         # circle_segment_intersections
@@ -285,10 +313,31 @@ def point_to_segment_distance(p: np.ndarray, s1: np.ndarray, s2: np.ndarray) -> 
     return np.linalg.norm(p - projection)  # Distance to that closest point
 
 
+def vectorized_point_to_segment_distance(P: np.ndarray, S1: np.ndarray, S2: np.ndarray) -> np.ndarray:
+    """Returns the minimum distance from point P[i] to the segment (S1[i], S2[i]) for all i.
+
+    P should be N x 2, S1 and S2 should be N x 2. Returns a 1D array of length N.
+    """
+    assert P.shape[0] == S1.shape[0] == S2.shape[0]
+    assert P.shape[1] == 2 and S1.shape[1] == 2 and S2.shape[1] == 2
+
+    diff = S2 - S1  # N x 2
+    L2 = np.sum(diff * diff, axis=1)  # N
+    L2 = np.where(L2 > 0, L2, 1.0)  # N (Avoid division by zero)
+
+    # Projection of p onto s1s2 for each segment
+    t = np.sum((P - S1) * diff, axis=1) / L2
+    t = np.clip(t, 0.0, 1.0)  # N
+    # Closest points on segments
+    projection = S1 + diff * t[:, None]  # N x 2
+    # Distances to closest points
+    return np.linalg.norm(P - projection, axis=1)
+
+
 def circle_segment_intersections(c: np.ndarray, r: float, s1: np.ndarray, s2: np.ndarray) -> np.ndarray:
     """Returns intersection points (0, 1, or 2, (x, y)) of a circle (center c and radius r) and a line segment."""
     # Special case: Segment is a single point
-    if np.allclose(s1, s2):
+    if np.all(s1 == s2):
         if np.isclose(np.linalg.norm(s1 - c), r):
             return np.array([s1])  # Point on circle
         else:

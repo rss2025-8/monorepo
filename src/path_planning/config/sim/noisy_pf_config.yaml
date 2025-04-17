@@ -19,19 +19,20 @@ particle_filter:
 
     # Whether to show debug info
     debug: true
+    realistic: true  # This adds constraints in sim that hopefully make it closer to reality
 
     # The names of topics to listen and publish to
     map_topic: "/map"
-    scan_topic: "/bag/scan"
-    odom_topic: "/bag/vesc/odom"
+    scan_topic: "/scan"
+    odom_topic: "/odom"
 
     # The frame you should publish your transform to
-    particle_filter_frame: "/base_link"
+    particle_filter_frame: "/base_link_pf"
 
     # Deterministic flag; set to true to remove all added noise
     deterministic: false
 
-    on_racecar: true  # Flag to flip odometry (for the real car)
+    on_racecar: false  # Flag to flip odometry (for the real car)
     use_gpu: false  # Flag to use GPU
 
     lidar_scale_to_map_scale: 1.0
