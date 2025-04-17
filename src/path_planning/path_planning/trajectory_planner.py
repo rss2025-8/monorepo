@@ -21,7 +21,7 @@ from scipy.spatial import KDTree
 from visualization_msgs.msg import Marker
 
 from . import visualize
-from .utils import LineTrajectory
+from .utils import LineTrajectory, load_map
 
 
 class PathPlan(Node):
@@ -58,9 +58,19 @@ class PathPlan(Node):
         self.debug_text_pub = self.create_publisher(Marker, "/trajectory/debug_text", 1)
         visualize.clear_marker(self.debug_text_pub)
 
-        self.get_logger().info("Trajectory planner initialized")
+        # Load the provided map (if given)
+        self.map_set = False
+        map_to_load = self.declare_parameter("map_to_load", "").value
+        if map_to_load:
+            self.get_logger().info(f"Loading map from {map_to_load}")
+            self.map_cb(load_map(map_to_load))
 
     def map_cb(self, msg):
+        if self.map_set:
+            self.get_logger().info("Ignoring duplicate map message")
+            return
+        self.map_set = True
+
         # Reshape the OccupancyGrid
         self.grid = np.array(msg.data).reshape((msg.info.height, msg.info.width))
         obstacle_mask = (self.grid != 0).astype(np.uint8)  # 0 is free, -1 is unknown, 100 is obstacle
@@ -75,6 +85,13 @@ class PathPlan(Node):
         self.resolution = msg.info.resolution
         self.origin_x = msg.info.origin.position.x
         self.origin_y = msg.info.origin.position.y
+
+        # Debug map image
+        # img_output = np.zeros((self.grid.shape[0], self.grid.shape[1], 3), dtype=np.uint8)
+        # img_output[self.grid == 0] = [255, 255, 255]
+        # img_output[self.grid == 100] = [0, 0, 0]
+        # img_output[self.grid == -1] = [150, 150, 150]
+        # cv2.imwrite("debug_img.png", img_output)
 
         # Precompute distance to the nearest obstacle for each cell with BFS, in meters
         # Downsample for faster computation
@@ -112,9 +129,9 @@ class PathPlan(Node):
                     )
                     q.put((ni, nj))
 
-        self.get_logger().info(f"Processed map data of shape {self.grid.shape}, dilation {kernel_size}")
-        if self.debug:
-            visualize.plot_debug_text("Ready", self.debug_text_pub, color=(0.0, 0.0, 1.0))
+        self.get_logger().info(
+            f"Trajectory planner initialized, map data of shape {self.grid.shape}, dilation {kernel_size}"
+        )
 
     def pose_cb(self, pose):
         self.pose_x = pose.pose.pose.position.x

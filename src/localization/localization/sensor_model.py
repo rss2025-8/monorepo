@@ -20,6 +20,8 @@ from visualization_msgs.msg import Marker
 
 from localization.visualization_tools import VisualizationTools
 
+from .utils import load_map
+
 # np.set_printoptions(threshold=sys.maxsize)
 
 
@@ -61,14 +63,20 @@ class SensorModel:
 
         # Subscribe to the map
         self.map = None
-        self.map_set = False
-        self.map_subscriber = node.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, 1)
+        self.map_subscriber = self.node.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, 1)
 
         # Precompute the sensor model table
         self.sensor_model_table = np.empty((self.table_width, self.table_width))
         self.precompute_sensor_model()
 
         self.debug_raytracing_pub = node.create_publisher(Marker, "/debug_raytracing", 1)
+
+        # Load the provided map (if given)
+        self.map_set = False
+        map_to_load = self.node.declare_parameter("map_to_load", "").value
+        if map_to_load:
+            self.node.get_logger().info(f"Loading map from {map_to_load}")
+            self.map_callback(load_map(map_to_load))
 
         if fallback:
             # Create a simulated laser scan
@@ -246,7 +254,10 @@ class SensorModel:
         return particle_probs
 
     def map_callback(self, map_msg):
-        self.node.get_logger().info("Initializing map and sensor model...")
+        if self.map_set:
+            self.node.get_logger().info("Ignoring duplicate map message")
+            return
+        self.map_set = True
 
         # Add a 1px wall (value 100) around edges of map (of type array.array) for range_libc
         for i in range(map_msg.info.width):
@@ -260,16 +271,15 @@ class SensorModel:
         self.map = np.array(map_msg.data, np.double) / 100.0
         self.map = np.clip(self.map, 0, 1)
         self.resolution = map_msg.info.resolution
-        self.map_set = True
 
         if not fallback:
             # Setup range_libc
             if self.node.use_gpu:
-                self.node.get_logger().info("Using racecar range method (ray marching + GPU)...")
+                self.node.get_logger().info("Loading map with racecar range method (ray marching + GPU)...")
                 oMap = range_libc.PyOMap(map_msg)
                 self.range_method = range_libc.PyRayMarchingGPU(oMap, self.table_width - 1)
             else:
-                self.node.get_logger().info("Using local range method (ray marching)...")
+                self.node.get_logger().info("Loading map with local range method (ray marching)...")
                 oMap = range_libc.PyOMap(map_msg)
                 self.range_method = range_libc.PyRayMarching(oMap, self.table_width - 1)
             self.range_method.set_sensor_model(self.sensor_model_table)
@@ -286,4 +296,4 @@ class SensorModel:
                 self.map, map_msg.info.height, map_msg.info.width, map_msg.info.resolution, origin, 0.5
             )  # Consider anything < 0.5 to be free
 
-        self.node.get_logger().info("Map and sensor model initialized!")
+        self.node.get_logger().info("Map and sensor model initialized")

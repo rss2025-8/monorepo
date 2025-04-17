@@ -18,7 +18,7 @@ from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Float32, Header, String
+from std_msgs.msg import Float32, Header
 
 from .motion_model import MotionModel
 from .sensor_model import SensorModel
@@ -132,17 +132,19 @@ class ParticleFilter(Node):
         self.timing_motion_model = [0, 0.0]
         self.timing_sensor_model = [0, 0.0]
 
-        self.get_logger().info(f"# particles: {self.num_particles}, on car: {self.on_racecar}, gpu: {self.use_gpu}")
         self.get_logger().info(
-            f"# beams per particle: {self.sensor_model.num_beams_per_particle}"
-            f", normalized: {self.sensor_model.normalized_beams}"
+            f"# particles: {self.num_particles}, "
+            f"beams per particle: {self.sensor_model.num_beams_per_particle}, "
+            f"normalized: {self.sensor_model.normalized_beams}, "
+            f"on car: {self.on_racecar}, "
+            f"gpu: {self.use_gpu}"
         )
         if self.debug:
             self.get_logger().warning("NOTE: Debug mode enabled, expect slow performance!")
             self.get_logger().warning("Debug particle publisher only gives the first ~100 particles.")
         if self.realistic:
             self.get_logger().info("Realistic mode enabled, intentional drift/noise is being added!")
-        self.get_logger().info("=============+READY+=============")
+        self.get_logger().info("============= ALL MODULES READY =============")
 
         # Implement the MCL algorithm
         # using the sensor model and the motion model

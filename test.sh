@@ -1,8 +1,7 @@
-# Edit this to quickly launch whatever we're working on rn
+# Edit this to launch whatever we're working on rn
 
-echo "Building..."
-PYTHONWARNINGS="ignore" colcon build --symlink-install
+LAUNCH_CMD="ros2 launch path_planning real.launch.xml"
+
 source install/setup.bash
-
-echo "Launching (Lab 6 on car)..."
-ros2 launch path_planning real.launch.xml
+echo "Launch command: $LAUNCH_CMD"
+eval $LAUNCH_CMD

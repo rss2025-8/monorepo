@@ -1,15 +1,12 @@
 <launch>
-    <!-- Launch localization and wall follower immediately -->
+    <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml">
+        <arg name="map" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+    </include>
     <node pkg="localization" exec="particle_filter" name="particle_filter" output="screen">
         <param from="$(find-pkg-share localization)/config/sim_params.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
     </node>
     <node pkg="wall_follower" name="wall_follower" exec="wall_follower" output="screen">
         <param from="$(find-pkg-share wall_follower)/params.yaml"/>
     </node>
-    <!-- Launch map after a delay -->
-    <timer period="3.0">
-        <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml">
-            <!-- <arg name="map" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/> -->
-        </include>
-    </timer>
 </launch>
