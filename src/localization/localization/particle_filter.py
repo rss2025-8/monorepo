@@ -187,7 +187,8 @@ class ParticleFilter(Node):
         # self.get_logger().info(f"odometry: {delta_pose.round(4)}")
 
         self.motion_model.evaluate(self.particles, delta_pose, dt)
-        self.publish_average_pose(new_time)
+        if self.sensor_model_working:
+            self.publish_average_pose(new_time)
 
         latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
         self.timing_motion_model[0] += 1

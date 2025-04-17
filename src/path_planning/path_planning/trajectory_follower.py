@@ -1,5 +1,6 @@
 import math
 import random
+from collections import deque
 from typing import Optional, Tuple
 
 import numpy as np
@@ -26,9 +27,19 @@ class PurePursuit(Node):
         self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
         self.debug: bool = self.declare_parameter("debug", False).value
 
-        self.max_speed = 1.0
-        self.speed = 1.0  # TODO dynamic
+        # TODO tune
+        self.max_speed = 4.0
+        self.speed = self.max_speed
+        # Steering
+        self.pid = PID(self.get_clock().now(), kp=1.0, kd=0.0)
+        # self.pid = PID(self.get_clock().now(), kp=1.0, kd=0.0)
+        # self.pid = PID(self.get_clock().now(), kp=1.0, kd=0.05)
 
+        # Error
+        # self.pid = PID(self.get_clock().now(), kp=0.0, kd=0.05)
+        self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=5.0)
+
+        self.last_lookahead_dist = None
         self.wheelbase_length = 0.33  # Between front and rear axles
         self.trajectory = LineTrajectory(self, "/followed_trajectory")
         self.traj_points = np.array([])  # Empty
@@ -50,8 +61,8 @@ class PurePursuit(Node):
         self.timing = [0, 0.0]
 
         self.get_logger().info("Trajectory follower initialized")
-        if self.debug:
-            self.run_tests()
+        # if self.debug:
+        #     self.run_tests()
 
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
 
@@ -79,7 +90,7 @@ class PurePursuit(Node):
             in_front = []
             for p in intersections:
                 car_forward_vec = np.array([math.cos(car_pose[2]), math.sin(car_pose[2])])
-                if np.dot(car_forward_vec, p - car_pose[:2]) >= 0:  # Angle between is in [-pi/2, pi/2]
+                if np.dot(car_forward_vec, p - car_pose[:2]) >= -1e-6:  # Angle between is in [-pi/2, pi/2]
                     in_front.append(p)
             # If both are in front, use the one closer to the end point of the segment
             in_front.sort(key=lambda p: np.linalg.norm(p - s2))
@@ -90,32 +101,50 @@ class PurePursuit(Node):
 
     def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> Tuple[float, float]:
         """Returns the adaptive lookahead distance and curvature for the given car pose and nearest segment index."""
-        k_vel = 2.24
-        k_kappa = 5.0
-        min_lookahead = self.speed * 0.5
-        max_lookahead = self.speed * 10.0
+        # TODO tune
+        # max_lookahead = self.max_speed * 3.0
+        # max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+        max_lookahead = 3.0 + (self.max_speed - 1) * 1.0
+        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.5  # Distance near the car to ignore
+        min_lookahead = 0.75 + (self.max_speed - 1) * 0.75  # Distance near the car to ignore
+        dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
 
-        # Initial lookahead to find curvature
-        lookahead_dist = np.clip(k_vel * self.speed, min_lookahead, max_lookahead)
-        result = self.get_lookahead_point(car_pose, lookahead_dist, nearest_segment_idx)
-        lookahead_point, l_seg_idx = result if result else (None, None)
-        if lookahead_point is None:
-            # Return the same lookahead to trigger "go to closest segment" behavior
-            self.get_logger().warn("No lookahead point found")
-            return lookahead_dist, 0.0
+        # Gradual increase in lookahead
+        # if self.last_lookahead_dist is not None:
+        #     max_lookahead = min(max_lookahead, self.last_lookahead_dist + self.traj_step_size + 0.01)
 
-        # Find curvature using spline
-        u = self.traj_u[l_seg_idx] + (self.traj_u[l_seg_idx + 1] - self.traj_u[l_seg_idx]) * fraction_along_segment(
-            self.traj_points[l_seg_idx], self.traj_points[l_seg_idx + 1], lookahead_point
+        # Cross track error (high error = smaller lookahead)
+        # cross_track_error = (
+        #     point_to_segment_distance(
+        #         car_pose[:2], self.traj_points[nearest_segment_idx], self.traj_points[nearest_segment_idx + 1]
+        #     )
+        #     + 1e-6
+        # )
+        # max_lookahead = min(max_lookahead, min_lookahead + 1.0 / cross_track_error)
+
+        # Lookahead as large as possible until a sharp turn is detected
+        # Find sum of change in dtheta between current and future segments
+        dtheta_sum = 0.0
+        curr_dist = np.linalg.norm(self.traj_points[nearest_segment_idx + 1] - car_pose[:2])
+        cutoff_idx = len(self.traj_dtheta) - 1
+        # TODO could start a bit before current segment
+        meters_before = 2.5
+        num_before = min(int(meters_before / self.traj_step_size), nearest_segment_idx)
+        curr_dist -= self.traj_step_size * num_before
+        for i in range(nearest_segment_idx + 1 - num_before, len(self.traj_dtheta)):
+            curr_dist += self.traj_step_size
+            # if curr_dist <= min_lookahead:
+            #     continue
+            dtheta_sum += self.traj_dtheta[i]  # - self.traj_dtheta[nearest_segment_idx]
+            if abs(dtheta_sum) > dtheta_threshold or curr_dist - self.traj_step_size > max_lookahead:
+                cutoff_idx = i
+                break
+        # Set lookahead to be the distance to this segment
+        adaptive_lookahead = np.clip(
+            np.linalg.norm(self.traj_points[cutoff_idx] - car_pose[:2]), min_lookahead, max_lookahead
         )
-        dx, dy = splev(u, self.traj_spline, der=1)
-        ddx, ddy = splev(u, self.traj_spline, der=2)
-        kappa = abs((dx * ddy - dy * ddx) / (dx**2 + dy**2) ** 1.5)  # (1 / radius of curve)
-
-        # Calculate lookahead distance based on curvature
-        adaptive_lookahead = np.clip(k_vel * self.speed - k_kappa * kappa, min_lookahead, max_lookahead)
-        # self.get_logger().info(f"L_a {adaptive_lookahead:.3f} m, κ {kappa:.3f}")
-        return adaptive_lookahead, kappa
+        self.last_lookahead_dist = adaptive_lookahead
+        return adaptive_lookahead, self.traj_dtheta[nearest_segment_idx] / self.traj_step_size
 
     def pose_callback(self, odometry_msg):
         """Called on every pose update. Updates the drive command."""
@@ -155,7 +184,7 @@ class PurePursuit(Node):
 
         if lookahead_point is None:
             # Try to get back on the path
-            self.get_logger().warn("No lookahead point found, using end point of closest segment")
+            # self.get_logger().warning("No lookahead point found, using end point of closest segment")
             l_seg_idx = nearest_segment_idx
             lookahead_point = self.traj_points[l_seg_idx + 1]
             self.drive(use_last_cmd=True)
@@ -169,23 +198,64 @@ class PurePursuit(Node):
         # Converting from global to robot frame (opposite of odometry from robot to global frame)
         local_x = math.cos(-car_theta) * dx - math.sin(-car_theta) * dy
         local_y = math.sin(-car_theta) * dx + math.cos(-car_theta) * dy
-        if local_x < 0:
-            self.get_logger().warn("Lookahead point behind the vehicle")
 
         eta = math.atan2(local_y, local_x)
+        if local_x < 0:
+            # Commit to a hard turn
+            if eta == 0:
+                eta = 1e-6
+            eta = math.pi / 2 * np.sign(eta)
         steering_angle = math.atan((2 * self.wheelbase_length * math.sin(eta)) / adaptive_lookahead)
-        # Optional understeering term at higher velocities
+        # TODO Optional understeering term at higher velocities
         k_understeer = 0.0 / 9.81
-        steering_angle += k_understeer * kappa * (self.speed**2)
+        steering_angle += k_understeer * kappa * (self.speed**2) * np.sign(steering_angle)
+
+        # TODO Set speed based on...
+        min_speed = 1.0
+        max_steering_angle = 0.34  # TODO check
+
+        # Lookahead distance
+        # min_v_to_lookahead_ratio = 1.25
+        min_v_to_lookahead_ratio = 0.75
+        self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, self.max_speed)
+
+        # Raw steering angle
+        # self.speed = np.clip(self.max_speed * (1 - abs(steering_angle) / max_steering_angle), min_speed, self.max_speed)
+
+        # Cross track error
+        # cross_track_error = point_to_segment_distance(
+        #     car_loc, self.traj_points[nearest_segment_idx], self.traj_points[nearest_segment_idx + 1]
+        # )
+        # # Directional
+        # if (
+        #     np.dot(
+        #         self.traj_points[nearest_segment_idx + 1] - self.traj_points[nearest_segment_idx],
+        #         car_loc - self.traj_points[nearest_segment_idx],
+        #     )
+        #     > 0
+        # ):
+        #     cross_track_error = -cross_track_error
+
+        # Angle error
+        # curr_segment_d = self.traj_points[nearest_segment_idx + 1] - self.traj_points[nearest_segment_idx]
+        # angle_error = car_theta - math.atan2(curr_segment_d[1], curr_segment_d[0])
+        # self.speed = np.clip(self.max_speed * (math.pi / 2 - abs(angle_error) * 2) / (math.pi / 2), min_speed, self.max_speed)
+
+        # TODO PD controller
+        steering_angle = self.pid.update(-steering_angle, self.get_clock().now())
+        # steering_angle += self.pid.update(cross_track_error, self.get_clock().now())
+        # steering_angle += np.clip(  # This one seems bugged
+        #     self.pid.update(-cross_track_error, self.get_clock().now()), -max_steering_angle / 4, max_steering_angle / 4
+        # )
+        steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
+        # Low pass filter to smooth out sudden spikes
+        steering_angle = self.low_pass_filter.update(steering_angle, self.get_clock().now())
+        steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
 
         # Draw circle that the car is following
         if self.debug and eta != 0:
             R = adaptive_lookahead / (2 * math.sin(eta))
             visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(0, 0, 1), frame="/base_link")
-
-        # Lower steering angle for stability on the car
-        # reduction_factor = 0.5
-        # steering_angle *= reduction_factor
 
         self.drive(steering_angle, self.speed)
         self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
@@ -235,17 +305,18 @@ class PurePursuit(Node):
         """Called when a new trajectory is published."""
         self.get_logger().info(f"Received new trajectory with {len(msg.poses)} points")
         if len(msg.poses) < 2:
-            self.get_logger().warn("Trajectory has less than 2 points. Ignoring.")
+            self.get_logger().warning("Trajectory has less than 2 points. Ignoring.")
             return
         self.trajectory.clear()
         self.trajectory.fromPoseArray(msg)
 
-        # TODO Smooth the path
+        # TODO Tuning for smoothing the path
         path = np.array(self.trajectory.points)
-        dist_between_points = 1.0
+        # dist_between_points = 1.0
+        dist_between_points = 0.25
         path_length = np.sum(np.linalg.norm(path[1:] - path[:-1], axis=1))
         num_points = int(path_length / dist_between_points) + 2
-        path, u, tck = smooth_path(path, num_points=num_points, smoothness=0.1)
+        path, u, tck, dtheta, step_size = smooth_path(path, num_points=num_points, smoothness=0.25)
 
         self.trajectory.clear()
         for point in path:
@@ -255,14 +326,17 @@ class PurePursuit(Node):
         self.traj_points = path
         self.traj_u = u
         self.traj_spline = tck
-
+        self.traj_dtheta = dtheta
+        self.traj_step_size = step_size
         # Add an extra point at the end of the trajectory that extends the last segment
         norm_vec = self.traj_points[-1] - self.traj_points[-2]
         norm_vec = norm_vec / np.linalg.norm(norm_vec)
         end_point = self.traj_points[-1] + norm_vec * self.max_speed * 10
         self.traj_points = np.concatenate([self.traj_points, [end_point]])
         self.traj_u = np.concatenate([self.traj_u, [1.0]])
+        self.traj_dtheta = np.concatenate([self.traj_dtheta, [0.0]])
         self.is_active = True
+        self.last_lookahead_dist = None
         self.get_logger().info(f"Final trajectory has {len(self.traj_points)} points")
 
     def drive(self, steering_angle=0.0, velocity=0.0, use_last_cmd=False):
@@ -271,7 +345,7 @@ class PurePursuit(Node):
         If `use_last_cmd` is set, uses the last drive command.
         """
         if abs(steering_angle) > math.pi / 2:
-            self.get_logger().warn(f"Steering angle {steering_angle} is too large")
+            self.get_logger().warning(f"Steering angle {steering_angle} is too large")
         # [-0.34, 0.34 radians] on actual car
         max_steering_angle = 0.34
         steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
@@ -287,14 +361,14 @@ class PurePursuit(Node):
             )
         self.drive_pub.publish(AckermannDriveStamped(header=header, drive=self.drive_cmd))
 
-        # if self.debug:
-        #     visualize.plot_line(
-        #         [0.0, math.cos(steering_angle / max_steering_angle * math.pi / 2) * velocity],
-        #         [0.0, math.sin(steering_angle / max_steering_angle * math.pi / 2) * velocity],
-        #         self.debug_drive_line_pub,
-        #         color=(0.0, 0.0, 1.0),
-        #         z=0.1,
-        #     )
+        if self.debug:
+            visualize.plot_line(
+                [0.0, math.cos(steering_angle / max_steering_angle * math.pi / 2) * velocity / self.max_speed],
+                [0.0, math.sin(steering_angle / max_steering_angle * math.pi / 2) * velocity / self.max_speed],
+                self.debug_drive_line_pub,
+                color=(0.0, 0.0, 1.0),
+                z=0.1,
+            )
 
     def run_tests(self):
         # point_to_segment_distance
@@ -364,6 +438,65 @@ class PurePursuit(Node):
         self.pose_to_traj_error_pub.publish(error_msg)
 
 
+class PID:
+    """
+    A Proportional-Integral-Derivative controller.
+    The accumulated error (for Ki) is not clipped or reset.
+    """
+
+    def __init__(self, time: rclpy.time.Time, kp: float, ki=0.0, kd=0.0, window=5):
+        """Creates a PID controller with the given initial time, Kp, Ki, Kd, and window size for derivatives."""
+        self.prev_time = time
+        self.kp, self.ki, self.kd = kp, ki, kd
+        self.prev_error = 0.0
+        self.total_error = 0.0  # Integral of error w.r.t. t
+        # self.window = window
+        # self.errors = deque(maxlen=window)
+        # self.dts = deque(maxlen=window)
+
+    def update(self, error: float, time: rclpy.time.Time) -> float:
+        """
+        Update PID state with the current error and the time that error was *measured*. Returns a new control output.
+
+        For example, with Kp = 2 and Ki = Kd = 0, an error of 1 results in a control output of -2.
+        """
+        dt = (time.nanoseconds - self.prev_time.nanoseconds) / 1e9  # Time elapsed in seconds
+        # self.dts.append(dt)
+        d_error = (error - self.prev_error) / dt  # d(Error)/dt
+        # Derivative using a window of previous errors
+        # d_error = (error - self.errors[0]) / sum(self.dts)
+        # self.errors.append(error)
+        self.total_error += error / dt
+        correction = -(self.kp * error + self.kd * d_error + self.ki * self.total_error)
+        self.prev_time, self.prev_error = time, error
+
+        return correction
+
+
+class LowPassFilter:
+    """A first-order exponential low-pass filter."""
+
+    def __init__(self, time: rclpy.time.Time, cutoff_freq: float):
+        """
+        Creates the filter with the given initial time and cutoff frequency (Hz).
+        """
+        self.prev_time = time
+        self.fc = cutoff_freq
+        self.prev_output = 0.0
+
+    def update(self, input_val: float, time: rclpy.time.Time) -> float:
+        """
+        Update filter state with the current input value and its timestamp.
+        Returns the filtered output.
+        """
+        dt = (time.nanoseconds - self.prev_time.nanoseconds) / 1e9
+        alpha = math.exp(-2 * math.pi * self.fc * dt)
+        y = alpha * self.prev_output + (1 - alpha) * input_val
+        self.prev_output = y
+        self.prev_time = time
+        return y
+
+
 def pose_to_vec(msg: Pose) -> np.ndarray:
     """Convert a Pose message to a 3D vector [x, y, yaw]."""
     quaternion = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
@@ -373,7 +506,7 @@ def pose_to_vec(msg: Pose) -> np.ndarray:
 
 def point_to_segment_distance(p: np.ndarray, s1: np.ndarray, s2: np.ndarray) -> float:
     """Returns the minimum distance from a 2D point p to the line segment from s1 to s2."""
-    if np.all(s1 == s2):
+    if np.linalg.norm(s1 - s2) < 1e-6:
         return np.linalg.norm(p - s1)  # Single point
 
     l2 = np.dot(s2 - s1, s2 - s1)  # Squared length of segment
@@ -408,7 +541,7 @@ def vectorized_point_to_segment_distance(P: np.ndarray, S1: np.ndarray, S2: np.n
 def circle_segment_intersections(c: np.ndarray, r: float, s1: np.ndarray, s2: np.ndarray) -> np.ndarray:
     """Returns intersection points (0, 1, or 2, (x, y)) of a circle (center c and radius r) and a line segment."""
     # Special case: Segment is a single point
-    if np.all(s1 == s2):
+    if np.linalg.norm(s1 - s2) < 1e-6:
         if np.isclose(np.linalg.norm(s1 - c), r):
             return np.array([s1])  # Point on circle
         else:
@@ -422,17 +555,19 @@ def circle_segment_intersections(c: np.ndarray, r: float, s1: np.ndarray, s2: np
     c = np.dot(s1, s1) + np.dot(c, c) - 2 * np.dot(s1, c) - r**2
 
     disc = b**2 - 4 * a * c  # Discriminant
-    if disc < 0:  # No intersection
+    if disc < -1e-6:  # No intersection
         return np.empty((0, 2), dtype=float)
+    elif disc < 0:
+        disc = 0  # Numerical tolerance
 
     intersections = []
     # Up to two possible intersections
     sqrt_disc = np.sqrt(disc)
     t1 = (-b + sqrt_disc) / (2 * a)
     t2 = (-b - sqrt_disc) / (2 * a)
-    if 0 <= t1 <= 1:
+    if -1e-6 <= t1 <= 1 + 1e-6:
         intersections.append(s1 + t1 * v)  # First point
-    if 0 <= t2 <= 1 and not np.isclose(t2, t1):
+    if -1e-6 <= t2 <= 1 + 1e-6 and abs(t2 - t1) > 1e-6:
         intersections.append(s1 + t2 * v)  # Second point that's not a duplicate
 
     if intersections:
@@ -451,6 +586,15 @@ def fraction_along_segment(s1: np.ndarray, s2: np.ndarray, p: np.ndarray) -> flo
     return float(t)
 
 
+def split_up_path(path: np.ndarray, num_points: int) -> np.ndarray:
+    """Splits a path into num_points points, uniformly spaced along the path."""
+    dx = np.diff(path[:, 0])  # N-1
+    dy = np.diff(path[:, 1])  # N-1
+    dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
+    u = np.linspace(0, dist[-1], num_points)
+    return np.vstack([np.interp(u, dist, path[:, 0]), np.interp(u, dist, path[:, 1])]).T
+
+
 def smooth_path(path: np.ndarray, num_points: int, smoothness: float) -> Tuple[np.ndarray, np.ndarray, tuple]:
     """Smooths a path using a spline. Returns the path (M x 2), parameterizations of the path (M), and the spline.
 
@@ -459,9 +603,13 @@ def smooth_path(path: np.ndarray, num_points: int, smoothness: float) -> Tuple[n
         num_points: The number of points in the smoothed path.
         smoothness: The smoothness of the spline.
     """
+    # First, split the path into linear segments
+    path = split_up_path(path, num_points)
+
     # Parameterize by distance along the path
     dx = np.diff(path[:, 0])  # N-1
     dy = np.diff(path[:, 1])  # N-1
+    step_size = np.hypot(dx[-1], dy[-1])
     dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
     u = dist / dist[-1]  # Normalize distances to [0, 1]
 
@@ -471,7 +619,15 @@ def smooth_path(path: np.ndarray, num_points: int, smoothness: float) -> Tuple[n
     # Sample uniformly spaced points along the path
     u_samples = np.linspace(0, 1, num_points)
     x_samples, y_samples = splev(u_samples, tck)
-    return np.vstack([x_samples, y_samples]).T, u_samples, tck
+
+    # Find curvature at each point
+    dx, dy = splev(u_samples, tck, der=1)
+    ddx, ddy = splev(u_samples, tck, der=2)
+    kappa = abs((dx * ddy - dy * ddx) / (dx**2 + dy**2) ** 1.5)  # (1 / radius of curve)
+    dtheta = kappa * step_size
+
+    return np.vstack([x_samples, y_samples]).T, u_samples, tck, dtheta, step_size
+    # return path, u_samples, tck, dtheta, step_size
 
 
 # For profiling

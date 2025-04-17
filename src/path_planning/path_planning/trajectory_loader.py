@@ -62,7 +62,7 @@ class LoadTrajectory(Node):
         self.pose_sub.publish(pose_with_covariance)
 
         # visualize the loaded trajectory
-        # self.trajectory.publish_viz()
+        self.trajectory.publish_viz()
 
         # send the trajectory
         self.publish_trajectory()

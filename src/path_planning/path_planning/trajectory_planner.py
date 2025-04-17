@@ -3,6 +3,7 @@ Uses PRM.
 Tunable parameters: kernel_size (dilation of obstacles), N (number of samples)
 """
 
+import heapq
 import math
 
 import cv2
@@ -195,6 +196,26 @@ class PathPlan(Node):
                     return False
             return True
 
+        def batch_collision_free(p1s, p2s):
+            """Check if a batch of line segments are collision free.
+
+            p1s and p2s should be of size N x 2."""
+            vecs = p2s - p1s  # N x 2
+            dist = np.hypot(vecs[:, 0], vecs[:, 1])  # N
+            steps = np.ceil(dist / 0.5).astype(int)  # N
+            max_steps = steps.max()
+
+            t = np.linspace(0, 1, max_steps + 1)[:, None]  # 1 x S
+            pts = p1s[None, :, :] + vecs[None, :, :] * t[:, :, None]  # S x N x 2
+
+            gx = ((self.origin_x - pts[:, :, 0]) / self.resolution).astype(int)  # S x N
+            gy = ((self.origin_y - pts[:, :, 1]) / self.resolution).astype(int)  # S x N
+            gx = np.clip(gx, 0, self.grid.shape[1] - 1)  # S x N
+            gy = np.clip(gy, 0, self.grid.shape[0] - 1)  # S x N
+
+            free = self.grid[gy, gx] == 0  # S x N
+            return free.all(axis=0)  # N
+
         def segment_dist_to_obstacle(p1, p2):
             """Check approximately how close a line segment gets to an obstacle."""
             # TODO can optimize with range_libc
@@ -203,7 +224,7 @@ class PathPlan(Node):
             dx = x2 - x1
             dy = y2 - y1
             dist = math.hypot(dx, dy)
-            steps = int(dist / 0.5 * 4) + 1  # Approximate is fine
+            steps = int(dist / 0.5) + 1  # Approximate is fine
             min_dist = np.inf
             for i in range(steps + 1):
                 t = i / steps
@@ -233,15 +254,21 @@ class PathPlan(Node):
 
         # Sample points and build the graph
         start_time = self.get_clock().now()
+        np_points = np.array(points)  # N x 2
         for i, point in enumerate(points):
             distances, indices = kdtree.query(point, k=40)
-            # for the start point, print out the coordinates of the neighbors
-            for j in indices:
-                if point == points[j]:
-                    continue
-                neighbor = points[j]
-                if is_collision_free(point, neighbor):
-                    graph[point].append(neighbor)
+            neighbors = np_points[indices]
+            # Check all neighbors (vectorized)
+            free = batch_collision_free(np.tile(point, (neighbors.shape[0], 1)), neighbors)
+            # Add neighbors that are free (convert to tuples)
+            graph[point].extend([tuple(neighbor) for neighbor in neighbors[free].tolist() if tuple(neighbor) != point])
+            # # for the start point, print out the coordinates of the neighbors
+            # for j in indices:
+            #     if point == points[j]:
+            #         continue
+            #     neighbor = points[j]
+            #     if is_collision_free(point, neighbor):
+            #         graph[point].append(neighbor)
         # self.get_logger().info("Graph: " + str(graph[end_point]))
         neighbors_pose_array = PoseArray()
         neighbors_pose_array.header.frame_id = "map"  # Set the appropriate frame ID
@@ -258,14 +285,23 @@ class PathPlan(Node):
 
         # Build path by implementing A*
         start_time = self.get_clock().now()
-        queue = [(0, start_point)]
+        queue = []
+        heapq.heappush(queue, (0, start_point))
         costs = {start_point: 0}
         parents = {start_point: None}
         visited = set()
         while queue:
             # self.get_logger().info("Queue: " + str(queue))
-            queue.sort(key=lambda x: x[0])
-            current_cost, current_point = queue.pop(0)
+            # queue.sort(key=lambda x: x[0])
+            # current_cost, current_point = queue.pop(0)
+            # Find lowest cost
+            # min_cost = np.inf
+            # for i, (cost, point) in enumerate(queue):
+            #     if cost < min_cost:
+            #         min_cost = cost
+            #         min_index = i
+            # current_cost, current_point = queue.pop(min_index)
+            current_cost, current_point = heapq.heappop(queue)
             if current_point in visited:
                 continue
             visited.add(current_point)
@@ -289,7 +325,7 @@ class PathPlan(Node):
                 if neighbor not in costs or new_cost < costs[neighbor]:
                     costs[neighbor] = new_cost
                     priority = new_cost + math.hypot(end_point[0] - neighbor[0], end_point[1] - neighbor[1])
-                    queue.append((priority, neighbor))
+                    heapq.heappush(queue, (priority, neighbor))
                     parents[neighbor] = current_point
         self.get_logger().info(f"A* pathfinding: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
         # self.get_logger().info("Parents: " + str(parents[end_point]))
@@ -301,7 +337,7 @@ class PathPlan(Node):
             path.append(current)
             current = parents.get(current, None)
         path.reverse()
-        self.get_logger().info(f"Planned path: {path}")
+        # self.get_logger().info(f"Planned path: {path}")
         for point in path:
             self.trajectory.addPoint(point)
 

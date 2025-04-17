@@ -21,7 +21,8 @@ class RealisticAckermann(Node):
 
         # True car dynamics
         self.k_slip = 0.08  # Experimentally determined
-        self.drive_system_angle = SecondOrderSystem(omega_n=1.5, zeta=0.1)
+        # self.drive_system_angle = SecondOrderSystem(omega_n=1.5, zeta=0.1)
+        self.drive_system_angle = SecondOrderSystem(omega_n=2.5, zeta=0.15)
         self.drive_system_velocity = SecondOrderSystem(omega_n=3.0, zeta=0.5)
         self.emulated_hz = float("inf")  # Drop enough commands to get around this Hz
 

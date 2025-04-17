@@ -166,7 +166,7 @@ def plot_circle(x, y, radius, publisher, color=(0.0, 1.0, 0.0), scale=0.1, z=0.0
     circle_marker.color.r = float(color[0])
     circle_marker.color.g = float(color[1])
     circle_marker.color.b = float(color[2])
-    num_points = 36
+    num_points = 18
     for i in range(num_points):
         p = Point()
         p.x = x + radius * math.cos(i * 2 * math.pi / (num_points - 1))
