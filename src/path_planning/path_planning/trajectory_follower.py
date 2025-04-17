@@ -630,24 +630,24 @@ def smooth_path(path: np.ndarray, num_points: int, smoothness: float) -> Tuple[n
     # return path, u_samples, tck, dtheta, step_size
 
 
-# For profiling
-import atexit
-import cProfile
+# # For profiling
+# import atexit
+# import cProfile
 
-profiler = cProfile.Profile()
-
-
-def save_profile():
-    profiler.disable()
-    profiler.dump_stats("profile.prof")
-    print("Saved profile to profile.prof")
+# profiler = cProfile.Profile()
 
 
-atexit.register(save_profile)
+# def save_profile():
+#     profiler.disable()
+#     profiler.dump_stats("profile.prof")
+#     print("Saved profile to profile.prof")
+
+
+# atexit.register(save_profile)
 
 
 def main(args=None):
-    profiler.enable()
+    # profiler.enable()
 
     rclpy.init(args=args)
     follower = PurePursuit()
