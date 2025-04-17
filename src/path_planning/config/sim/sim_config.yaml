@@ -11,4 +11,3 @@ trajectory_follower:
     odom_topic: "/odom"
     drive_topic: "/drive"
     debug: true
-    realistic: true

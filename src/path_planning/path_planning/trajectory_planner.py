@@ -15,6 +15,7 @@ import queue
 import numpy as np
 from geometry_msgs.msg import Pose, PoseArray, PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
+from scipy.interpolate import splev, splprep
 from scipy.spatial import KDTree
 from visualization_msgs.msg import Marker
 
@@ -117,12 +118,16 @@ class PathPlan(Node):
     def pose_cb(self, pose):
         self.pose_x = pose.pose.pose.position.x
         self.pose_y = pose.pose.pose.position.y
+        # self.pose_x = 10.356518745422363
+        # self.pose_y = -1.18073570728302
         self.get_logger().info(f"Received current pose: {self.pose_x}, {self.pose_y}")
         self.plan_path((self.pose_x, self.pose_y), (self.goal_x, self.goal_y), self.grid)
 
     def goal_cb(self, msg):
         self.goal_x = msg.pose.position.x
         self.goal_y = msg.pose.position.y
+        # self.goal_x = -18.909656524658203
+        # self.goal_y = 7.085318565368652
         self.get_logger().info(f"Received goal pose: {self.goal_x}, {self.goal_y}")
 
     def plan_path(self, start_point, end_point, map):
@@ -215,7 +220,7 @@ class PathPlan(Node):
                 min_dist = min(min_dist, self.dist_to_obstacle_grid[grid_y, grid_x])
             return min_dist
 
-        N = 2000  # TODO number of samples
+        N = 1000  # TODO number of samples
         start_time = self.get_clock().now()
         points = [sample_free() for _ in range(N)]
         points.append(start_point)
@@ -229,7 +234,7 @@ class PathPlan(Node):
         # Sample points and build the graph
         start_time = self.get_clock().now()
         for i, point in enumerate(points):
-            distances, indices = kdtree.query(point, k=30)
+            distances, indices = kdtree.query(point, k=40)
             # for the start point, print out the coordinates of the neighbors
             for j in indices:
                 if point == points[j]:
@@ -274,11 +279,12 @@ class PathPlan(Node):
                 # Force is proportional to 1/r
                 dist_to_obstacle = segment_dist_to_obstacle(current_point, neighbor)
                 # TODO play with these
-                potential_field_weight = 0.5
+                potential_field_weight = 1.0
+                potential_field_base = 0.25
                 new_cost = (
                     costs[current_point]
                     + math.hypot(neighbor[0] - current_point[0], neighbor[1] - current_point[1])
-                    + (potential_field_weight / (dist_to_obstacle + 0.25))
+                    + (potential_field_weight / (dist_to_obstacle + potential_field_base))
                 )
                 if neighbor not in costs or new_cost < costs[neighbor]:
                     costs[neighbor] = new_cost
@@ -299,9 +305,48 @@ class PathPlan(Node):
         for point in path:
             self.trajectory.addPoint(point)
 
-        self.traj_pub.publish(self.trajectory.toPoseArray())
+        # Calculate min distance to wall
+        minimum_dist = self.find_closest_point_to_wall(path)
+        self.get_logger().info(f"Minimum distance to wall: {minimum_dist}")
         if self.debug:
             self.trajectory.publish_viz()
+        self.traj_pub.publish(self.trajectory.toPoseArray())
+
+    def find_closest_point_to_wall(self, points):
+        """Find distance to the closest point on the wall of the map to the given list of points."""
+        min_distance = np.inf
+        for point in points:
+            x = point[0]
+            y = point[1]
+            grid_x = min(int(((self.origin_x - x) / self.resolution) / self.downsample_factor), self.grid.shape[1] - 1)
+            grid_y = min(int(((self.origin_y - y) / self.resolution) / self.downsample_factor), self.grid.shape[0] - 1)
+            if 0 <= grid_x < self.grid.shape[1] and 0 <= grid_y < self.grid.shape[0]:
+                distance = self.dist_to_obstacle_grid[grid_y, grid_x]
+                if distance < min_distance:
+                    min_distance = distance
+        return min_distance
+
+    def smooth_path(self, path: np.ndarray, num_points: int, smoothness: float) -> np.ndarray:
+        """Smooths a path using a spline.
+
+        Args:
+            path: The path to smooth.
+            num_points: The number of points in the smoothed path.
+            smoothness: The smoothness of the spline.
+        """
+        # Parameterize by distance along the path
+        dx = np.diff(path[:, 0])  # N-1
+        dy = np.diff(path[:, 1])  # N-1
+        dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
+        u = dist / dist[-1]  # Normalize distances to [0, 1]
+
+        # Fit a B-spline to the path
+        tck, _ = splprep([path[:, 0], path[:, 1]], u=u, s=smoothness)
+
+        # Sample uniformly spaced points along the path
+        u_samples = np.linspace(0, 1, num_points)
+        x_samples, y_samples = splev(u_samples, tck)
+        return np.vstack([x_samples, y_samples]).T  # M x 2
 
 
 def main(args=None):
