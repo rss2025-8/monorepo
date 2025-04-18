@@ -1,6 +1,6 @@
 particle_filter:
   ros__parameters:
-    num_particles: 500
+    num_particles: 200
 
     # The number of lidar beams emitted from each particle (downsampling).
     # Actual number of beams: 100 in sim, 1081 on car
@@ -19,20 +19,21 @@ particle_filter:
 
     # Whether to show debug info
     debug: false
+    realistic: true  # This adds constraints in sim that hopefully make it closer to reality
 
     # The names of topics to listen and publish to
     map_topic: "/map"
     scan_topic: "/scan"
-    odom_topic: "/vesc/odom"
+    odom_topic: "/odom"
 
     # The frame you should publish your transform to
-    particle_filter_frame: "/base_link"
+    particle_filter_frame: "/base_link_pf"
 
     # Deterministic flag; set to true to remove all added noise
     deterministic: false
 
-    on_racecar: true  # Flag to flip odometry (for the real car)
-    use_gpu: true  # Flag to use GPU
+    on_racecar: false  # Flag to flip odometry (for the real car)
+    use_gpu: false  # Flag to use GPU
 
     lidar_scale_to_map_scale: 1.0
 

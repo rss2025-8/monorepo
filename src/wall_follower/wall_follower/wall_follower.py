@@ -141,6 +141,7 @@ class WallFollower(Node):
     def drive(self, steering_angle: float, speed: float):
         """Publishes to the drive topic with the given steering angle (radians) and speed (m/s)."""
         header = Header(stamp=self.get_clock().now().to_msg())
+        steering_angle = 0.5
         drive = AckermannDrive(
             steering_angle=steering_angle,
             steering_angle_velocity=0.0,

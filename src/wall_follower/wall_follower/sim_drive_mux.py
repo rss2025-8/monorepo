@@ -30,21 +30,24 @@ class SimDriveMux(Node):
             self.get_parameter("drive_topic").get_parameter_value().string_value,
             10,
         )
-        self.unsafe_detection = False
+        self.last_unsafe_detection = None
 
     def safety_callback(self, msg):
-        self.get_logger().info("SAFETY CONTROLLER FOUND UNSAFE SITUATION")
-        self.unsafe_detection = True
+        # self.get_logger().info("SAFETY CONTROLLER FOUND UNSAFE SITUATION")
+        self.last_unsafe_detection = self.get_clock().now()
         # Command drive topic to stop
         self.command_drive(0.0, 0.0)
 
     def wall_callback(self, msg):
-        if not self.unsafe_detection:
-            self.get_logger().info("WALL FOLLOWER CONTROLLER")
+        if (
+            self.last_unsafe_detection is None
+            or (self.get_clock().now() - self.last_unsafe_detection).nanoseconds / 1e9 > 0.1
+        ):
+            # self.get_logger().info("WALL FOLLOWER CONTROLLER")
             # Command drive topic to follow wall
             self.command_drive(msg.drive.speed, msg.drive.steering_angle)
         else:
-            self.get_logger().info("OVERRIDING WALL FOLLOWER, STOPPING")
+            # self.get_logger().info("OVERRIDING WALL FOLLOWER, STOPPING")
             # Command drive topic to stop
             self.command_drive(0.0, 0.0)
 
