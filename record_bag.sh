@@ -23,4 +23,4 @@ ros2 bag record -o $BAG $TOPICS
 # scp -i ~/.ssh/racecar_key -r "racecar@192.168.1.107:~/racecar_ws/$BAG" .
 # Print the bag file name
 echo "Bag saved as $BAG"
-echo "Use something like ***scp -i ~/.ssh/racecar_key -r \"racecar@192.168.1.107:~/racecar_ws/$BAG\"*** to download it."
+echo "Use something like ***scp -i ~/.ssh/racecar_key -r \"racecar@192.168.1.107:~/racecar_ws/$BAG\" .*** to download it."
