@@ -27,20 +27,12 @@ class PurePursuit(Node):
         self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
         self.debug: bool = self.declare_parameter("debug", False).value
 
-        # TODO tune
-        self.max_speed = 4.0
-        self.speed = self.max_speed
-        # Steering
-        self.pid = PID(self.get_clock().now(), kp=1.0, kd=0.0)
-        # self.pid = PID(self.get_clock().now(), kp=1.0, kd=0.0)
-        # self.pid = PID(self.get_clock().now(), kp=1.0, kd=0.05)
-
-        # Error
-        # self.pid = PID(self.get_clock().now(), kp=0.0, kd=0.05)
+        self.max_speed: float = self.declare_parameter("max_speed", 4.0).value
+        self.speed: float = self.max_speed
         self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=5.0)
 
-        self.last_lookahead_dist = None
         self.wheelbase_length = 0.33  # Between front and rear axles
+        self.max_steering_angle = 0.34
         self.trajectory = LineTrajectory(self, "/followed_trajectory")
         self.traj_points = np.array([])  # Empty
         self.is_active = False
@@ -101,46 +93,30 @@ class PurePursuit(Node):
         # No lookahead point found
         return None
 
-    def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> Tuple[float, float]:
-        """Returns the adaptive lookahead distance and curvature for the given car pose and nearest segment index."""
-        # TODO tune
-        # max_lookahead = self.max_speed * 3.0
-        # max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
-        max_lookahead = 3.0 + (self.max_speed - 1) * 1.0
-        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.5  # Distance near the car to ignore
+    def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> float:
+        """Returns the adaptive lookahead distance for the given car pose and nearest segment index."""
+        # Tuned lookahead distances
+        max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+        # max_lookahead = 3.0 + (self.max_speed - 1) * 1.0  # Drifts a bit too far from the path at high speeds
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
         min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
         dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
 
-        # Gradual increase in lookahead
-        # if self.last_lookahead_dist is not None:
-        #     max_lookahead = min(max_lookahead, self.last_lookahead_dist + self.traj_step_size + 0.01)
-
-        # Cross track error (high error = smaller lookahead)
-        # cross_track_error = (
-        #     point_to_segment_distance(
-        #         car_pose[:2], self.traj_points[nearest_segment_idx], self.traj_points[nearest_segment_idx + 1]
-        #     )
-        #     + 1e-6
-        # )
-        # max_lookahead = min(max_lookahead, min_lookahead + 1.0 / cross_track_error)
-
         # Lookahead as large as possible until a sharp turn is detected
         # Find sum of change in dtheta between current and future segments
         dtheta_sum = 0.0
         curr_dist = np.linalg.norm(self.traj_points[nearest_segment_idx + 1] - car_pose[:2])
-        cutoff_idx = len(self.traj_dtheta) - 1
-        # TODO could start a bit before current segment
-        # meters_before = self.max_speed * 0.8
-        meters_before = 0
+        # Sum angles a bit before current segment to keep lookahead shorter coming out of a turn
+        meters_before = self.max_speed * 0.25
+        # meters_before = 0
         num_before = min(int(meters_before / self.traj_step_size), nearest_segment_idx)
         curr_dist -= self.traj_step_size * num_before
+        # Determine lookahead distance based on curvature
+        cutoff_idx = len(self.traj_dtheta) - 1
         for i in range(nearest_segment_idx + 1 - num_before, len(self.traj_dtheta)):
             curr_dist += self.traj_step_size
-            # if curr_dist <= min_lookahead:
-            #     continue
-            dtheta_sum += self.traj_dtheta[i]  # - self.traj_dtheta[nearest_segment_idx]
+            dtheta_sum += self.traj_dtheta[i]
             if abs(dtheta_sum) > dtheta_threshold or curr_dist - self.traj_step_size > max_lookahead:
                 cutoff_idx = i
                 break
@@ -148,8 +124,7 @@ class PurePursuit(Node):
         adaptive_lookahead = np.clip(
             np.linalg.norm(self.traj_points[cutoff_idx] - car_pose[:2]), min_lookahead, max_lookahead
         )
-        self.last_lookahead_dist = adaptive_lookahead
-        return adaptive_lookahead, self.traj_dtheta[nearest_segment_idx] / self.traj_step_size
+        return adaptive_lookahead
 
     def pose_callback(self, odometry_msg):
         """Called on every pose update. Updates the drive command."""
@@ -181,7 +156,7 @@ class PurePursuit(Node):
             return
 
         # Find adaptive lookahead distance using curvature
-        adaptive_lookahead, kappa = self.get_adaptive_lookahead(car_pose, nearest_segment_idx)
+        adaptive_lookahead = self.get_adaptive_lookahead(car_pose, nearest_segment_idx)
 
         # Find the lookahead point
         result = self.get_lookahead_point(car_pose, adaptive_lookahead, nearest_segment_idx)
@@ -211,51 +186,16 @@ class PurePursuit(Node):
                 eta = 1e-6
             eta = math.pi / 2 * np.sign(eta)
         steering_angle = math.atan((2 * self.wheelbase_length * math.sin(eta)) / adaptive_lookahead)
-        # TODO Optional understeering term at higher velocities
-        k_understeer = 0.0 / 9.81
-        steering_angle += k_understeer * kappa * (self.speed**2) * np.sign(steering_angle)
 
-        # TODO Set speed based on...
+        # Set speed based on allowed velocity to lookahead distance ratio
         min_speed = 1.0
-        max_steering_angle = 0.34  # TODO check
-
-        # Lookahead distance
-        # min_v_to_lookahead_ratio = 1.25
         min_v_to_lookahead_ratio = 0.75
         self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, self.max_speed)
 
-        # Raw steering angle
-        # self.speed = np.clip(self.max_speed * (1 - abs(steering_angle) / max_steering_angle), min_speed, self.max_speed)
-
-        # Cross track error
-        # cross_track_error = point_to_segment_distance(
-        #     car_loc, self.traj_points[nearest_segment_idx], self.traj_points[nearest_segment_idx + 1]
-        # )
-        # # Directional
-        # if (
-        #     np.dot(
-        #         self.traj_points[nearest_segment_idx + 1] - self.traj_points[nearest_segment_idx],
-        #         car_loc - self.traj_points[nearest_segment_idx],
-        #     )
-        #     > 0
-        # ):
-        #     cross_track_error = -cross_track_error
-
-        # Angle error
-        # curr_segment_d = self.traj_points[nearest_segment_idx + 1] - self.traj_points[nearest_segment_idx]
-        # angle_error = car_theta - math.atan2(curr_segment_d[1], curr_segment_d[0])
-        # self.speed = np.clip(self.max_speed * (math.pi / 2 - abs(angle_error) * 2) / (math.pi / 2), min_speed, self.max_speed)
-
-        # TODO PD controller
-        steering_angle = self.pid.update(-steering_angle, self.get_clock().now())
-        # steering_angle += self.pid.update(cross_track_error, self.get_clock().now())
-        # steering_angle += np.clip(  # This one seems bugged
-        #     self.pid.update(-cross_track_error, self.get_clock().now()), -max_steering_angle / 4, max_steering_angle / 4
-        # )
-        steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
-        # Low pass filter to smooth out sudden spikes
+        # Low pass filter to smooth out sudden unexpected spikes
+        steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
         steering_angle = self.low_pass_filter.update(steering_angle, self.get_clock().now())
-        steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
+        steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
 
         # Draw circle that the car is following
         if self.debug and eta != 0:
@@ -308,6 +248,39 @@ class PurePursuit(Node):
                 self.get_logger().info(f"pp: {avg_latency:.4f}s")
             self.timing = [0, 0.0]
 
+    def smooth_path(self, path: np.ndarray, num_points: int, smoothness: float) -> Tuple[np.ndarray, np.ndarray, float]:
+        """Smooths a path using a spline. Returns the path, an estimate of dtheta, and the step size.
+
+        Args:
+            path: The path to smooth.
+            num_points: The number of points in the smoothed path.
+            smoothness: The smoothness of the spline.
+        """
+        # First, split the path into linear segments
+        path = split_up_path(path, num_points)
+
+        # Parameterize by distance along the path
+        dx = np.diff(path[:, 0])  # N-1
+        dy = np.diff(path[:, 1])  # N-1
+        step_size = np.hypot(dx[-1], dy[-1])
+        dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
+        u = dist / dist[-1]  # Normalize distances to [0, 1]
+
+        # Fit a B-spline to the path
+        tck, _ = splprep([path[:, 0], path[:, 1]], u=u, s=smoothness)
+
+        # Sample uniformly spaced points along the path
+        u_samples = np.linspace(0, 1, num_points)
+        x_samples, y_samples = splev(u_samples, tck)
+
+        # Find curvature at each point
+        dx, dy = splev(u_samples, tck, der=1)
+        ddx, ddy = splev(u_samples, tck, der=2)
+        kappa = abs((dx * ddy - dy * ddx) / (dx**2 + dy**2) ** 1.5)  # (1 / radius of curve)
+        dtheta = kappa * step_size
+
+        return np.vstack([x_samples, y_samples]).T, dtheta, step_size
+
     def trajectory_callback(self, msg):
         """Called when a new trajectory is published."""
         self.get_logger().info(f"Received new trajectory with {len(msg.poses)} points")
@@ -317,21 +290,18 @@ class PurePursuit(Node):
         self.trajectory.clear()
         self.trajectory.fromPoseArray(msg)
 
-        # TODO Tuning for smoothing the path
-        path = np.array(self.trajectory.points)
-        # dist_between_points = 1.0
+        # Generate a smoothed trajectory
         dist_between_points = 0.25
+        path = np.array(self.trajectory.points)
         path_length = np.sum(np.linalg.norm(path[1:] - path[:-1], axis=1))
         num_points = int(path_length / dist_between_points) + 2
-        path, u, tck, dtheta, step_size = smooth_path(path, num_points=num_points, smoothness=0.25)
+        path, dtheta, step_size = self.smooth_path(path, num_points=num_points, smoothness=0.25)
 
         self.trajectory.clear()
         for point in path:
             self.trajectory.addPoint(point)
         self.trajectory.publish_viz()
         self.traj_points = path
-        self.traj_u = u
-        self.traj_spline = tck
         self.traj_dtheta = dtheta
         self.traj_step_size = step_size
         # Add an extra point at the end of the trajectory that extends the last segment
@@ -339,10 +309,8 @@ class PurePursuit(Node):
         norm_vec = norm_vec / np.linalg.norm(norm_vec)
         end_point = self.traj_points[-1] + norm_vec * self.max_speed * 10
         self.traj_points = np.concatenate([self.traj_points, [end_point]])
-        self.traj_u = np.concatenate([self.traj_u, [1.0]])
         self.traj_dtheta = np.concatenate([self.traj_dtheta, [0.0]])
         self.is_active = True
-        self.last_lookahead_dist = None
         self.get_logger().info(f"Final trajectory has {len(self.traj_points)} points")
 
     def drive(self, steering_angle=0.0, velocity=0.0, use_last_cmd=False):
@@ -352,9 +320,7 @@ class PurePursuit(Node):
         """
         if abs(steering_angle) > math.pi / 2:
             self.get_logger().warning(f"Steering angle {steering_angle} is too large")
-        # [-0.34, 0.34 radians] on actual car
-        max_steering_angle = 0.34
-        steering_angle = np.clip(steering_angle, -max_steering_angle, max_steering_angle)
+        steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
 
         header = Header(stamp=self.get_clock().now().to_msg())
         if not use_last_cmd:
@@ -369,8 +335,8 @@ class PurePursuit(Node):
 
         if self.debug:
             visualize.plot_line(
-                [0.0, math.cos(steering_angle / max_steering_angle * math.pi / 2) * velocity / self.max_speed],
-                [0.0, math.sin(steering_angle / max_steering_angle * math.pi / 2) * velocity / self.max_speed],
+                [0.0, math.cos(steering_angle / self.max_steering_angle * math.pi / 2) * velocity / self.max_speed],
+                [0.0, math.sin(steering_angle / self.max_steering_angle * math.pi / 2) * velocity / self.max_speed],
                 self.debug_drive_line_pub,
                 color=(0.0, 0.0, 1.0),
                 z=0.1,
@@ -442,41 +408,6 @@ class PurePursuit(Node):
         error_msg = Float32()
         error_msg.data = float(error)
         self.pose_to_traj_error_pub.publish(error_msg)
-
-
-class PID:
-    """
-    A Proportional-Integral-Derivative controller.
-    The accumulated error (for Ki) is not clipped or reset.
-    """
-
-    def __init__(self, time: rclpy.time.Time, kp: float, ki=0.0, kd=0.0, window=5):
-        """Creates a PID controller with the given initial time, Kp, Ki, Kd, and window size for derivatives."""
-        self.prev_time = time
-        self.kp, self.ki, self.kd = kp, ki, kd
-        self.prev_error = 0.0
-        self.total_error = 0.0  # Integral of error w.r.t. t
-        # self.window = window
-        # self.errors = deque(maxlen=window)
-        # self.dts = deque(maxlen=window)
-
-    def update(self, error: float, time: rclpy.time.Time) -> float:
-        """
-        Update PID state with the current error and the time that error was *measured*. Returns a new control output.
-
-        For example, with Kp = 2 and Ki = Kd = 0, an error of 1 results in a control output of -2.
-        """
-        dt = (time.nanoseconds - self.prev_time.nanoseconds) / 1e9  # Time elapsed in seconds
-        # self.dts.append(dt)
-        d_error = (error - self.prev_error) / dt  # d(Error)/dt
-        # Derivative using a window of previous errors
-        # d_error = (error - self.errors[0]) / sum(self.dts)
-        # self.errors.append(error)
-        self.total_error += error / dt
-        correction = -(self.kp * error + self.kd * d_error + self.ki * self.total_error)
-        self.prev_time, self.prev_error = time, error
-
-        return correction
 
 
 class LowPassFilter:
@@ -593,47 +524,19 @@ def fraction_along_segment(s1: np.ndarray, s2: np.ndarray, p: np.ndarray) -> flo
 
 
 def split_up_path(path: np.ndarray, num_points: int) -> np.ndarray:
-    """Splits a path into num_points points, uniformly spaced along the path."""
+    """Splits a path into num_points points, uniformly spaced along the path.
+
+    Args:
+        path: The path to split (N x 2).
+        num_points: The number of points to split the path into.
+    Returns:
+        The split path (M x 2).
+    """
     dx = np.diff(path[:, 0])  # N-1
     dy = np.diff(path[:, 1])  # N-1
     dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
     u = np.linspace(0, dist[-1], num_points)
     return np.vstack([np.interp(u, dist, path[:, 0]), np.interp(u, dist, path[:, 1])]).T
-
-
-def smooth_path(path: np.ndarray, num_points: int, smoothness: float) -> Tuple[np.ndarray, np.ndarray, tuple]:
-    """Smooths a path using a spline. Returns the path (M x 2), parameterizations of the path (M), and the spline.
-
-    Args:
-        path: The path to smooth.
-        num_points: The number of points in the smoothed path.
-        smoothness: The smoothness of the spline.
-    """
-    # First, split the path into linear segments
-    path = split_up_path(path, num_points)
-
-    # Parameterize by distance along the path
-    dx = np.diff(path[:, 0])  # N-1
-    dy = np.diff(path[:, 1])  # N-1
-    step_size = np.hypot(dx[-1], dy[-1])
-    dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
-    u = dist / dist[-1]  # Normalize distances to [0, 1]
-
-    # Fit a B-spline to the path
-    tck, _ = splprep([path[:, 0], path[:, 1]], u=u, s=smoothness)
-
-    # Sample uniformly spaced points along the path
-    u_samples = np.linspace(0, 1, num_points)
-    x_samples, y_samples = splev(u_samples, tck)
-
-    # Find curvature at each point
-    dx, dy = splev(u_samples, tck, der=1)
-    ddx, ddy = splev(u_samples, tck, der=2)
-    kappa = abs((dx * ddy - dy * ddx) / (dx**2 + dy**2) ** 1.5)  # (1 / radius of curve)
-    dtheta = kappa * step_size
-
-    return np.vstack([x_samples, y_samples]).T, u_samples, tck, dtheta, step_size
-    # return path, u_samples, tck, dtheta, step_size
 
 
 # # For profiling

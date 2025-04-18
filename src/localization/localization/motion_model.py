@@ -44,21 +44,21 @@ class MotionModel:
         # # pi/8 rad/s base noise, 1/2 * dtheta added noise
         # theta_dev = np.pi / 8 * dt + np.abs(dtheta) / 2
 
-        # In between the two extremes
-        # 0.75 m/s base noise, 1/3 * dx added noise
-        x_dev = 0.75 * dt + np.abs(dx) / 3
-        # 0.375 m/s base noise
-        y_dev = 0.375 * dt  # dy is always 0
-        # pi/7 rad/s base noise, 1/2 * dtheta added noise
-        theta_dev = np.pi / 7 * dt + np.abs(dtheta) / 2
+        # # In between the two extremes
+        # # 0.75 m/s base noise, 1/3 * dx added noise
+        # x_dev = 0.75 * dt + np.abs(dx) / 3
+        # # 0.375 m/s base noise
+        # y_dev = 0.375 * dt  # dy is always 0
+        # # pi/7 rad/s base noise, 1/2 * dtheta added noise
+        # theta_dev = np.pi / 7 * dt + np.abs(dtheta) / 2
 
-        # Works on slow test lap, but is choppy
-        # # 1.0 m/s base noise, 1/3 * dx added noise
-        # x_dev = 1.0 * dt + np.abs(dx) / 3
-        # # 0.5 m/s base noise
-        # y_dev = 0.5 * dt  # dy is always 0
-        # # pi/6 rad/s base noise, 1/2 * dtheta added noise
-        # theta_dev = np.pi / 6 * dt + np.abs(dtheta) / 2
+        # Works on slow test lap, but is choppy (probably was due to the wrong map)
+        # 1.0 m/s base noise, 1/3 * dx added noise
+        x_dev = 1.0 * dt + np.abs(dx) / 3
+        # 0.5 m/s base noise
+        y_dev = 0.5 * dt  # dy is always 0
+        # pi/6 rad/s base noise, 1/2 * dtheta added noise
+        theta_dev = np.pi / 6 * dt + np.abs(dtheta) / 2
 
         # Add noise if needed
         if not deterministic and not self.node.deterministic:

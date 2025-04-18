@@ -51,7 +51,9 @@ class SafetyController(Node):
         )
         self.safety_pub = self.create_publisher(AckermannDriveStamped, safety_topic, 10)
 
-        self.timer = self.create_timer(0.05, self.timer_callback)  # Make sure safety still runs without other callbacks
+        self.timer_hertz = 50
+        self.timer = self.create_timer(1 / self.timer_hertz, self.timer_callback)
+        self.timing = [0, self.get_clock().now()]  # [number of calls, time since last reset]
 
         self.ackermann_drive_msg_mut: AckermannDriveStamped = AckermannDriveStamped()
 
@@ -81,28 +83,25 @@ class SafetyController(Node):
         self.scan_timestamp = Time.from_msg(scan.header.stamp)
         min_index = scan_index(scan, -math.pi / 30)
         max_index = scan_index(scan, math.pi / 30)
-        left_index = scan_index(scan, -math.pi / 3)
-        right_index = scan_index(scan, math.pi / 3)
+        left_index = scan_index(scan, -math.pi / 2)
+        right_index = scan_index(scan, math.pi / 2)
         self.front_distance = min(scan.ranges[min_index : max_index + 1])
-        # self.right_distance = min(scan.ranges[:left_index])
-        # self.left_distance = min(scan.ranges[right_index + 1 :])
-        self.timer_callback()  # Check safety conditions
+        self.right_distance = min(scan.ranges[left_index:min_index])
+        self.left_distance = min(scan.ranges[max_index + 1 : right_index + 1])
+        self.safety_check()
 
     def ackermann_cmd_callback(self, cmd: AckermannDriveStamped) -> None:
         self.ackermann_timestamp = Time.from_msg(cmd.header.stamp)
         self.speed = cmd.drive.speed
         self.steering_angle = cmd.drive.steering_angle
-        self.timer_callback()  # Check safety conditions
-
-    def print_warning(self, warning: str) -> None:
-        """To avoid spamming the console."""
-        now = self.get_clock().now()
-        time_since_warning = delta_time(self.last_debug_timestamp, now)
-        if time_since_warning > 1.0:
-            self.get_logger().warning(warning)
-            self.last_debug_timestamp = now
+        self.safety_check()
 
     def timer_callback(self) -> None:
+        self.timing[0] += 1
+        self.safety_check()
+
+    def safety_check(self) -> None:
+        """Check safety conditions."""
         now = self.get_clock().now()
         should_stop = False
 
@@ -137,25 +136,46 @@ class SafetyController(Node):
             )
             should_stop = True
 
-        # TODO Currently disabled, I think it sees wires so it doesn't work as intended
-        # # Check if we might scrape a wall
-        # if self.steering_angle == 0:
-        #     scrape_dist = max(self.left_distance, self.right_distance)
-        # elif self.steering_angle > 0:
-        #     scrape_dist = self.left_distance  # Turning towards left wall
-        # else:
-        #     scrape_dist = self.right_distance  # Turning towards right wall
-        # scrape = scrape_dist < self.min_side_distance
-        # if scrape:
-        #     self.print_warning(
-        #         f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
-        #     )
-        #     should_stop = True
+        # TODO This might sees wires so it doesn't work as intended
+        # Check if we might scrape a wall
+        if self.steering_angle == 0:
+            scrape_dist = max(self.left_distance, self.right_distance)
+        elif self.steering_angle > 0:
+            scrape_dist = self.left_distance  # Turning towards left wall
+        else:
+            scrape_dist = self.right_distance  # Turning towards right wall
+        scrape = scrape_dist < self.min_side_distance
+        if scrape:
+            self.print_warning(
+                f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
+            )
+            self.print_warning(
+                f"If this is erroneously triggered (ex: due to wires), comment it out in the safety controller."
+            )
+            should_stop = True
+
+        # Monitor responsiveness of timer callback
+        if self.timing[0] == self.timer_hertz:
+            total_latency = delta_time(self.timing[1], now)
+            actual_hertz = self.timing[0] / total_latency
+            if actual_hertz < self.timer_hertz * 0.75:
+                self.get_logger().warning(
+                    f"Safety controller timer callback slow, {actual_hertz:.3f} Hz < target {self.timer_hertz:.3f} Hz"
+                )
+            self.timing = [0, self.get_clock().now()]
 
         # Stop if any condition is met
         if should_stop:
             self.ackermann_drive_msg_mut.header.stamp = now.to_msg()
             self.safety_pub.publish(self.ackermann_drive_msg_mut)
+
+    def print_warning(self, warning: str) -> None:
+        """Only prints at most once per second to avoid spamming the console."""
+        now = self.get_clock().now()
+        time_since_warning = delta_time(self.last_debug_timestamp, now)
+        if time_since_warning > 1.0:
+            self.get_logger().warning(warning)
+            self.last_debug_timestamp = now
 
 
 def main(args=None):

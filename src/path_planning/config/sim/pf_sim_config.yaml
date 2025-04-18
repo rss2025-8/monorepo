@@ -10,4 +10,5 @@ trajectory_follower:
   ros__parameters:
     odom_topic: "/pf/pose/odom"
     drive_topic: "/drive"
+    max_speed: 4.0
     debug: true

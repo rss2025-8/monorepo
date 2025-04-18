@@ -1,6 +1,7 @@
 """
 Uses PRM.
-Tunable parameters: kernel_size (dilation of obstacles), N (number of samples)
+Tunable parameters: Number of samples, dilation of obstacles, obstacle distance grid precomputation downsample factor,
+number of nearest neighbors considered, potential field weight/base cost.
 """
 
 import heapq
@@ -16,7 +17,6 @@ import queue
 import numpy as np
 from geometry_msgs.msg import Pose, PoseArray, PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
-from scipy.interpolate import splev, splprep
 from scipy.spatial import KDTree
 from visualization_msgs.msg import Marker
 
@@ -54,8 +54,6 @@ class PathPlan(Node):
         self.pose_y = None
         self.goal_x = None
         self.goal_y = None
-        # self.goal_x = -32.7121
-        # self.goal_y = -0.0866
 
         self.debug_text_pub = self.create_publisher(Marker, "/trajectory/debug_text", 1)
         visualize.clear_marker(self.debug_text_pub)
@@ -68,7 +66,7 @@ class PathPlan(Node):
             self.map_cb(load_map(map_to_load))
         if self.debug:
             self.get_logger().info("DEBUG mode enabled")
-        self.get_logger().info(f"Trajectory planner initialized, map data of shape {self.grid.shape}")
+        self.get_logger().info(f"PRM trajectory planner initialized, map data of shape {self.grid.shape}")
 
     def map_cb(self, msg):
         if self.map_set:
@@ -201,7 +199,6 @@ class PathPlan(Node):
 
         def is_collision_free(p1, p2):
             """Check if a line segment between two points is collision free."""
-            # TODO can optimize with range_libc
             x1, y1 = p1
             x2, y2 = p2
             dx = x2 - x1
@@ -216,29 +213,31 @@ class PathPlan(Node):
                     return False
             return True
 
-        def batch_collision_free(p1s, p2s):
+        def batch_collision_free(P1, P2):
             """Check if a batch of line segments are collision free.
 
-            p1s and p2s should be of size N x 2."""
-            vecs = p2s - p1s  # N x 2
+            P1 and P2 should be of size N x 2."""
+            vecs = P2 - P1  # N x 2
             dist = np.hypot(vecs[:, 0], vecs[:, 1])  # N
             steps = np.ceil(dist / 0.5).astype(int)  # N
             max_steps = steps.max()
 
+            # s_i points along each line segment
             t = np.linspace(0, 1, max_steps + 1)[:, None]  # 1 x S
-            pts = p1s[None, :, :] + vecs[None, :, :] * t[:, :, None]  # S x N x 2
+            pts = P1[None, :, :] + vecs[None, :, :] * t[:, :, None]  # S x N x 2
 
+            # Grid coordinates of the points
             gx = ((self.origin_x - pts[:, :, 0]) / self.resolution).astype(int)  # S x N
             gy = ((self.origin_y - pts[:, :, 1]) / self.resolution).astype(int)  # S x N
             gx = np.clip(gx, 0, self.grid.shape[1] - 1)  # S x N
             gy = np.clip(gy, 0, self.grid.shape[0] - 1)  # S x N
 
+            # For each segment, check if all points are free
             free = self.grid[gy, gx] == 0  # S x N
             return free.all(axis=0)  # N
 
         def segment_dist_to_obstacle(p1, p2):
             """Check approximately how close a line segment gets to an obstacle."""
-            # TODO can optimize with range_libc
             x1, y1 = p1
             x2, y2 = p2
             dx = x2 - x1
@@ -381,28 +380,6 @@ class PathPlan(Node):
                 if distance < min_distance:
                     min_distance = distance
         return min_distance
-
-    def smooth_path(self, path: np.ndarray, num_points: int, smoothness: float) -> np.ndarray:
-        """Smooths a path using a spline.
-
-        Args:
-            path: The path to smooth.
-            num_points: The number of points in the smoothed path.
-            smoothness: The smoothness of the spline.
-        """
-        # Parameterize by distance along the path
-        dx = np.diff(path[:, 0])  # N-1
-        dy = np.diff(path[:, 1])  # N-1
-        dist = np.hstack([0, np.cumsum(np.hypot(dx, dy))])  # N
-        u = dist / dist[-1]  # Normalize distances to [0, 1]
-
-        # Fit a B-spline to the path
-        tck, _ = splprep([path[:, 0], path[:, 1]], u=u, s=smoothness)
-
-        # Sample uniformly spaced points along the path
-        u_samples = np.linspace(0, 1, num_points)
-        x_samples, y_samples = splev(u_samples, tck)
-        return np.vstack([x_samples, y_samples]).T  # M x 2
 
 
 def main(args=None):
