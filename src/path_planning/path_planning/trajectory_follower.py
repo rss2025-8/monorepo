@@ -60,6 +60,8 @@ class PurePursuit(Node):
         # Track runtime
         self.timing = [0, 0.0]
 
+        if self.debug:
+            self.get_logger().info("DEBUG mode enabled")
         self.get_logger().info("Trajectory follower initialized")
         # if self.debug:
         #     self.run_tests()
@@ -106,7 +108,9 @@ class PurePursuit(Node):
         # max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
         max_lookahead = 3.0 + (self.max_speed - 1) * 1.0
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.5  # Distance near the car to ignore
-        min_lookahead = 0.75 + (self.max_speed - 1) * 0.75  # Distance near the car to ignore
+        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
+        min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
         dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
 
         # Gradual increase in lookahead
@@ -128,7 +132,8 @@ class PurePursuit(Node):
         curr_dist = np.linalg.norm(self.traj_points[nearest_segment_idx + 1] - car_pose[:2])
         cutoff_idx = len(self.traj_dtheta) - 1
         # TODO could start a bit before current segment
-        meters_before = 2.5
+        # meters_before = self.max_speed * 0.8
+        meters_before = 0
         num_before = min(int(meters_before / self.traj_step_size), nearest_segment_idx)
         curr_dist -= self.traj_step_size * num_before
         for i in range(nearest_segment_idx + 1 - num_before, len(self.traj_dtheta)):
@@ -263,6 +268,16 @@ class PurePursuit(Node):
         # Debug
         # self.get_logger().info(f"Nearest point: {nearest_point}")
         # self.get_logger().info(f"Lookahead point: {lookahead_point}")
+        if lookahead_point is not None:
+            visualize.plot_point(
+                lookahead_point[0],
+                lookahead_point[1],
+                self.debug_lookahead_point_pub,
+                color=(0, 1, 0),
+                frame="/map",
+            )
+        else:
+            visualize.clear_marker(self.debug_lookahead_point_pub)
         if self.debug:
             visualize.plot_line(
                 self.traj_points[[nearest_segment_idx, nearest_segment_idx + 1], 0],
@@ -273,16 +288,6 @@ class PurePursuit(Node):
                 z=0.025,
                 frame="/map",
             )
-            if lookahead_point is not None:
-                visualize.plot_point(
-                    lookahead_point[0],
-                    lookahead_point[1],
-                    self.debug_lookahead_point_pub,
-                    color=(0, 1, 0),
-                    frame="/map",
-                )
-            else:
-                visualize.clear_marker(self.debug_lookahead_point_pub)
             visualize.plot_circle(
                 car_x,
                 car_y,
@@ -299,6 +304,8 @@ class PurePursuit(Node):
             avg_latency = self.timing[1] / 50
             if avg_latency > 0.01:
                 self.get_logger().warning(f"high pure pursuit latency, optimize: {avg_latency:.4f}s")
+            else:
+                self.get_logger().info(f"pp: {avg_latency:.4f}s")
             self.timing = [0, 0.0]
 
     def trajectory_callback(self, msg):
@@ -321,8 +328,7 @@ class PurePursuit(Node):
         self.trajectory.clear()
         for point in path:
             self.trajectory.addPoint(point)
-        if self.debug:
-            self.trajectory.publish_viz()
+        self.trajectory.publish_viz()
         self.traj_points = path
         self.traj_u = u
         self.traj_spline = tck

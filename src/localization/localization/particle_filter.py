@@ -140,8 +140,8 @@ class ParticleFilter(Node):
             f"gpu: {self.use_gpu}"
         )
         if self.debug:
-            self.get_logger().warning("NOTE: Debug mode enabled, expect slow performance!")
-            self.get_logger().warning("Debug particle publisher only gives the first ~100 particles.")
+            self.get_logger().warning("DEBUG mode enabled, expect slow performance!")
+            self.get_logger().warning("(Debug particle publisher only shows the first ~100 particles.)")
         if self.realistic:
             self.get_logger().info("Realistic mode enabled, intentional drift/noise is being added!")
         self.get_logger().info("============= ALL MODULES READY =============")
@@ -202,6 +202,8 @@ class ParticleFilter(Node):
                 self.get_logger().warning(
                     f"high odom callback latency, check debug or num_particles: {avg_latency:.4f}s"
                 )
+            else:
+                self.get_logger().info(f"odom: {avg_latency:.4f}s")
             self.timing_motion_model = [0, 0.0]
 
     def laser_callback(self, scan: LaserScan) -> None:
@@ -248,6 +250,8 @@ class ParticleFilter(Node):
                 self.get_logger().warning(
                     f"high laser callback latency, check debug or num_particles: {avg_latency:.4f}s"
                 )
+            else:
+                self.get_logger().info(f"laser: {avg_latency:.4f}s")
             self.timing_sensor_model = [0, 0.0]
 
     def publish_average_pose(self, time: Time) -> None:

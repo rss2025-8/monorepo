@@ -1,6 +1,7 @@
 particle_filter:
   ros__parameters:
-    num_particles: 500
+    # num_particles: 500
+    num_particles: 200
 
     # The number of lidar beams emitted from each particle (downsampling).
     # Actual number of beams: 100 in sim, 1081 on car

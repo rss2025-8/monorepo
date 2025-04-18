@@ -79,11 +79,13 @@ class SafetyController(Node):
     def scan_callback(self, scan: LaserScan) -> None:
         # Mark that we received a scan
         self.scan_timestamp = Time.from_msg(scan.header.stamp)
-        min_index = scan_index(scan, -math.pi / 12)
-        max_index = scan_index(scan, math.pi / 12)
+        min_index = scan_index(scan, -math.pi / 30)
+        max_index = scan_index(scan, math.pi / 30)
+        left_index = scan_index(scan, -math.pi / 3)
+        right_index = scan_index(scan, math.pi / 3)
         self.front_distance = min(scan.ranges[min_index : max_index + 1])
-        self.right_distance = min(scan.ranges[:min_index])
-        self.left_distance = min(scan.ranges[max_index + 1 :])
+        # self.right_distance = min(scan.ranges[:left_index])
+        # self.left_distance = min(scan.ranges[right_index + 1 :])
         self.timer_callback()  # Check safety conditions
 
     def ackermann_cmd_callback(self, cmd: AckermannDriveStamped) -> None:
@@ -135,19 +137,20 @@ class SafetyController(Node):
             )
             should_stop = True
 
-        # Check if we might scrape a wall
-        if self.steering_angle == 0:
-            scrape_dist = max(self.left_distance, self.right_distance)
-        elif self.steering_angle > 0:
-            scrape_dist = self.left_distance  # Turning towards left wall
-        else:
-            scrape_dist = self.right_distance  # Turning towards right wall
-        scrape = scrape_dist < self.min_side_distance
-        if scrape:
-            self.print_warning(
-                f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
-            )
-            should_stop = True
+        # TODO Currently disabled, I think it sees wires so it doesn't work as intended
+        # # Check if we might scrape a wall
+        # if self.steering_angle == 0:
+        #     scrape_dist = max(self.left_distance, self.right_distance)
+        # elif self.steering_angle > 0:
+        #     scrape_dist = self.left_distance  # Turning towards left wall
+        # else:
+        #     scrape_dist = self.right_distance  # Turning towards right wall
+        # scrape = scrape_dist < self.min_side_distance
+        # if scrape:
+        #     self.print_warning(
+        #         f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
+        #     )
+        #     should_stop = True
 
         # Stop if any condition is met
         if should_stop:

@@ -54,6 +54,8 @@ class PathPlan(Node):
         self.pose_y = None
         self.goal_x = None
         self.goal_y = None
+        # self.goal_x = -32.7121
+        # self.goal_y = -0.0866
 
         self.debug_text_pub = self.create_publisher(Marker, "/trajectory/debug_text", 1)
         visualize.clear_marker(self.debug_text_pub)
@@ -64,6 +66,9 @@ class PathPlan(Node):
         if map_to_load:
             self.get_logger().info(f"Loading map from {map_to_load}")
             self.map_cb(load_map(map_to_load))
+        if self.debug:
+            self.get_logger().info("DEBUG mode enabled")
+        self.get_logger().info(f"Trajectory planner initialized, map data of shape {self.grid.shape}")
 
     def map_cb(self, msg):
         if self.map_set:
@@ -95,7 +100,9 @@ class PathPlan(Node):
 
         # Precompute distance to the nearest obstacle for each cell with BFS, in meters
         # Downsample for faster computation
-        self.get_logger().info(f"Precomputing distance to obstacle grid (downsampled by {self.downsample_factor})...")
+        self.get_logger().info(
+            f"Dilation {kernel_size}, precomputing distance to obstacle grid (downsampled by {self.downsample_factor})..."
+        )
         small_grid = cv2.resize(
             self.grid,
             (self.grid.shape[1] // self.downsample_factor, self.grid.shape[0] // self.downsample_factor),
@@ -128,10 +135,6 @@ class PathPlan(Node):
                         self.dist_to_obstacle_grid[i, j] + self.resolution * self.downsample_factor
                     )
                     q.put((ni, nj))
-
-        self.get_logger().info(
-            f"Trajectory planner initialized, map data of shape {self.grid.shape}, dilation {kernel_size}"
-        )
 
     def pose_cb(self, pose):
         self.pose_x = pose.pose.pose.position.x
