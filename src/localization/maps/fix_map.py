@@ -6,11 +6,9 @@ import numpy as np
 # Load the image
 image = cv2.imread("stata_basement.png")
 
-# Define your list of points
+# List of obstacles
 GRAY = (204, 204, 204)
 WHITE = (255, 255, 255)
-# (348, 18)
-# 1196 -
 obstacles = [
     [(1132, 276), (1130, 298), (1296, 298), (1296, 276)],
     [(1132, 276), (1296, 276)],
@@ -28,7 +26,7 @@ obstacles = [
     [(1644, 472), (1644, 501), (1626, 501), (1626, 472)],
     [(1644, 472), (1644, 501)],
     [(0, 0), (1729, 0), (1729, 1299), (0, 1299)],
-]  # Replace with your actual points
+]
 fill = [WHITE, None, GRAY, GRAY, WHITE, None, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, WHITE, None, None]
 
 # Draw lines and/or fill obstacles

@@ -200,7 +200,11 @@ class PurePursuit(Node):
         # Draw circle that the car is following
         if self.debug and eta != 0:
             R = adaptive_lookahead / (2 * math.sin(eta))
-            visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(0, 0, 1), frame="/base_link")
+            if abs(R) > 20:
+                # Near straight, don't plot
+                visualize.clear_marker(self.debug_driving_arc_pub)
+            else:
+                visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(0, 0, 1), frame="/base_link")
 
         self.drive(steering_angle, self.speed)
         self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
@@ -411,7 +415,7 @@ class PurePursuit(Node):
 
 
 class LowPassFilter:
-    """A first-order exponential low-pass filter."""
+    """A first-order, single-pole IIR low-pass filter (aka exponential moving average)."""
 
     def __init__(self, time: rclpy.time.Time, cutoff_freq: float):
         """
@@ -429,8 +433,7 @@ class LowPassFilter:
         dt = (time.nanoseconds - self.prev_time.nanoseconds) / 1e9
         alpha = math.exp(-2 * math.pi * self.fc * dt)
         y = alpha * self.prev_output + (1 - alpha) * input_val
-        self.prev_output = y
-        self.prev_time = time
+        self.prev_output, self.prev_time = y, time
         return y
 
 

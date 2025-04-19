@@ -55,7 +55,14 @@ class SafetyController(Node):
         self.timer = self.create_timer(1 / self.timer_hertz, self.timer_callback)
         self.timing = [0, self.get_clock().now()]  # [number of calls, time since last reset]
 
-        self.ackermann_drive_msg_mut: AckermannDriveStamped = AckermannDriveStamped()
+        drive_cmd = AckermannDrive(
+            steering_angle=0.0,
+            steering_angle_velocity=0.0,
+            speed=-0.01,  # TODO Small negative value, in theory, activates VESC braking?
+            acceleration=0.0,
+            jerk=0.0,
+        )
+        self.ackermann_drive_msg_mut: AckermannDriveStamped = AckermannDriveStamped(drive=drive_cmd)
 
         if self.watchdog_localize_topic:
             self.localize_timestamp = self.get_clock().now()

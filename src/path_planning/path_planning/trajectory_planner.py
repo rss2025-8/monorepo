@@ -243,7 +243,7 @@ class PathPlan(Node):
             dx = x2 - x1
             dy = y2 - y1
             dist = math.hypot(dx, dy)
-            steps = int(dist / 0.5) + 1  # Approximate is fine
+            steps = int(dist / 2) + 1  # Approximate is fine
             min_dist = np.inf
             for i in range(steps + 1):
                 t = i / steps
@@ -281,13 +281,6 @@ class PathPlan(Node):
             free = batch_collision_free(np.tile(point, (neighbors.shape[0], 1)), neighbors)
             # Add neighbors that are free (convert to tuples)
             graph[point].extend([tuple(neighbor) for neighbor in neighbors[free].tolist() if tuple(neighbor) != point])
-            # # for the start point, print out the coordinates of the neighbors
-            # for j in indices:
-            #     if point == points[j]:
-            #         continue
-            #     neighbor = points[j]
-            #     if is_collision_free(point, neighbor):
-            #         graph[point].append(neighbor)
         # self.get_logger().info("Graph: " + str(graph[end_point]))
         neighbors_pose_array = PoseArray()
         neighbors_pose_array.header.frame_id = "map"  # Set the appropriate frame ID
@@ -311,15 +304,6 @@ class PathPlan(Node):
         visited = set()
         while queue:
             # self.get_logger().info("Queue: " + str(queue))
-            # queue.sort(key=lambda x: x[0])
-            # current_cost, current_point = queue.pop(0)
-            # Find lowest cost
-            # min_cost = np.inf
-            # for i, (cost, point) in enumerate(queue):
-            #     if cost < min_cost:
-            #         min_cost = cost
-            #         min_index = i
-            # current_cost, current_point = queue.pop(min_index)
             current_cost, current_point = heapq.heappop(queue)
             if current_point in visited:
                 continue
@@ -362,7 +346,7 @@ class PathPlan(Node):
 
         # Calculate min distance to wall
         minimum_dist = self.find_closest_point_to_wall(path)
-        self.get_logger().info(f"Minimum distance to wall: {minimum_dist}")
+        self.get_logger().info(f"Minimum distance to any dilated wall: {minimum_dist}")
         if self.debug:
             self.trajectory.publish_viz()
         self.traj_pub.publish(self.trajectory.toPoseArray())
