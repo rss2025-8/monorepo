@@ -28,6 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LinePixels.msg"
   "msg/LanePixels.msg"
   "msg/Trajectory.msg"
+  "msg/Point.msg"
  )
 
 if(BUILD_TESTING)
