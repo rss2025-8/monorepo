@@ -25,9 +25,9 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LookaheadLocation.msg"
-  "msg/Error.msg"
   "msg/LinePixels.msg"
   "msg/LanePixels.msg"
+  "msg/Trajectory.msg"
  )
 
 if(BUILD_TESTING)
