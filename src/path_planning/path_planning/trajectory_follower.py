@@ -140,18 +140,18 @@ class PurePursuit(Node):
         nearest_segment_idx = self.get_nearest_segment(car_loc)
 
         # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
-        allowed_dist = self.speed * 0.5
+        allowed_dist = self.speed * 0.25
         if (
             nearest_segment_idx == len(self.traj_points) - 2
             or np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist
         ):
             if nearest_segment_idx == len(self.traj_points) - 2:
-                self.get_logger().info(f"Goal reached (nearest to end segment). Stopping.")
+                self.get_logger().info("Goal reached (nearest to end segment). Stopping.")
             else:
                 self.get_logger().info(f"Goal reached (dist < {allowed_dist}). Stopping.")
             if self.debug:
                 visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
-            self.drive(0.0, 0.0)
+            self.drive(0.0, -0.01)  # TODO negative velocity should activate VESC braking
             self.is_active = False
             return
 

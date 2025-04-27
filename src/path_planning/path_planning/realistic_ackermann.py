@@ -20,10 +20,11 @@ class RealisticAckermann(Node):
         self.output_drive_topic: str = self.declare_parameter("output_drive_topic", "default").value
 
         # True car dynamics
-        self.k_slip = 0.08  # Experimentally determined
+        self.k_slip = 0.05  # Experimentally determined
         # self.drive_system_angle = SecondOrderSystem(omega_n=1.5, zeta=0.1)
-        self.drive_system_angle = SecondOrderSystem(omega_n=2.5, zeta=0.15)
+        self.drive_system_angle = SecondOrderSystem(omega_n=5.0, zeta=0.5)
         self.drive_system_velocity = SecondOrderSystem(omega_n=3.0, zeta=0.5)
+        self.drive_system_offset = -0.005  # Drift of steering angle
         self.emulated_hz = float("inf")  # Drop enough commands to get around this Hz
 
         self.drive_time = 0
@@ -47,6 +48,8 @@ class RealisticAckermann(Node):
             self.get_logger().warn(f"Steering angle {steering_angle} is too large")
 
         # [-0.34, 0.34 radians] on actual car
+        # Steering drift
+        steering_angle += self.drive_system_offset
         steering_angle = np.clip(steering_angle, -math.pi / 2, math.pi / 2)
         max_velocity = 4.0
         velocity = np.clip(velocity, -max_velocity, max_velocity)
