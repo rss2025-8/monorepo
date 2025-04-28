@@ -10,8 +10,8 @@ setup(
     version="0.0.0",
     packages=[package_name],
     data_files=[
-        # ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
+        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         (
             "lib/" + package_name + "/computer_vision",
             glob.glob(os.path.join("race_to_the_moon/computer_vision", "*.py")),
@@ -30,6 +30,7 @@ setup(
             "pure_pursuit = race_to_the_moon.pure_pursuit:main",
             "hough_line_lane_detector = race_to_the_moon.hough_line_lane_detector:main",
             "lane_homography_transformer = race_to_the_moon.lane_homography_transformer:main",
+            "visualizer = race_to_the_moon.visualizer:main",
         ],
     },
 )

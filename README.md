@@ -2,6 +2,20 @@
 
 All our code will be in here!
 
+## Final Challenge Part B: Race to the Moon
+
+Visualizing/testing the bag in simulation:
+```sh
+# Replace bag_file with the path to your bag file
+ros2 launch race_to_the_moon visual_test.launch.xml bag_file:=local/bags/racetrack/
+```
+
+Testing in simulation (must run the bag separately):
+```sh
+# TODO
+ros2 launch race_to_the_moon sim_race_to_the_moon.launch.xml
+```
+
 ## Lab 6: Path Planning
 
 Testing path planning/following in simulation:

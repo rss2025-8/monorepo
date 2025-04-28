@@ -1,0 +1,13 @@
+<launch>
+  <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml">
+    <arg name="map" value="$(find-pkg-share localization)/maps/empty_map.yaml"/>
+  </include>
+
+  <node pkg="race_to_the_moon" name="visualizer" exec="visualizer" output="screen">
+    <param from="$(find-pkg-share race_to_the_moon)/config/sim_params.yaml"/>
+  </node>
+
+  <!-- Play bag file -->
+  <arg name="bag_file" description="Path to bag file"/>
+  <executable cmd="ros2 bag play $(var bag_file)" output="screen"/>
+</launch>

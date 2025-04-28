@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
-import rclpy
-from rclpy.node import Node
 import numpy as np
-
-from vs_msgs.msg import LookaheadLocation, Error
+import rclpy
+import tf_transformations
 from ackermann_msgs.msg import AckermannDriveStamped
+from geometry_msgs.msg import Point, Pose, Quaternion, TransformStamped, Vector3
+from rclpy.node import Node
+from std_msgs.msg import Header
+from vs_msgs.msg import LookaheadLocation
+
 
 class PurePursuit(Node):
 
@@ -21,13 +24,17 @@ class PurePursuit(Node):
         self.look_ahead = self.get_parameter("look_ahead").value
         self.wheelbase = self.get_parameter("wheelbase").value
         self.velocity = self.get_parameter("default_velocity").value
+        self.debug: bool = self.declare_parameter("debug", False).value
 
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 10)
-        self.error_pub = self.create_publisher(Error, "/error", 10)
         self.create_subscription(LookaheadLocation, "/relative_lookahead", self.relative_lookahead_callback, 1)
 
         self.relative_x = 0
         self.relative_y = 0
+
+        if self.debug:
+            self.get_logger().info("DEBUG mode enabled")
+        self.get_logger().info("Pure pursuit initialized")
 
     def relative_lookahead_callback(self, msg):
         self.relative_x = msg.x_pos
@@ -44,7 +51,7 @@ class PurePursuit(Node):
 
         # Find the next reference point to pursue and calculate distance error and angle of reference point
         eta = np.arctan2(self.relative_y, self.relative_x)
-        steer_angle = np.arctan2(2*np.sin(eta)*L, L1)
+        steer_angle = np.arctan2(2 * np.sin(eta) * L, L1)
         # PD control of speed
         # current_time = self.get_clock().now()
         # dt = (current_time.nanoseconds - self.prev_time.nanoseconds) * 1e-9
@@ -77,5 +84,6 @@ def main(args=None):
     rclpy.spin(pure_pursuit)
     rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
