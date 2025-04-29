@@ -42,17 +42,15 @@ def pose_to_tf(pose: Pose, parent: str, child: str, time: rclpy.time.Time) -> Tr
     return msg
 
 
-class Visualizer(Node):
+class VisualizerNode(Node):
 
     def __init__(self):
         super().__init__("visualizer")
 
-        self.drive_topic: str = self.declare_parameter("drive_topic", "/drive").value
         self.image_topic: str = self.declare_parameter("image_topic", "/zed/zed_node/rgb/image_rect_color").value
-        self.debug: bool = self.declare_parameter("debug", False).value
+        # self.image_topic: str = self.declare_parameter("image_topic", "/race/debug_img").value
+        self.debug: bool = self.declare_parameter("debug", True).value
 
-        self.drive_sub = self.create_subscription(AckermannDriveStamped, self.drive_topic, self.drive_callback, 1)
-        self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 1)
         self.image_pub = self.create_publisher(Marker, "/race/flat_image", 1)
         self.bridge = CvBridge()
 
@@ -61,21 +59,20 @@ class Visualizer(Node):
         self.static_br.sendTransform([map_to_base_link])
 
         if self.debug:
+            self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 1)
             self.get_logger().info("DEBUG mode enabled")
         self.get_logger().info("Visualizer initialized")
 
-    def drive_callback(self, msg):
-        pass
-
     def image_callback(self, image_msg):
-        image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
-        visualize.plot_image(image, self.image_pub, scale=0.08, sample_shape=(360 // 2, 640 // 20))
+        if self.debug:
+            image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
+            visualize.plot_image(image, self.image_pub, scale=0.08, sample_shape=(360 // 2, 640 // 20))
 
 
 def main(args=None):
     rclpy.init(args=args)
-    visualizer = Visualizer()
-    rclpy.spin(visualizer)
+    visualizer_node = VisualizerNode()
+    rclpy.spin(visualizer_node)
     rclpy.shutdown()
 
 

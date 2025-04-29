@@ -8,7 +8,7 @@ Panels:
         - /Flat Image1/Status1
         - /Flat Image1/Topic1
       Splitter Ratio: 0.5
-    Tree Height: 211
+    Tree Height: 161
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -129,7 +129,7 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz_default_plugins/Image
-      Enabled: true
+      Enabled: false
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -141,6 +141,20 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /zed/zed_node/rgb/image_rect_color
+      Value: false
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Debug POV
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /race/debug_img
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
@@ -154,6 +168,84 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /race/flat_image
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Left Lane
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /race/left_lane
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Mid Lane
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /race/mid_lane
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Right Lane
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /race/right_lane
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: false
+      Name: Lookahead Circle
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /pure_pursuit/lookahead_circle
+      Value: false
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Lookahead Point
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /pure_pursuit/lookahead_point
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Driving Arc
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /pure_pursuit/driving_arc
       Value: true
   Enabled: true
   Global Options:
@@ -201,7 +293,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 5.277319431304932
+      Distance: 10
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -216,10 +308,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5147959589958191
+      Pitch: 0.9003974795341492
       Target Frame: base_link
       Value: Orbit (rviz_default_plugins)
-      Yaw: 3.2354042530059814
+      Yaw: 4.305839538574219
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 10
@@ -264,12 +356,14 @@ Visualization Manager:
 Window Geometry:
   Camera POV:
     collapsed: false
+  Debug POV:
+    collapsed: false
   Displays:
     collapsed: false
   Height: 613
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001560000020ffc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001c500000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000015c000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d006100670065000000019d000000ad0000000000000000fb0000000c00430061006d006500720061000000019d000000ad0000000000000000fb0000001400430061006d00650072006100200050004f0056010000019d000000ad0000002800ffffff000000010000010f0000020ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b0000020f000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000002080000020f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001560000020ffc020000000cfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001c500000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000012a000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d006100670065000000019d000000ad0000000000000000fb0000000c00430061006d006500720061000000019d000000ad0000000000000000fb0000001400430061006d00650072006100200050004f00560000000126000000720000002800fffffffb000000120044006500620075006700200050004f0056010000016b000000df0000002800ffffff000000010000010f0000020ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b0000020f000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000002080000020f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:

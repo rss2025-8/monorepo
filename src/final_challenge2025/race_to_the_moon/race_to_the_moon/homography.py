@@ -1,8 +1,15 @@
+"""Helper functions for homography.
+transform_uv_to_xy(u, v), transform_xy_to_uv(x, y).
+"""
+
 import cv2
 import numpy as np
 
+# In image pixel coordinates
 PTS_IMAGE_PLANE = [[429, 202], [254, 202], [424, 256], [54, 226]]
+# In inches from the center of the used camera eye
 PTS_GROUND_PLANE = [[56, -18.5], [56, 14], [23, -7], [31, 34.5]]
+# Conversion factor (inches to meters)
 METERS_PER_INCH = 0.0254
 
 
