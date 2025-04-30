@@ -1,0 +1,10 @@
+<launch>
+    <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml"/>
+    <node pkg="path_planning" exec="trajectory_planner" name="trajectory_planner" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/sim/sim_config.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share localization)/maps/stata_basement.yaml"/>
+    </node>
+    <node pkg="path_planning" exec="trajectory_follower" name="trajectory_follower">
+        <param from="$(find-pkg-share path_planning)/config/sim/sim_config.yaml"/>
+    </node>
+</launch>

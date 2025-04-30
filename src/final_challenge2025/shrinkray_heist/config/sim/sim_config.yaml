@@ -1,0 +1,14 @@
+trajectory_planner:
+  ros__parameters:
+    odom_topic: "/odom"
+    map_topic: "/map"
+    scan_topic: "/scan"
+    initial_pose_topic: "/initialpose"
+    debug: true
+
+trajectory_follower:
+  ros__parameters:
+    odom_topic: "/odom"
+    drive_topic: "/drive"
+    max_speed: 4.0
+    debug: true

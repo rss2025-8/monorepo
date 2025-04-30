@@ -62,9 +62,10 @@ class PurePursuit(Node):
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
     
     def is_active(self, msg):
+        self.active = msg.data
         if not msg.data:
-            self.active = False
             self.drive(0.0, 0.0)
+        
     
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
