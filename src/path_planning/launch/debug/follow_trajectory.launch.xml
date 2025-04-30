@@ -1,6 +1,5 @@
 <launch>
     <node pkg="path_planning" exec="trajectory_follower" name="trajectory_follower">
-        <param name="odom_topic" value="/odom"/>
-        <param name="drive_topic" value="/drive"/>
+        <param from="$(find-pkg-share path_planning)/config/sim/sim_config.yaml"/>
     </node>
 </launch>

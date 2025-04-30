@@ -1,0 +1,9 @@
+<launch>
+    <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml">
+        <arg name="map" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+    </include>
+    <node pkg="localization" exec="particle_filter" name="particle_filter" output="screen">
+        <param from="$(find-pkg-share localization)/config/act_params.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+    </node>
+</launch>

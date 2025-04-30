@@ -3,8 +3,6 @@ safety_controller:
     scan_topic: "/scan"
     ackermann_cmd_topic: "/wall_follower_topic"
     safety_topic: "/safety_topic"
-    stopping_time: 0.7
-    watchdog_period: 0.1
 
 wall_follower:
   ros__parameters:
@@ -12,7 +10,7 @@ wall_follower:
     wall_follower_topic: "/wall_follower_topic"
     debug: 1
     side: -1
-    velocity: 1.0
+    velocity: 0.5
     desired_distance: 1.0
     Kp: 5.7
     Ap: 4.0

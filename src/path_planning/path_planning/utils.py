@@ -1,21 +1,58 @@
-import rclpy
-
-import numpy as np
-from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Pose, PoseArray, Point
-from std_msgs.msg import Header
+import json
 import os
 from typing import List, Tuple
-import json
+
+import cv2
+import numpy as np
+import rclpy
+import yaml
+from geometry_msgs.msg import Point, Pose, PoseArray, Quaternion
+from nav_msgs.msg import MapMetaData, OccupancyGrid
+from std_msgs.msg import Header
+from visualization_msgs.msg import Marker
 
 EPSILON = 0.00000000001
 
-''' These data structures can be used in the search function
-'''
+
+def load_map(yaml_path: str) -> OccupancyGrid:
+    """Load a map from a yaml file as an OccupancyGrid message."""
+    folder = os.path.dirname(yaml_path)
+    with open(yaml_path, "r") as f:
+        cfg = yaml.safe_load(f)
+    img = cv2.imread(os.path.join(folder, cfg["image"]), cv2.IMREAD_GRAYSCALE)
+    # Flip image vertically
+    img = cv2.flip(img, 0)
+    # Compute occupancy probability
+    if cfg.get("negate", 0):
+        p = img / 255.0
+    else:
+        p = (255.0 - img) / 255.0
+    free = p <= cfg["free_thresh"]
+    occ = p >= cfg["occupied_thresh"]
+    data = np.full(img.shape, -1, dtype=np.int8)
+    data[free] = 0
+    data[occ] = 100
+    # Create occupancy grid message
+    msg = OccupancyGrid()
+    msg.header.frame_id = cfg.get("frame_id", "map")
+    meta = MapMetaData(
+        resolution=cfg["resolution"],
+        width=img.shape[1],
+        height=img.shape[0],
+        origin=Pose(
+            position=Point(x=cfg["origin"][0], y=cfg["origin"][1], z=0.0),
+            orientation=Quaternion(x=0.0, y=0.0, z=1.0, w=0.0),
+        ),
+    )
+    msg.info = meta
+    msg.data = data.flatten().tolist()
+    # with open("debug.txt", "w") as f:
+    #     f.write(f"{msg}\n")
+    return msg
 
 
 class LineTrajectory:
-    """ A class to wrap and work with piecewise linear trajectories. """
+    """A class to wrap and work with piecewise linear trajectories."""
 
     def __init__(self, node, viz_namespace=None):
         self.points: List[Tuple[float, float]] = []
@@ -48,7 +85,8 @@ class LineTrajectory:
     def distance_to_end(self, t):
         if not len(self.points) == len(self.distances):
             print(
-                "WARNING: Different number of distances and points, this should never happen! Expect incorrect results. See LineTrajectory class.")
+                "WARNING: Different number of distances and points, this should never happen! Expect incorrect results. See LineTrajectory class."
+            )
         dat = self.distance_along_trajectory(t)
         if dat == None:
             return None
@@ -68,10 +106,14 @@ class LineTrajectory:
             return (1.0 - t) * self.distances[i] + t * self.distances[i + 1]
 
     def addPoint(self, point: Tuple[float, float]) -> None:
-        print("adding point to trajectory:", point)
+        # print("adding point to trajectory:", point)
         self.points.append(point)
         self.update_distances()
         self.mark_dirty()
+
+    def reverse(self) -> None:
+        self.points.reverse()
+        self.distances.reverse()
 
     def clear(self):
         self.points = []
@@ -87,7 +129,7 @@ class LineTrajectory:
         data["points"] = []
         for p in self.points:
             data["points"].append({"x": p[0], "y": p[1]})
-        with open(path, 'w') as outfile:
+        with open(path, "w") as outfile:
             json.dump(data, outfile)
 
     def mark_dirty(self):
@@ -116,7 +158,7 @@ class LineTrajectory:
             self.points.append((p.position.x, p.position.y))
         self.update_distances()
         self.mark_dirty()
-        print("Loaded new trajectory with:", len(self.points), "points")
+        # print("Loaded new trajectory with:", len(self.points), "points")
 
     def toPoseArray(self):
         traj = PoseArray()
@@ -131,9 +173,7 @@ class LineTrajectory:
 
     def publish_start_point(self, duration=0.0, scale=0.1):
         should_publish = len(self.points) > 0
-        self.node.get_logger().info("Before Publishing start point")
         if self.visualize and self.start_pub.get_subscription_count() > 0:
-            self.node.get_logger().info("Publishing start point")
             marker = Marker()
             marker.header = self.make_header("/map")
             marker.ns = self.viz_namespace + "/trajectory"
@@ -216,7 +256,7 @@ class LineTrajectory:
                 # delete
                 marker.action = marker.DELETE
             self.traj_pub.publish(marker)
-            print('publishing traj')
+            print("Publishing trajectory")
         elif self.traj_pub.get_subscription_count() == 0:
             print("Not publishing trajectory, no subscribers")
 

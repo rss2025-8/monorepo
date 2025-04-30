@@ -4,9 +4,13 @@ from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 
 from localization.sensor_model import SensorModel
-from localization.test import TEST_PRECOMPUTED_TABLE, TEST_SENSOR_MODEL_OUTPUT_PROBABILITIES, \
-    TEST_SENSOR_MODEL_INPUT_SCANS, \
-    TEST_PARTICLES_2, TEST_MAP_ARRAY
+from localization.test import (
+    TEST_MAP_ARRAY,
+    TEST_PARTICLES_2,
+    TEST_PRECOMPUTED_TABLE,
+    TEST_SENSOR_MODEL_INPUT_SCANS,
+    TEST_SENSOR_MODEL_OUTPUT_PROBABILITIES,
+)
 
 
 class Args:
@@ -23,7 +27,7 @@ class Args:
 class SensorModelTest(Node):
     def __init__(self):
         # Hack: particle filter
-        super().__init__('particle_filter')
+        super().__init__("particle_filter")
 
         try:
             self.sensor_model = SensorModel(self)
@@ -41,13 +45,9 @@ class SensorModelTest(Node):
 
         self.tol = Args.tolerance
 
-        map_topic = self.get_parameter('map_topic').get_parameter_value().string_value
+        map_topic = self.get_parameter("map_topic").get_parameter_value().string_value
 
-        self.map_subscriber = self.create_subscription(
-            OccupancyGrid,
-            map_topic,
-            self.map_cb,
-            1)
+        self.map_subscriber = self.create_subscription(OccupancyGrid, map_topic, self.map_cb, 1)
 
         self.num_passed = 0
 
@@ -99,22 +99,33 @@ class SensorModelTest(Node):
         expected = np.array(TEST_PRECOMPUTED_TABLE)
         actual = self.sensor_model.sensor_model_table
 
-        assert actual.shape == expected.shape, f"Wrong shape of the precomputed table. Expected {expected.shape}, got {actual.shape}"
+        assert (
+            actual.shape == expected.shape
+        ), f"Wrong shape of the precomputed table. Expected {expected.shape}, got {actual.shape}"
 
-        assert np.allclose(actual, expected,
-                           atol=self.tol), f"Wrong values in the precomputed table. First row: {actual[0, :]}, expected {expected[0, :]}"
+        assert np.allclose(
+            actual, expected, atol=self.tol
+        ), f"Wrong values in the precomputed table. First row: {actual[0, :]}, expected {expected[0, :]}"
 
+        self.get_logger().info(f"Precomputed table. First row: {actual[0, :20]}, expected {expected[0, :20]}")
         self.get_logger().info("Precompute test passed :)")
 
     def test_evaluate(self):
         expected_probabilities = np.array(TEST_SENSOR_MODEL_OUTPUT_PROBABILITIES)
         actual_probabilities = self.sensor_model.evaluate(
-            np.array(TEST_PARTICLES_2), np.array(TEST_SENSOR_MODEL_INPUT_SCANS))
+            np.array(TEST_PARTICLES_2), np.array(TEST_SENSOR_MODEL_INPUT_SCANS)
+        )
 
-        assert np.allclose(expected_probabilities,
-                           actual_probabilities,
-                           rtol=self.tol), f"Expected {expected_probabilities}, got {actual_probabilities}"
+        assert np.allclose(
+            expected_probabilities,
+            actual_probabilities,
+            rtol=self.tol,
+            # atol=0.0,
+        ), f"Expected {expected_probabilities}, got {actual_probabilities}"
 
+        self.get_logger().info(
+            f"Evaluate. Probabilities: {actual_probabilities[:20]}, expected {expected_probabilities[:20]}"
+        )
         self.get_logger().info("Evaluate test passed :)")
 
     def test_map_callback(self):

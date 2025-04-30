@@ -1,3 +1,19 @@
 <launch>
-    <!--Add your code-->
+    <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml">
+        <arg name="map" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+    </include>
+    <node pkg="path_planning" exec="trajectory_planner" name="trajectory_planner" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/real/config.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+    </node>
+    <node pkg="path_planning" exec="trajectory_follower" name="trajectory_follower">
+        <param from="$(find-pkg-share path_planning)/config/real/config.yaml"/>
+    </node>
+    <node pkg="localization" exec="particle_filter" name="particle_filter" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/real/pf_config.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share localization)/maps/2025_stata_basement.yaml"/>
+    </node>
+    <node pkg="safety_controller" exec="safety_controller" name="safety_controller" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/real/config.yaml"/>
+    </node>
 </launch>

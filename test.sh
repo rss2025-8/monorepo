@@ -1,8 +1,8 @@
-# Edit this to quickly launch whatever we're working on rn
+# Edit this to launch whatever we're working on rn
 
-echo "Building..."
-PYTHONWARNINGS="ignore" colcon build --symlink-install
+LAUNCH_CMD="ros2 launch path_planning real.launch.xml"
+
 source install/setup.bash
-
-echo "Launching..."
-ros2 launch visual_servoing parking_deploy.launch.xml type:=line
+echo "Launch command: $LAUNCH_CMD"
+# Ensure there is no memory leak here (node names should not have high numbers)
+exec $LAUNCH_CMD
