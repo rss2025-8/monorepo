@@ -1,0 +1,1295 @@
+.
+├── README.md
+├── media
+│   ├── Final Challenge City Driving Map.png
+│   ├── Lakitu_750px.png
+│   ├── city_driving.png
+│   ├── despicable_me_moon.png
+│   ├── minion.png
+│   ├── minion_detection.jpg
+│   ├── minions-driving.jpg
+│   ├── minions.jpg
+│   ├── start_area.jpg
+│   ├── stop_sign.jpg
+│   └── vector.png
+├── race_to_the_moon
+│   ├── config
+│   │   ├── act_params.yaml
+│   │   ├── homographies.yaml
+│   │   └── sim_params.yaml
+│   ├── launch
+│   │   ├── act_race_to_the_moon.launch.xml
+│   │   ├── sim_quick_launch.launch.xml
+│   │   └── sim_race_to_the_moon.launch.xml
+│   ├── package.xml
+│   ├── race_to_the_moon
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-310.pyc
+│   │   │   ├── hough_line_lane_detector.cpython-310.pyc
+│   │   │   ├── lane_homography_transformer.cpython-310.pyc
+│   │   │   ├── pure_pursuit.cpython-310.pyc
+│   │   │   └── visualization_tools.cpython-310.pyc
+│   │   ├── computer_vision
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── color_segmentation.cpython-310.pyc
+│   │   │   │   ├── hough_line_utils.cpython-310.pyc
+│   │   │   │   └── hough_lines_utils.cpython-310.pyc
+│   │   │   ├── color_segmentation.py
+│   │   │   ├── homography_utils.py
+│   │   │   ├── hough_lines_test.py
+│   │   │   ├── hough_lines_utils.py
+│   │   │   ├── racetrack_images
+│   │   │   │   ├── lane_1
+│   │   │   │   │   ├── image1.png
+│   │   │   │   │   ├── image10.png
+│   │   │   │   │   ├── image11.png
+│   │   │   │   │   ├── image12.png
+│   │   │   │   │   ├── image13.png
+│   │   │   │   │   ├── image14.png
+│   │   │   │   │   ├── image15.png
+│   │   │   │   │   ├── image2.png
+│   │   │   │   │   ├── image3.png
+│   │   │   │   │   ├── image4.png
+│   │   │   │   │   ├── image5.png
+│   │   │   │   │   ├── image6.png
+│   │   │   │   │   ├── image7.png
+│   │   │   │   │   ├── image8.png
+│   │   │   │   │   └── image9.png
+│   │   │   │   ├── lane_3
+│   │   │   │   │   ├── image1.png
+│   │   │   │   │   ├── image10.png
+│   │   │   │   │   ├── image11.png
+│   │   │   │   │   ├── image12.png
+│   │   │   │   │   ├── image13.png
+│   │   │   │   │   ├── image14.png
+│   │   │   │   │   ├── image15.png
+│   │   │   │   │   ├── image16.png
+│   │   │   │   │   ├── image17.png
+│   │   │   │   │   ├── image18.png
+│   │   │   │   │   ├── image19.png
+│   │   │   │   │   ├── image2.png
+│   │   │   │   │   ├── image20.png
+│   │   │   │   │   ├── image21.png
+│   │   │   │   │   ├── image22.png
+│   │   │   │   │   ├── image23.png
+│   │   │   │   │   ├── image24.png
+│   │   │   │   │   ├── image25.png
+│   │   │   │   │   ├── image26.png
+│   │   │   │   │   ├── image27.png
+│   │   │   │   │   ├── image28.png
+│   │   │   │   │   ├── image29.png
+│   │   │   │   │   ├── image3.png
+│   │   │   │   │   ├── image30.png
+│   │   │   │   │   ├── image31.png
+│   │   │   │   │   ├── image32.png
+│   │   │   │   │   ├── image33.png
+│   │   │   │   │   ├── image34.png
+│   │   │   │   │   ├── image35.png
+│   │   │   │   │   ├── image36.png
+│   │   │   │   │   ├── image37.png
+│   │   │   │   │   ├── image38.png
+│   │   │   │   │   ├── image39.png
+│   │   │   │   │   ├── image4.png
+│   │   │   │   │   ├── image40.png
+│   │   │   │   │   ├── image41.png
+│   │   │   │   │   ├── image42.png
+│   │   │   │   │   ├── image43.png
+│   │   │   │   │   ├── image44.png
+│   │   │   │   │   ├── image45.png
+│   │   │   │   │   ├── image46.png
+│   │   │   │   │   ├── image47.png
+│   │   │   │   │   ├── image48.png
+│   │   │   │   │   ├── image49.png
+│   │   │   │   │   ├── image5.png
+│   │   │   │   │   ├── image50.png
+│   │   │   │   │   ├── image51.png
+│   │   │   │   │   ├── image52.png
+│   │   │   │   │   ├── image53.png
+│   │   │   │   │   ├── image54.png
+│   │   │   │   │   ├── image55.png
+│   │   │   │   │   ├── image56.png
+│   │   │   │   │   ├── image57.png
+│   │   │   │   │   ├── image58.png
+│   │   │   │   │   ├── image59.png
+│   │   │   │   │   ├── image6.png
+│   │   │   │   │   ├── image61.png
+│   │   │   │   │   ├── image62.png
+│   │   │   │   │   ├── image63.png
+│   │   │   │   │   ├── image64.png
+│   │   │   │   │   ├── image65.png
+│   │   │   │   │   ├── image66.png
+│   │   │   │   │   ├── image67.png
+│   │   │   │   │   ├── image68.png
+│   │   │   │   │   ├── image69.png
+│   │   │   │   │   ├── image7.png
+│   │   │   │   │   ├── image8.png
+│   │   │   │   │   └── image9.png
+│   │   │   │   └── lane_6
+│   │   │   │       ├── image1.png
+│   │   │   │       ├── image10.png
+│   │   │   │       ├── image2.png
+│   │   │   │       ├── image3.png
+│   │   │   │       ├── image4.png
+│   │   │   │       ├── image5.png
+│   │   │   │       ├── image6.png
+│   │   │   │       ├── image7.png
+│   │   │   │       ├── image8.png
+│   │   │   │       └── image9.png
+│   │   │   ├── test_results_hough_lines
+│   │   │   │   ├── lane_1
+│   │   │   │   │   ├── image1
+│   │   │   │   │   │   ├── image1.png
+│   │   │   │   │   │   ├── image1_cs.png
+│   │   │   │   │   │   ├── image1_cs_canny.png
+│   │   │   │   │   │   ├── image1_standard_color_segmented.png
+│   │   │   │   │   │   └── image1_standard_non_color_segmented.png
+│   │   │   │   │   ├── image10
+│   │   │   │   │   │   ├── image10.png
+│   │   │   │   │   │   ├── image10_cs.png
+│   │   │   │   │   │   ├── image10_cs_canny.png
+│   │   │   │   │   │   ├── image10_standard_color_segmented.png
+│   │   │   │   │   │   └── image10_standard_non_color_segmented.png
+│   │   │   │   │   ├── image11
+│   │   │   │   │   │   ├── image11.png
+│   │   │   │   │   │   ├── image11_cs.png
+│   │   │   │   │   │   ├── image11_cs_canny.png
+│   │   │   │   │   │   ├── image11_standard_color_segmented.png
+│   │   │   │   │   │   └── image11_standard_non_color_segmented.png
+│   │   │   │   │   ├── image12
+│   │   │   │   │   │   ├── image12.png
+│   │   │   │   │   │   ├── image12_cs.png
+│   │   │   │   │   │   ├── image12_cs_canny.png
+│   │   │   │   │   │   ├── image12_standard_color_segmented.png
+│   │   │   │   │   │   └── image12_standard_non_color_segmented.png
+│   │   │   │   │   ├── image13
+│   │   │   │   │   │   ├── image13.png
+│   │   │   │   │   │   ├── image13_cs.png
+│   │   │   │   │   │   ├── image13_cs_canny.png
+│   │   │   │   │   │   ├── image13_standard_color_segmented.png
+│   │   │   │   │   │   └── image13_standard_non_color_segmented.png
+│   │   │   │   │   ├── image14
+│   │   │   │   │   │   ├── image14.png
+│   │   │   │   │   │   ├── image14_cs.png
+│   │   │   │   │   │   ├── image14_cs_canny.png
+│   │   │   │   │   │   ├── image14_standard_color_segmented.png
+│   │   │   │   │   │   └── image14_standard_non_color_segmented.png
+│   │   │   │   │   ├── image15
+│   │   │   │   │   │   ├── image15.png
+│   │   │   │   │   │   ├── image15_cs.png
+│   │   │   │   │   │   ├── image15_cs_canny.png
+│   │   │   │   │   │   ├── image15_standard_color_segmented.png
+│   │   │   │   │   │   └── image15_standard_non_color_segmented.png
+│   │   │   │   │   ├── image2
+│   │   │   │   │   │   ├── image2.png
+│   │   │   │   │   │   ├── image2_cs.png
+│   │   │   │   │   │   ├── image2_cs_canny.png
+│   │   │   │   │   │   ├── image2_standard_color_segmented.png
+│   │   │   │   │   │   └── image2_standard_non_color_segmented.png
+│   │   │   │   │   ├── image3
+│   │   │   │   │   │   ├── image3.png
+│   │   │   │   │   │   ├── image3_cs.png
+│   │   │   │   │   │   ├── image3_cs_canny.png
+│   │   │   │   │   │   ├── image3_standard_color_segmented.png
+│   │   │   │   │   │   └── image3_standard_non_color_segmented.png
+│   │   │   │   │   ├── image4
+│   │   │   │   │   │   ├── image4.png
+│   │   │   │   │   │   ├── image4_cs.png
+│   │   │   │   │   │   ├── image4_cs_canny.png
+│   │   │   │   │   │   ├── image4_standard_color_segmented.png
+│   │   │   │   │   │   └── image4_standard_non_color_segmented.png
+│   │   │   │   │   ├── image5
+│   │   │   │   │   │   ├── image5.png
+│   │   │   │   │   │   ├── image5_cs.png
+│   │   │   │   │   │   ├── image5_cs_canny.png
+│   │   │   │   │   │   ├── image5_standard_color_segmented.png
+│   │   │   │   │   │   └── image5_standard_non_color_segmented.png
+│   │   │   │   │   ├── image6
+│   │   │   │   │   │   ├── image6.png
+│   │   │   │   │   │   ├── image6_cs.png
+│   │   │   │   │   │   ├── image6_cs_canny.png
+│   │   │   │   │   │   ├── image6_standard_color_segmented.png
+│   │   │   │   │   │   └── image6_standard_non_color_segmented.png
+│   │   │   │   │   ├── image7
+│   │   │   │   │   │   ├── image7.png
+│   │   │   │   │   │   ├── image7_cs.png
+│   │   │   │   │   │   ├── image7_cs_canny.png
+│   │   │   │   │   │   ├── image7_standard_color_segmented.png
+│   │   │   │   │   │   └── image7_standard_non_color_segmented.png
+│   │   │   │   │   ├── image8
+│   │   │   │   │   │   ├── image8.png
+│   │   │   │   │   │   ├── image8_cs.png
+│   │   │   │   │   │   ├── image8_cs_canny.png
+│   │   │   │   │   │   ├── image8_standard_color_segmented.png
+│   │   │   │   │   │   └── image8_standard_non_color_segmented.png
+│   │   │   │   │   └── image9
+│   │   │   │   │       ├── image9.png
+│   │   │   │   │       ├── image9_cs.png
+│   │   │   │   │       ├── image9_cs_canny.png
+│   │   │   │   │       ├── image9_standard_color_segmented.png
+│   │   │   │   │       └── image9_standard_non_color_segmented.png
+│   │   │   │   ├── lane_3
+│   │   │   │   │   ├── image1
+│   │   │   │   │   │   ├── image1.png
+│   │   │   │   │   │   ├── image1_cs.png
+│   │   │   │   │   │   ├── image1_cs_canny.png
+│   │   │   │   │   │   ├── image1_standard_color_segmented.png
+│   │   │   │   │   │   └── image1_standard_non_color_segmented.png
+│   │   │   │   │   ├── image10
+│   │   │   │   │   │   ├── image10.png
+│   │   │   │   │   │   ├── image10_cs.png
+│   │   │   │   │   │   ├── image10_cs_canny.png
+│   │   │   │   │   │   ├── image10_standard_color_segmented.png
+│   │   │   │   │   │   └── image10_standard_non_color_segmented.png
+│   │   │   │   │   ├── image11
+│   │   │   │   │   │   ├── image11.png
+│   │   │   │   │   │   ├── image11_cs.png
+│   │   │   │   │   │   ├── image11_cs_canny.png
+│   │   │   │   │   │   ├── image11_standard_color_segmented.png
+│   │   │   │   │   │   └── image11_standard_non_color_segmented.png
+│   │   │   │   │   ├── image12
+│   │   │   │   │   │   ├── image12.png
+│   │   │   │   │   │   ├── image12_cs.png
+│   │   │   │   │   │   ├── image12_cs_canny.png
+│   │   │   │   │   │   ├── image12_standard_color_segmented.png
+│   │   │   │   │   │   └── image12_standard_non_color_segmented.png
+│   │   │   │   │   ├── image13
+│   │   │   │   │   │   ├── image13.png
+│   │   │   │   │   │   ├── image13_cs.png
+│   │   │   │   │   │   ├── image13_cs_canny.png
+│   │   │   │   │   │   ├── image13_standard_color_segmented.png
+│   │   │   │   │   │   └── image13_standard_non_color_segmented.png
+│   │   │   │   │   ├── image14
+│   │   │   │   │   │   ├── image14.png
+│   │   │   │   │   │   ├── image14_cs.png
+│   │   │   │   │   │   ├── image14_cs_canny.png
+│   │   │   │   │   │   ├── image14_standard_color_segmented.png
+│   │   │   │   │   │   └── image14_standard_non_color_segmented.png
+│   │   │   │   │   ├── image15
+│   │   │   │   │   │   ├── image15.png
+│   │   │   │   │   │   ├── image15_cs.png
+│   │   │   │   │   │   ├── image15_cs_canny.png
+│   │   │   │   │   │   ├── image15_standard_color_segmented.png
+│   │   │   │   │   │   └── image15_standard_non_color_segmented.png
+│   │   │   │   │   ├── image16
+│   │   │   │   │   │   ├── image16.png
+│   │   │   │   │   │   ├── image16_cs.png
+│   │   │   │   │   │   ├── image16_cs_canny.png
+│   │   │   │   │   │   ├── image16_standard_color_segmented.png
+│   │   │   │   │   │   └── image16_standard_non_color_segmented.png
+│   │   │   │   │   ├── image17
+│   │   │   │   │   │   ├── image17.png
+│   │   │   │   │   │   ├── image17_cs.png
+│   │   │   │   │   │   ├── image17_cs_canny.png
+│   │   │   │   │   │   ├── image17_standard_color_segmented.png
+│   │   │   │   │   │   └── image17_standard_non_color_segmented.png
+│   │   │   │   │   ├── image18
+│   │   │   │   │   │   ├── image18.png
+│   │   │   │   │   │   ├── image18_cs.png
+│   │   │   │   │   │   ├── image18_cs_canny.png
+│   │   │   │   │   │   ├── image18_standard_color_segmented.png
+│   │   │   │   │   │   └── image18_standard_non_color_segmented.png
+│   │   │   │   │   ├── image19
+│   │   │   │   │   │   ├── image19.png
+│   │   │   │   │   │   ├── image19_cs.png
+│   │   │   │   │   │   ├── image19_cs_canny.png
+│   │   │   │   │   │   ├── image19_standard_color_segmented.png
+│   │   │   │   │   │   └── image19_standard_non_color_segmented.png
+│   │   │   │   │   ├── image2
+│   │   │   │   │   │   ├── image2.png
+│   │   │   │   │   │   ├── image2_cs.png
+│   │   │   │   │   │   ├── image2_cs_canny.png
+│   │   │   │   │   │   ├── image2_standard_color_segmented.png
+│   │   │   │   │   │   └── image2_standard_non_color_segmented.png
+│   │   │   │   │   ├── image20
+│   │   │   │   │   │   ├── image20.png
+│   │   │   │   │   │   ├── image20_cs.png
+│   │   │   │   │   │   ├── image20_cs_canny.png
+│   │   │   │   │   │   ├── image20_standard_color_segmented.png
+│   │   │   │   │   │   └── image20_standard_non_color_segmented.png
+│   │   │   │   │   ├── image21
+│   │   │   │   │   │   ├── image21.png
+│   │   │   │   │   │   ├── image21_cs.png
+│   │   │   │   │   │   ├── image21_cs_canny.png
+│   │   │   │   │   │   ├── image21_standard_color_segmented.png
+│   │   │   │   │   │   └── image21_standard_non_color_segmented.png
+│   │   │   │   │   ├── image22
+│   │   │   │   │   │   ├── image22.png
+│   │   │   │   │   │   ├── image22_cs.png
+│   │   │   │   │   │   ├── image22_cs_canny.png
+│   │   │   │   │   │   ├── image22_standard_color_segmented.png
+│   │   │   │   │   │   └── image22_standard_non_color_segmented.png
+│   │   │   │   │   ├── image23
+│   │   │   │   │   │   ├── image23.png
+│   │   │   │   │   │   ├── image23_cs.png
+│   │   │   │   │   │   ├── image23_cs_canny.png
+│   │   │   │   │   │   ├── image23_standard_color_segmented.png
+│   │   │   │   │   │   └── image23_standard_non_color_segmented.png
+│   │   │   │   │   ├── image24
+│   │   │   │   │   │   ├── image24.png
+│   │   │   │   │   │   ├── image24_cs.png
+│   │   │   │   │   │   ├── image24_cs_canny.png
+│   │   │   │   │   │   ├── image24_standard_color_segmented.png
+│   │   │   │   │   │   └── image24_standard_non_color_segmented.png
+│   │   │   │   │   ├── image25
+│   │   │   │   │   │   ├── image25.png
+│   │   │   │   │   │   ├── image25_cs.png
+│   │   │   │   │   │   ├── image25_cs_canny.png
+│   │   │   │   │   │   ├── image25_standard_color_segmented.png
+│   │   │   │   │   │   └── image25_standard_non_color_segmented.png
+│   │   │   │   │   ├── image26
+│   │   │   │   │   │   ├── image26.png
+│   │   │   │   │   │   ├── image26_cs.png
+│   │   │   │   │   │   ├── image26_cs_canny.png
+│   │   │   │   │   │   ├── image26_standard_color_segmented.png
+│   │   │   │   │   │   └── image26_standard_non_color_segmented.png
+│   │   │   │   │   ├── image27
+│   │   │   │   │   │   ├── image27.png
+│   │   │   │   │   │   ├── image27_cs.png
+│   │   │   │   │   │   ├── image27_cs_canny.png
+│   │   │   │   │   │   ├── image27_standard_color_segmented.png
+│   │   │   │   │   │   └── image27_standard_non_color_segmented.png
+│   │   │   │   │   ├── image28
+│   │   │   │   │   │   ├── image28.png
+│   │   │   │   │   │   ├── image28_cs.png
+│   │   │   │   │   │   ├── image28_cs_canny.png
+│   │   │   │   │   │   ├── image28_standard_color_segmented.png
+│   │   │   │   │   │   └── image28_standard_non_color_segmented.png
+│   │   │   │   │   ├── image29
+│   │   │   │   │   │   ├── image29.png
+│   │   │   │   │   │   ├── image29_cs.png
+│   │   │   │   │   │   ├── image29_cs_canny.png
+│   │   │   │   │   │   ├── image29_standard_color_segmented.png
+│   │   │   │   │   │   └── image29_standard_non_color_segmented.png
+│   │   │   │   │   ├── image3
+│   │   │   │   │   │   ├── image3.png
+│   │   │   │   │   │   ├── image3_cs.png
+│   │   │   │   │   │   ├── image3_cs_canny.png
+│   │   │   │   │   │   ├── image3_standard_color_segmented.png
+│   │   │   │   │   │   └── image3_standard_non_color_segmented.png
+│   │   │   │   │   ├── image30
+│   │   │   │   │   │   ├── image30.png
+│   │   │   │   │   │   ├── image30_cs.png
+│   │   │   │   │   │   ├── image30_cs_canny.png
+│   │   │   │   │   │   ├── image30_standard_color_segmented.png
+│   │   │   │   │   │   └── image30_standard_non_color_segmented.png
+│   │   │   │   │   ├── image31
+│   │   │   │   │   │   ├── image31.png
+│   │   │   │   │   │   ├── image31_cs.png
+│   │   │   │   │   │   ├── image31_cs_canny.png
+│   │   │   │   │   │   ├── image31_standard_color_segmented.png
+│   │   │   │   │   │   └── image31_standard_non_color_segmented.png
+│   │   │   │   │   ├── image32
+│   │   │   │   │   │   ├── image32.png
+│   │   │   │   │   │   ├── image32_cs.png
+│   │   │   │   │   │   ├── image32_cs_canny.png
+│   │   │   │   │   │   ├── image32_standard_color_segmented.png
+│   │   │   │   │   │   └── image32_standard_non_color_segmented.png
+│   │   │   │   │   ├── image33
+│   │   │   │   │   │   ├── image33.png
+│   │   │   │   │   │   ├── image33_cs.png
+│   │   │   │   │   │   ├── image33_cs_canny.png
+│   │   │   │   │   │   ├── image33_standard_color_segmented.png
+│   │   │   │   │   │   └── image33_standard_non_color_segmented.png
+│   │   │   │   │   ├── image34
+│   │   │   │   │   │   ├── image34.png
+│   │   │   │   │   │   ├── image34_cs.png
+│   │   │   │   │   │   ├── image34_cs_canny.png
+│   │   │   │   │   │   ├── image34_standard_color_segmented.png
+│   │   │   │   │   │   └── image34_standard_non_color_segmented.png
+│   │   │   │   │   ├── image35
+│   │   │   │   │   │   ├── image35.png
+│   │   │   │   │   │   ├── image35_cs.png
+│   │   │   │   │   │   ├── image35_cs_canny.png
+│   │   │   │   │   │   ├── image35_standard_color_segmented.png
+│   │   │   │   │   │   └── image35_standard_non_color_segmented.png
+│   │   │   │   │   ├── image36
+│   │   │   │   │   │   ├── image36.png
+│   │   │   │   │   │   ├── image36_cs.png
+│   │   │   │   │   │   ├── image36_cs_canny.png
+│   │   │   │   │   │   ├── image36_standard_color_segmented.png
+│   │   │   │   │   │   └── image36_standard_non_color_segmented.png
+│   │   │   │   │   ├── image37
+│   │   │   │   │   │   ├── image37.png
+│   │   │   │   │   │   ├── image37_cs.png
+│   │   │   │   │   │   ├── image37_cs_canny.png
+│   │   │   │   │   │   ├── image37_standard_color_segmented.png
+│   │   │   │   │   │   └── image37_standard_non_color_segmented.png
+│   │   │   │   │   ├── image38
+│   │   │   │   │   │   ├── image38.png
+│   │   │   │   │   │   ├── image38_cs.png
+│   │   │   │   │   │   ├── image38_cs_canny.png
+│   │   │   │   │   │   ├── image38_standard_color_segmented.png
+│   │   │   │   │   │   └── image38_standard_non_color_segmented.png
+│   │   │   │   │   ├── image39
+│   │   │   │   │   │   ├── image39.png
+│   │   │   │   │   │   ├── image39_cs.png
+│   │   │   │   │   │   ├── image39_cs_canny.png
+│   │   │   │   │   │   ├── image39_standard_color_segmented.png
+│   │   │   │   │   │   └── image39_standard_non_color_segmented.png
+│   │   │   │   │   ├── image4
+│   │   │   │   │   │   ├── image4.png
+│   │   │   │   │   │   ├── image4_cs.png
+│   │   │   │   │   │   ├── image4_cs_canny.png
+│   │   │   │   │   │   ├── image4_standard_color_segmented.png
+│   │   │   │   │   │   └── image4_standard_non_color_segmented.png
+│   │   │   │   │   ├── image40
+│   │   │   │   │   │   ├── image40.png
+│   │   │   │   │   │   ├── image40_cs.png
+│   │   │   │   │   │   ├── image40_cs_canny.png
+│   │   │   │   │   │   ├── image40_standard_color_segmented.png
+│   │   │   │   │   │   └── image40_standard_non_color_segmented.png
+│   │   │   │   │   ├── image41
+│   │   │   │   │   │   ├── image41.png
+│   │   │   │   │   │   ├── image41_cs.png
+│   │   │   │   │   │   ├── image41_cs_canny.png
+│   │   │   │   │   │   ├── image41_standard_color_segmented.png
+│   │   │   │   │   │   └── image41_standard_non_color_segmented.png
+│   │   │   │   │   ├── image42
+│   │   │   │   │   │   ├── image42.png
+│   │   │   │   │   │   ├── image42_cs.png
+│   │   │   │   │   │   ├── image42_cs_canny.png
+│   │   │   │   │   │   ├── image42_standard_color_segmented.png
+│   │   │   │   │   │   └── image42_standard_non_color_segmented.png
+│   │   │   │   │   ├── image43
+│   │   │   │   │   │   ├── image43.png
+│   │   │   │   │   │   ├── image43_cs.png
+│   │   │   │   │   │   ├── image43_cs_canny.png
+│   │   │   │   │   │   ├── image43_standard_color_segmented.png
+│   │   │   │   │   │   └── image43_standard_non_color_segmented.png
+│   │   │   │   │   ├── image44
+│   │   │   │   │   │   ├── image44.png
+│   │   │   │   │   │   ├── image44_cs.png
+│   │   │   │   │   │   ├── image44_cs_canny.png
+│   │   │   │   │   │   ├── image44_standard_color_segmented.png
+│   │   │   │   │   │   └── image44_standard_non_color_segmented.png
+│   │   │   │   │   ├── image45
+│   │   │   │   │   │   ├── image45.png
+│   │   │   │   │   │   ├── image45_cs.png
+│   │   │   │   │   │   ├── image45_cs_canny.png
+│   │   │   │   │   │   ├── image45_standard_color_segmented.png
+│   │   │   │   │   │   └── image45_standard_non_color_segmented.png
+│   │   │   │   │   ├── image46
+│   │   │   │   │   │   ├── image46.png
+│   │   │   │   │   │   ├── image46_cs.png
+│   │   │   │   │   │   ├── image46_cs_canny.png
+│   │   │   │   │   │   ├── image46_standard_color_segmented.png
+│   │   │   │   │   │   └── image46_standard_non_color_segmented.png
+│   │   │   │   │   ├── image47
+│   │   │   │   │   │   ├── image47.png
+│   │   │   │   │   │   ├── image47_cs.png
+│   │   │   │   │   │   ├── image47_cs_canny.png
+│   │   │   │   │   │   ├── image47_standard_color_segmented.png
+│   │   │   │   │   │   └── image47_standard_non_color_segmented.png
+│   │   │   │   │   ├── image48
+│   │   │   │   │   │   ├── image48.png
+│   │   │   │   │   │   ├── image48_cs.png
+│   │   │   │   │   │   ├── image48_cs_canny.png
+│   │   │   │   │   │   ├── image48_standard_color_segmented.png
+│   │   │   │   │   │   └── image48_standard_non_color_segmented.png
+│   │   │   │   │   ├── image49
+│   │   │   │   │   │   ├── image49.png
+│   │   │   │   │   │   ├── image49_cs.png
+│   │   │   │   │   │   ├── image49_cs_canny.png
+│   │   │   │   │   │   ├── image49_standard_color_segmented.png
+│   │   │   │   │   │   └── image49_standard_non_color_segmented.png
+│   │   │   │   │   ├── image5
+│   │   │   │   │   │   ├── image5.png
+│   │   │   │   │   │   ├── image5_cs.png
+│   │   │   │   │   │   ├── image5_cs_canny.png
+│   │   │   │   │   │   ├── image5_standard_color_segmented.png
+│   │   │   │   │   │   └── image5_standard_non_color_segmented.png
+│   │   │   │   │   ├── image50
+│   │   │   │   │   │   ├── image50.png
+│   │   │   │   │   │   ├── image50_cs.png
+│   │   │   │   │   │   ├── image50_cs_canny.png
+│   │   │   │   │   │   ├── image50_standard_color_segmented.png
+│   │   │   │   │   │   └── image50_standard_non_color_segmented.png
+│   │   │   │   │   ├── image51
+│   │   │   │   │   │   ├── image51.png
+│   │   │   │   │   │   ├── image51_cs.png
+│   │   │   │   │   │   ├── image51_cs_canny.png
+│   │   │   │   │   │   ├── image51_standard_color_segmented.png
+│   │   │   │   │   │   └── image51_standard_non_color_segmented.png
+│   │   │   │   │   ├── image52
+│   │   │   │   │   │   ├── image52.png
+│   │   │   │   │   │   ├── image52_cs.png
+│   │   │   │   │   │   ├── image52_cs_canny.png
+│   │   │   │   │   │   ├── image52_standard_color_segmented.png
+│   │   │   │   │   │   └── image52_standard_non_color_segmented.png
+│   │   │   │   │   ├── image53
+│   │   │   │   │   │   ├── image53.png
+│   │   │   │   │   │   ├── image53_cs.png
+│   │   │   │   │   │   ├── image53_cs_canny.png
+│   │   │   │   │   │   ├── image53_standard_color_segmented.png
+│   │   │   │   │   │   └── image53_standard_non_color_segmented.png
+│   │   │   │   │   ├── image54
+│   │   │   │   │   │   ├── image54.png
+│   │   │   │   │   │   ├── image54_cs.png
+│   │   │   │   │   │   ├── image54_cs_canny.png
+│   │   │   │   │   │   ├── image54_standard_color_segmented.png
+│   │   │   │   │   │   └── image54_standard_non_color_segmented.png
+│   │   │   │   │   ├── image55
+│   │   │   │   │   │   ├── image55.png
+│   │   │   │   │   │   ├── image55_cs.png
+│   │   │   │   │   │   ├── image55_cs_canny.png
+│   │   │   │   │   │   ├── image55_standard_color_segmented.png
+│   │   │   │   │   │   └── image55_standard_non_color_segmented.png
+│   │   │   │   │   ├── image56
+│   │   │   │   │   │   ├── image56.png
+│   │   │   │   │   │   ├── image56_cs.png
+│   │   │   │   │   │   ├── image56_cs_canny.png
+│   │   │   │   │   │   ├── image56_standard_color_segmented.png
+│   │   │   │   │   │   └── image56_standard_non_color_segmented.png
+│   │   │   │   │   ├── image57
+│   │   │   │   │   │   ├── image57.png
+│   │   │   │   │   │   ├── image57_cs.png
+│   │   │   │   │   │   ├── image57_cs_canny.png
+│   │   │   │   │   │   ├── image57_standard_color_segmented.png
+│   │   │   │   │   │   └── image57_standard_non_color_segmented.png
+│   │   │   │   │   ├── image58
+│   │   │   │   │   │   ├── image58.png
+│   │   │   │   │   │   ├── image58_cs.png
+│   │   │   │   │   │   ├── image58_cs_canny.png
+│   │   │   │   │   │   ├── image58_standard_color_segmented.png
+│   │   │   │   │   │   └── image58_standard_non_color_segmented.png
+│   │   │   │   │   ├── image59
+│   │   │   │   │   │   ├── image59.png
+│   │   │   │   │   │   ├── image59_cs.png
+│   │   │   │   │   │   ├── image59_cs_canny.png
+│   │   │   │   │   │   ├── image59_standard_color_segmented.png
+│   │   │   │   │   │   └── image59_standard_non_color_segmented.png
+│   │   │   │   │   ├── image6
+│   │   │   │   │   │   ├── image6.png
+│   │   │   │   │   │   ├── image6_cs.png
+│   │   │   │   │   │   ├── image6_cs_canny.png
+│   │   │   │   │   │   ├── image6_standard_color_segmented.png
+│   │   │   │   │   │   └── image6_standard_non_color_segmented.png
+│   │   │   │   │   ├── image61
+│   │   │   │   │   │   ├── image61.png
+│   │   │   │   │   │   ├── image61_cs.png
+│   │   │   │   │   │   ├── image61_cs_canny.png
+│   │   │   │   │   │   ├── image61_standard_color_segmented.png
+│   │   │   │   │   │   └── image61_standard_non_color_segmented.png
+│   │   │   │   │   ├── image62
+│   │   │   │   │   │   ├── image62.png
+│   │   │   │   │   │   ├── image62_cs.png
+│   │   │   │   │   │   ├── image62_cs_canny.png
+│   │   │   │   │   │   ├── image62_standard_color_segmented.png
+│   │   │   │   │   │   └── image62_standard_non_color_segmented.png
+│   │   │   │   │   ├── image63
+│   │   │   │   │   │   ├── image63.png
+│   │   │   │   │   │   ├── image63_cs.png
+│   │   │   │   │   │   ├── image63_cs_canny.png
+│   │   │   │   │   │   ├── image63_standard_color_segmented.png
+│   │   │   │   │   │   └── image63_standard_non_color_segmented.png
+│   │   │   │   │   ├── image64
+│   │   │   │   │   │   ├── image64.png
+│   │   │   │   │   │   ├── image64_cs.png
+│   │   │   │   │   │   ├── image64_cs_canny.png
+│   │   │   │   │   │   ├── image64_standard_color_segmented.png
+│   │   │   │   │   │   └── image64_standard_non_color_segmented.png
+│   │   │   │   │   ├── image65
+│   │   │   │   │   │   ├── image65.png
+│   │   │   │   │   │   ├── image65_cs.png
+│   │   │   │   │   │   ├── image65_cs_canny.png
+│   │   │   │   │   │   ├── image65_standard_color_segmented.png
+│   │   │   │   │   │   └── image65_standard_non_color_segmented.png
+│   │   │   │   │   ├── image66
+│   │   │   │   │   │   ├── image66.png
+│   │   │   │   │   │   ├── image66_cs.png
+│   │   │   │   │   │   ├── image66_cs_canny.png
+│   │   │   │   │   │   ├── image66_standard_color_segmented.png
+│   │   │   │   │   │   └── image66_standard_non_color_segmented.png
+│   │   │   │   │   ├── image67
+│   │   │   │   │   │   ├── image67.png
+│   │   │   │   │   │   ├── image67_cs.png
+│   │   │   │   │   │   ├── image67_cs_canny.png
+│   │   │   │   │   │   ├── image67_standard_color_segmented.png
+│   │   │   │   │   │   └── image67_standard_non_color_segmented.png
+│   │   │   │   │   ├── image68
+│   │   │   │   │   │   ├── image68.png
+│   │   │   │   │   │   ├── image68_cs.png
+│   │   │   │   │   │   ├── image68_cs_canny.png
+│   │   │   │   │   │   ├── image68_standard_color_segmented.png
+│   │   │   │   │   │   └── image68_standard_non_color_segmented.png
+│   │   │   │   │   ├── image69
+│   │   │   │   │   │   ├── image69.png
+│   │   │   │   │   │   ├── image69_cs.png
+│   │   │   │   │   │   ├── image69_cs_canny.png
+│   │   │   │   │   │   ├── image69_standard_color_segmented.png
+│   │   │   │   │   │   └── image69_standard_non_color_segmented.png
+│   │   │   │   │   ├── image7
+│   │   │   │   │   │   ├── image7.png
+│   │   │   │   │   │   ├── image7_cs.png
+│   │   │   │   │   │   ├── image7_cs_canny.png
+│   │   │   │   │   │   ├── image7_standard_color_segmented.png
+│   │   │   │   │   │   └── image7_standard_non_color_segmented.png
+│   │   │   │   │   ├── image8
+│   │   │   │   │   │   ├── image8.png
+│   │   │   │   │   │   ├── image8_cs.png
+│   │   │   │   │   │   ├── image8_cs_canny.png
+│   │   │   │   │   │   ├── image8_standard_color_segmented.png
+│   │   │   │   │   │   └── image8_standard_non_color_segmented.png
+│   │   │   │   │   └── image9
+│   │   │   │   │       ├── image9.png
+│   │   │   │   │       ├── image9_cs.png
+│   │   │   │   │       ├── image9_cs_canny.png
+│   │   │   │   │       ├── image9_standard_color_segmented.png
+│   │   │   │   │       └── image9_standard_non_color_segmented.png
+│   │   │   │   └── lane_6
+│   │   │   │       ├── image1
+│   │   │   │       │   ├── image1.png
+│   │   │   │       │   ├── image1_cs.png
+│   │   │   │       │   ├── image1_cs_canny.png
+│   │   │   │       │   ├── image1_standard_color_segmented.png
+│   │   │   │       │   └── image1_standard_non_color_segmented.png
+│   │   │   │       ├── image10
+│   │   │   │       │   ├── image10.png
+│   │   │   │       │   ├── image10_cs.png
+│   │   │   │       │   ├── image10_cs_canny.png
+│   │   │   │       │   ├── image10_standard_color_segmented.png
+│   │   │   │       │   └── image10_standard_non_color_segmented.png
+│   │   │   │       ├── image2
+│   │   │   │       │   ├── image2.png
+│   │   │   │       │   ├── image2_cs.png
+│   │   │   │       │   ├── image2_cs_canny.png
+│   │   │   │       │   ├── image2_standard_color_segmented.png
+│   │   │   │       │   └── image2_standard_non_color_segmented.png
+│   │   │   │       ├── image3
+│   │   │   │       │   ├── image3.png
+│   │   │   │       │   ├── image3_cs.png
+│   │   │   │       │   ├── image3_cs_canny.png
+│   │   │   │       │   ├── image3_standard_color_segmented.png
+│   │   │   │       │   └── image3_standard_non_color_segmented.png
+│   │   │   │       ├── image4
+│   │   │   │       │   ├── image4.png
+│   │   │   │       │   ├── image4_cs.png
+│   │   │   │       │   ├── image4_cs_canny.png
+│   │   │   │       │   ├── image4_standard_color_segmented.png
+│   │   │   │       │   └── image4_standard_non_color_segmented.png
+│   │   │   │       ├── image5
+│   │   │   │       │   ├── image5.png
+│   │   │   │       │   ├── image5_cs.png
+│   │   │   │       │   ├── image5_cs_canny.png
+│   │   │   │       │   ├── image5_standard_color_segmented.png
+│   │   │   │       │   └── image5_standard_non_color_segmented.png
+│   │   │   │       ├── image6
+│   │   │   │       │   ├── image6.png
+│   │   │   │       │   ├── image6_cs.png
+│   │   │   │       │   ├── image6_cs_canny.png
+│   │   │   │       │   ├── image6_standard_color_segmented.png
+│   │   │   │       │   └── image6_standard_non_color_segmented.png
+│   │   │   │       ├── image7
+│   │   │   │       │   ├── image7.png
+│   │   │   │       │   ├── image7_cs.png
+│   │   │   │       │   ├── image7_cs_canny.png
+│   │   │   │       │   ├── image7_standard_color_segmented.png
+│   │   │   │       │   └── image7_standard_non_color_segmented.png
+│   │   │   │       ├── image8
+│   │   │   │       │   ├── image8.png
+│   │   │   │       │   ├── image8_cs.png
+│   │   │   │       │   ├── image8_cs_canny.png
+│   │   │   │       │   ├── image8_standard_color_segmented.png
+│   │   │   │       │   └── image8_standard_non_color_segmented.png
+│   │   │   │       └── image9
+│   │   │   │           ├── image9.png
+│   │   │   │           ├── image9_cs.png
+│   │   │   │           ├── image9_cs_canny.png
+│   │   │   │           ├── image9_standard_color_segmented.png
+│   │   │   │           └── image9_standard_non_color_segmented.png
+│   │   │   ├── test_results_hough_lines_1
+│   │   │   │   ├── lane_1
+│   │   │   │   │   ├── image1
+│   │   │   │   │   │   ├── image1.png
+│   │   │   │   │   │   ├── image1_cs.png
+│   │   │   │   │   │   ├── image1_cs_canny.png
+│   │   │   │   │   │   ├── image1_standard_color_segmented.png
+│   │   │   │   │   │   └── image1_standard_non_color_segmented.png
+│   │   │   │   │   ├── image10
+│   │   │   │   │   │   ├── image10.png
+│   │   │   │   │   │   ├── image10_cs.png
+│   │   │   │   │   │   ├── image10_cs_canny.png
+│   │   │   │   │   │   ├── image10_standard_color_segmented.png
+│   │   │   │   │   │   └── image10_standard_non_color_segmented.png
+│   │   │   │   │   ├── image11
+│   │   │   │   │   │   ├── image11.png
+│   │   │   │   │   │   ├── image11_cs.png
+│   │   │   │   │   │   ├── image11_cs_canny.png
+│   │   │   │   │   │   ├── image11_standard_color_segmented.png
+│   │   │   │   │   │   └── image11_standard_non_color_segmented.png
+│   │   │   │   │   ├── image12
+│   │   │   │   │   │   ├── image12.png
+│   │   │   │   │   │   ├── image12_cs.png
+│   │   │   │   │   │   ├── image12_cs_canny.png
+│   │   │   │   │   │   ├── image12_standard_color_segmented.png
+│   │   │   │   │   │   └── image12_standard_non_color_segmented.png
+│   │   │   │   │   ├── image13
+│   │   │   │   │   │   ├── image13.png
+│   │   │   │   │   │   ├── image13_cs.png
+│   │   │   │   │   │   ├── image13_cs_canny.png
+│   │   │   │   │   │   ├── image13_standard_color_segmented.png
+│   │   │   │   │   │   └── image13_standard_non_color_segmented.png
+│   │   │   │   │   ├── image14
+│   │   │   │   │   │   ├── image14.png
+│   │   │   │   │   │   ├── image14_cs.png
+│   │   │   │   │   │   ├── image14_cs_canny.png
+│   │   │   │   │   │   ├── image14_standard_color_segmented.png
+│   │   │   │   │   │   └── image14_standard_non_color_segmented.png
+│   │   │   │   │   ├── image15
+│   │   │   │   │   │   ├── image15.png
+│   │   │   │   │   │   ├── image15_cs.png
+│   │   │   │   │   │   ├── image15_cs_canny.png
+│   │   │   │   │   │   ├── image15_standard_color_segmented.png
+│   │   │   │   │   │   └── image15_standard_non_color_segmented.png
+│   │   │   │   │   ├── image2
+│   │   │   │   │   │   ├── image2.png
+│   │   │   │   │   │   ├── image2_cs.png
+│   │   │   │   │   │   ├── image2_cs_canny.png
+│   │   │   │   │   │   ├── image2_standard_color_segmented.png
+│   │   │   │   │   │   └── image2_standard_non_color_segmented.png
+│   │   │   │   │   ├── image3
+│   │   │   │   │   │   ├── image3.png
+│   │   │   │   │   │   ├── image3_cs.png
+│   │   │   │   │   │   ├── image3_cs_canny.png
+│   │   │   │   │   │   ├── image3_standard_color_segmented.png
+│   │   │   │   │   │   └── image3_standard_non_color_segmented.png
+│   │   │   │   │   ├── image4
+│   │   │   │   │   │   ├── image4.png
+│   │   │   │   │   │   ├── image4_cs.png
+│   │   │   │   │   │   ├── image4_cs_canny.png
+│   │   │   │   │   │   ├── image4_standard_color_segmented.png
+│   │   │   │   │   │   └── image4_standard_non_color_segmented.png
+│   │   │   │   │   ├── image5
+│   │   │   │   │   │   ├── image5.png
+│   │   │   │   │   │   ├── image5_cs.png
+│   │   │   │   │   │   ├── image5_cs_canny.png
+│   │   │   │   │   │   ├── image5_standard_color_segmented.png
+│   │   │   │   │   │   └── image5_standard_non_color_segmented.png
+│   │   │   │   │   ├── image6
+│   │   │   │   │   │   ├── image6.png
+│   │   │   │   │   │   ├── image6_cs.png
+│   │   │   │   │   │   ├── image6_cs_canny.png
+│   │   │   │   │   │   ├── image6_standard_color_segmented.png
+│   │   │   │   │   │   └── image6_standard_non_color_segmented.png
+│   │   │   │   │   ├── image7
+│   │   │   │   │   │   ├── image7.png
+│   │   │   │   │   │   ├── image7_cs.png
+│   │   │   │   │   │   ├── image7_cs_canny.png
+│   │   │   │   │   │   ├── image7_standard_color_segmented.png
+│   │   │   │   │   │   └── image7_standard_non_color_segmented.png
+│   │   │   │   │   ├── image8
+│   │   │   │   │   │   ├── image8.png
+│   │   │   │   │   │   ├── image8_cs.png
+│   │   │   │   │   │   ├── image8_cs_canny.png
+│   │   │   │   │   │   ├── image8_standard_color_segmented.png
+│   │   │   │   │   │   └── image8_standard_non_color_segmented.png
+│   │   │   │   │   └── image9
+│   │   │   │   │       ├── image9.png
+│   │   │   │   │       ├── image9_cs.png
+│   │   │   │   │       ├── image9_cs_canny.png
+│   │   │   │   │       ├── image9_standard_color_segmented.png
+│   │   │   │   │       └── image9_standard_non_color_segmented.png
+│   │   │   │   ├── lane_3
+│   │   │   │   │   ├── image1
+│   │   │   │   │   │   ├── image1.png
+│   │   │   │   │   │   ├── image1_cs.png
+│   │   │   │   │   │   ├── image1_cs_canny.png
+│   │   │   │   │   │   ├── image1_standard_color_segmented.png
+│   │   │   │   │   │   └── image1_standard_non_color_segmented.png
+│   │   │   │   │   ├── image10
+│   │   │   │   │   │   ├── image10.png
+│   │   │   │   │   │   ├── image10_cs.png
+│   │   │   │   │   │   ├── image10_cs_canny.png
+│   │   │   │   │   │   ├── image10_standard_color_segmented.png
+│   │   │   │   │   │   └── image10_standard_non_color_segmented.png
+│   │   │   │   │   ├── image11
+│   │   │   │   │   │   ├── image11.png
+│   │   │   │   │   │   ├── image11_cs.png
+│   │   │   │   │   │   ├── image11_cs_canny.png
+│   │   │   │   │   │   ├── image11_standard_color_segmented.png
+│   │   │   │   │   │   └── image11_standard_non_color_segmented.png
+│   │   │   │   │   ├── image12
+│   │   │   │   │   │   ├── image12.png
+│   │   │   │   │   │   ├── image12_cs.png
+│   │   │   │   │   │   ├── image12_cs_canny.png
+│   │   │   │   │   │   ├── image12_standard_color_segmented.png
+│   │   │   │   │   │   └── image12_standard_non_color_segmented.png
+│   │   │   │   │   ├── image13
+│   │   │   │   │   │   ├── image13.png
+│   │   │   │   │   │   ├── image13_cs.png
+│   │   │   │   │   │   ├── image13_cs_canny.png
+│   │   │   │   │   │   ├── image13_standard_color_segmented.png
+│   │   │   │   │   │   └── image13_standard_non_color_segmented.png
+│   │   │   │   │   ├── image14
+│   │   │   │   │   │   ├── image14.png
+│   │   │   │   │   │   ├── image14_cs.png
+│   │   │   │   │   │   ├── image14_cs_canny.png
+│   │   │   │   │   │   ├── image14_standard_color_segmented.png
+│   │   │   │   │   │   └── image14_standard_non_color_segmented.png
+│   │   │   │   │   ├── image15
+│   │   │   │   │   │   ├── image15.png
+│   │   │   │   │   │   ├── image15_cs.png
+│   │   │   │   │   │   ├── image15_cs_canny.png
+│   │   │   │   │   │   ├── image15_standard_color_segmented.png
+│   │   │   │   │   │   └── image15_standard_non_color_segmented.png
+│   │   │   │   │   ├── image16
+│   │   │   │   │   │   ├── image16.png
+│   │   │   │   │   │   ├── image16_cs.png
+│   │   │   │   │   │   ├── image16_cs_canny.png
+│   │   │   │   │   │   ├── image16_standard_color_segmented.png
+│   │   │   │   │   │   └── image16_standard_non_color_segmented.png
+│   │   │   │   │   ├── image17
+│   │   │   │   │   │   ├── image17.png
+│   │   │   │   │   │   ├── image17_cs.png
+│   │   │   │   │   │   ├── image17_cs_canny.png
+│   │   │   │   │   │   ├── image17_standard_color_segmented.png
+│   │   │   │   │   │   └── image17_standard_non_color_segmented.png
+│   │   │   │   │   ├── image18
+│   │   │   │   │   │   ├── image18.png
+│   │   │   │   │   │   ├── image18_cs.png
+│   │   │   │   │   │   ├── image18_cs_canny.png
+│   │   │   │   │   │   ├── image18_standard_color_segmented.png
+│   │   │   │   │   │   └── image18_standard_non_color_segmented.png
+│   │   │   │   │   ├── image19
+│   │   │   │   │   │   ├── image19.png
+│   │   │   │   │   │   ├── image19_cs.png
+│   │   │   │   │   │   ├── image19_cs_canny.png
+│   │   │   │   │   │   ├── image19_standard_color_segmented.png
+│   │   │   │   │   │   └── image19_standard_non_color_segmented.png
+│   │   │   │   │   ├── image2
+│   │   │   │   │   │   ├── image2.png
+│   │   │   │   │   │   ├── image2_cs.png
+│   │   │   │   │   │   ├── image2_cs_canny.png
+│   │   │   │   │   │   ├── image2_standard_color_segmented.png
+│   │   │   │   │   │   └── image2_standard_non_color_segmented.png
+│   │   │   │   │   ├── image20
+│   │   │   │   │   │   ├── image20.png
+│   │   │   │   │   │   ├── image20_cs.png
+│   │   │   │   │   │   ├── image20_cs_canny.png
+│   │   │   │   │   │   ├── image20_standard_color_segmented.png
+│   │   │   │   │   │   └── image20_standard_non_color_segmented.png
+│   │   │   │   │   ├── image21
+│   │   │   │   │   │   ├── image21.png
+│   │   │   │   │   │   ├── image21_cs.png
+│   │   │   │   │   │   ├── image21_cs_canny.png
+│   │   │   │   │   │   ├── image21_standard_color_segmented.png
+│   │   │   │   │   │   └── image21_standard_non_color_segmented.png
+│   │   │   │   │   ├── image22
+│   │   │   │   │   │   ├── image22.png
+│   │   │   │   │   │   ├── image22_cs.png
+│   │   │   │   │   │   ├── image22_cs_canny.png
+│   │   │   │   │   │   ├── image22_standard_color_segmented.png
+│   │   │   │   │   │   └── image22_standard_non_color_segmented.png
+│   │   │   │   │   ├── image23
+│   │   │   │   │   │   ├── image23.png
+│   │   │   │   │   │   ├── image23_cs.png
+│   │   │   │   │   │   ├── image23_cs_canny.png
+│   │   │   │   │   │   ├── image23_standard_color_segmented.png
+│   │   │   │   │   │   └── image23_standard_non_color_segmented.png
+│   │   │   │   │   ├── image24
+│   │   │   │   │   │   ├── image24.png
+│   │   │   │   │   │   ├── image24_cs.png
+│   │   │   │   │   │   ├── image24_cs_canny.png
+│   │   │   │   │   │   ├── image24_standard_color_segmented.png
+│   │   │   │   │   │   └── image24_standard_non_color_segmented.png
+│   │   │   │   │   ├── image25
+│   │   │   │   │   │   ├── image25.png
+│   │   │   │   │   │   ├── image25_cs.png
+│   │   │   │   │   │   ├── image25_cs_canny.png
+│   │   │   │   │   │   ├── image25_standard_color_segmented.png
+│   │   │   │   │   │   └── image25_standard_non_color_segmented.png
+│   │   │   │   │   ├── image26
+│   │   │   │   │   │   ├── image26.png
+│   │   │   │   │   │   ├── image26_cs.png
+│   │   │   │   │   │   ├── image26_cs_canny.png
+│   │   │   │   │   │   ├── image26_standard_color_segmented.png
+│   │   │   │   │   │   └── image26_standard_non_color_segmented.png
+│   │   │   │   │   ├── image27
+│   │   │   │   │   │   ├── image27.png
+│   │   │   │   │   │   ├── image27_cs.png
+│   │   │   │   │   │   ├── image27_cs_canny.png
+│   │   │   │   │   │   ├── image27_standard_color_segmented.png
+│   │   │   │   │   │   └── image27_standard_non_color_segmented.png
+│   │   │   │   │   ├── image28
+│   │   │   │   │   │   ├── image28.png
+│   │   │   │   │   │   ├── image28_cs.png
+│   │   │   │   │   │   ├── image28_cs_canny.png
+│   │   │   │   │   │   ├── image28_standard_color_segmented.png
+│   │   │   │   │   │   └── image28_standard_non_color_segmented.png
+│   │   │   │   │   ├── image29
+│   │   │   │   │   │   ├── image29.png
+│   │   │   │   │   │   ├── image29_cs.png
+│   │   │   │   │   │   ├── image29_cs_canny.png
+│   │   │   │   │   │   ├── image29_standard_color_segmented.png
+│   │   │   │   │   │   └── image29_standard_non_color_segmented.png
+│   │   │   │   │   ├── image3
+│   │   │   │   │   │   ├── image3.png
+│   │   │   │   │   │   ├── image3_cs.png
+│   │   │   │   │   │   ├── image3_cs_canny.png
+│   │   │   │   │   │   ├── image3_standard_color_segmented.png
+│   │   │   │   │   │   └── image3_standard_non_color_segmented.png
+│   │   │   │   │   ├── image30
+│   │   │   │   │   │   ├── image30.png
+│   │   │   │   │   │   ├── image30_cs.png
+│   │   │   │   │   │   ├── image30_cs_canny.png
+│   │   │   │   │   │   ├── image30_standard_color_segmented.png
+│   │   │   │   │   │   └── image30_standard_non_color_segmented.png
+│   │   │   │   │   ├── image31
+│   │   │   │   │   │   ├── image31.png
+│   │   │   │   │   │   ├── image31_cs.png
+│   │   │   │   │   │   ├── image31_cs_canny.png
+│   │   │   │   │   │   ├── image31_standard_color_segmented.png
+│   │   │   │   │   │   └── image31_standard_non_color_segmented.png
+│   │   │   │   │   ├── image32
+│   │   │   │   │   │   ├── image32.png
+│   │   │   │   │   │   ├── image32_cs.png
+│   │   │   │   │   │   ├── image32_cs_canny.png
+│   │   │   │   │   │   ├── image32_standard_color_segmented.png
+│   │   │   │   │   │   └── image32_standard_non_color_segmented.png
+│   │   │   │   │   ├── image33
+│   │   │   │   │   │   ├── image33.png
+│   │   │   │   │   │   ├── image33_cs.png
+│   │   │   │   │   │   ├── image33_cs_canny.png
+│   │   │   │   │   │   ├── image33_standard_color_segmented.png
+│   │   │   │   │   │   └── image33_standard_non_color_segmented.png
+│   │   │   │   │   ├── image34
+│   │   │   │   │   │   ├── image34.png
+│   │   │   │   │   │   ├── image34_cs.png
+│   │   │   │   │   │   ├── image34_cs_canny.png
+│   │   │   │   │   │   ├── image34_standard_color_segmented.png
+│   │   │   │   │   │   └── image34_standard_non_color_segmented.png
+│   │   │   │   │   ├── image35
+│   │   │   │   │   │   ├── image35.png
+│   │   │   │   │   │   ├── image35_cs.png
+│   │   │   │   │   │   ├── image35_cs_canny.png
+│   │   │   │   │   │   ├── image35_standard_color_segmented.png
+│   │   │   │   │   │   └── image35_standard_non_color_segmented.png
+│   │   │   │   │   ├── image36
+│   │   │   │   │   │   ├── image36.png
+│   │   │   │   │   │   ├── image36_cs.png
+│   │   │   │   │   │   ├── image36_cs_canny.png
+│   │   │   │   │   │   ├── image36_standard_color_segmented.png
+│   │   │   │   │   │   └── image36_standard_non_color_segmented.png
+│   │   │   │   │   ├── image37
+│   │   │   │   │   │   ├── image37.png
+│   │   │   │   │   │   ├── image37_cs.png
+│   │   │   │   │   │   ├── image37_cs_canny.png
+│   │   │   │   │   │   ├── image37_standard_color_segmented.png
+│   │   │   │   │   │   └── image37_standard_non_color_segmented.png
+│   │   │   │   │   ├── image38
+│   │   │   │   │   │   ├── image38.png
+│   │   │   │   │   │   ├── image38_cs.png
+│   │   │   │   │   │   ├── image38_cs_canny.png
+│   │   │   │   │   │   ├── image38_standard_color_segmented.png
+│   │   │   │   │   │   └── image38_standard_non_color_segmented.png
+│   │   │   │   │   ├── image39
+│   │   │   │   │   │   ├── image39.png
+│   │   │   │   │   │   ├── image39_cs.png
+│   │   │   │   │   │   ├── image39_cs_canny.png
+│   │   │   │   │   │   ├── image39_standard_color_segmented.png
+│   │   │   │   │   │   └── image39_standard_non_color_segmented.png
+│   │   │   │   │   ├── image4
+│   │   │   │   │   │   ├── image4.png
+│   │   │   │   │   │   ├── image4_cs.png
+│   │   │   │   │   │   ├── image4_cs_canny.png
+│   │   │   │   │   │   ├── image4_standard_color_segmented.png
+│   │   │   │   │   │   └── image4_standard_non_color_segmented.png
+│   │   │   │   │   ├── image40
+│   │   │   │   │   │   ├── image40.png
+│   │   │   │   │   │   ├── image40_cs.png
+│   │   │   │   │   │   ├── image40_cs_canny.png
+│   │   │   │   │   │   ├── image40_standard_color_segmented.png
+│   │   │   │   │   │   └── image40_standard_non_color_segmented.png
+│   │   │   │   │   ├── image41
+│   │   │   │   │   │   ├── image41.png
+│   │   │   │   │   │   ├── image41_cs.png
+│   │   │   │   │   │   ├── image41_cs_canny.png
+│   │   │   │   │   │   ├── image41_standard_color_segmented.png
+│   │   │   │   │   │   └── image41_standard_non_color_segmented.png
+│   │   │   │   │   ├── image42
+│   │   │   │   │   │   ├── image42.png
+│   │   │   │   │   │   ├── image42_cs.png
+│   │   │   │   │   │   ├── image42_cs_canny.png
+│   │   │   │   │   │   ├── image42_standard_color_segmented.png
+│   │   │   │   │   │   └── image42_standard_non_color_segmented.png
+│   │   │   │   │   ├── image43
+│   │   │   │   │   │   ├── image43.png
+│   │   │   │   │   │   ├── image43_cs.png
+│   │   │   │   │   │   ├── image43_cs_canny.png
+│   │   │   │   │   │   ├── image43_standard_color_segmented.png
+│   │   │   │   │   │   └── image43_standard_non_color_segmented.png
+│   │   │   │   │   ├── image44
+│   │   │   │   │   │   ├── image44.png
+│   │   │   │   │   │   ├── image44_cs.png
+│   │   │   │   │   │   ├── image44_cs_canny.png
+│   │   │   │   │   │   ├── image44_standard_color_segmented.png
+│   │   │   │   │   │   └── image44_standard_non_color_segmented.png
+│   │   │   │   │   ├── image45
+│   │   │   │   │   │   ├── image45.png
+│   │   │   │   │   │   ├── image45_cs.png
+│   │   │   │   │   │   ├── image45_cs_canny.png
+│   │   │   │   │   │   ├── image45_standard_color_segmented.png
+│   │   │   │   │   │   └── image45_standard_non_color_segmented.png
+│   │   │   │   │   ├── image46
+│   │   │   │   │   │   ├── image46.png
+│   │   │   │   │   │   ├── image46_cs.png
+│   │   │   │   │   │   ├── image46_cs_canny.png
+│   │   │   │   │   │   ├── image46_standard_color_segmented.png
+│   │   │   │   │   │   └── image46_standard_non_color_segmented.png
+│   │   │   │   │   ├── image47
+│   │   │   │   │   │   ├── image47.png
+│   │   │   │   │   │   ├── image47_cs.png
+│   │   │   │   │   │   ├── image47_cs_canny.png
+│   │   │   │   │   │   ├── image47_standard_color_segmented.png
+│   │   │   │   │   │   └── image47_standard_non_color_segmented.png
+│   │   │   │   │   ├── image48
+│   │   │   │   │   │   ├── image48.png
+│   │   │   │   │   │   ├── image48_cs.png
+│   │   │   │   │   │   ├── image48_cs_canny.png
+│   │   │   │   │   │   ├── image48_standard_color_segmented.png
+│   │   │   │   │   │   └── image48_standard_non_color_segmented.png
+│   │   │   │   │   ├── image49
+│   │   │   │   │   │   ├── image49.png
+│   │   │   │   │   │   ├── image49_cs.png
+│   │   │   │   │   │   ├── image49_cs_canny.png
+│   │   │   │   │   │   ├── image49_standard_color_segmented.png
+│   │   │   │   │   │   └── image49_standard_non_color_segmented.png
+│   │   │   │   │   ├── image5
+│   │   │   │   │   │   ├── image5.png
+│   │   │   │   │   │   ├── image5_cs.png
+│   │   │   │   │   │   ├── image5_cs_canny.png
+│   │   │   │   │   │   ├── image5_standard_color_segmented.png
+│   │   │   │   │   │   └── image5_standard_non_color_segmented.png
+│   │   │   │   │   ├── image50
+│   │   │   │   │   │   ├── image50.png
+│   │   │   │   │   │   ├── image50_cs.png
+│   │   │   │   │   │   ├── image50_cs_canny.png
+│   │   │   │   │   │   ├── image50_standard_color_segmented.png
+│   │   │   │   │   │   └── image50_standard_non_color_segmented.png
+│   │   │   │   │   ├── image51
+│   │   │   │   │   │   ├── image51.png
+│   │   │   │   │   │   ├── image51_cs.png
+│   │   │   │   │   │   ├── image51_cs_canny.png
+│   │   │   │   │   │   ├── image51_standard_color_segmented.png
+│   │   │   │   │   │   └── image51_standard_non_color_segmented.png
+│   │   │   │   │   ├── image52
+│   │   │   │   │   │   ├── image52.png
+│   │   │   │   │   │   ├── image52_cs.png
+│   │   │   │   │   │   ├── image52_cs_canny.png
+│   │   │   │   │   │   ├── image52_standard_color_segmented.png
+│   │   │   │   │   │   └── image52_standard_non_color_segmented.png
+│   │   │   │   │   ├── image53
+│   │   │   │   │   │   ├── image53.png
+│   │   │   │   │   │   ├── image53_cs.png
+│   │   │   │   │   │   ├── image53_cs_canny.png
+│   │   │   │   │   │   ├── image53_standard_color_segmented.png
+│   │   │   │   │   │   └── image53_standard_non_color_segmented.png
+│   │   │   │   │   ├── image54
+│   │   │   │   │   │   ├── image54.png
+│   │   │   │   │   │   ├── image54_cs.png
+│   │   │   │   │   │   ├── image54_cs_canny.png
+│   │   │   │   │   │   ├── image54_standard_color_segmented.png
+│   │   │   │   │   │   └── image54_standard_non_color_segmented.png
+│   │   │   │   │   ├── image55
+│   │   │   │   │   │   ├── image55.png
+│   │   │   │   │   │   ├── image55_cs.png
+│   │   │   │   │   │   ├── image55_cs_canny.png
+│   │   │   │   │   │   ├── image55_standard_color_segmented.png
+│   │   │   │   │   │   └── image55_standard_non_color_segmented.png
+│   │   │   │   │   ├── image56
+│   │   │   │   │   │   ├── image56.png
+│   │   │   │   │   │   ├── image56_cs.png
+│   │   │   │   │   │   ├── image56_cs_canny.png
+│   │   │   │   │   │   ├── image56_standard_color_segmented.png
+│   │   │   │   │   │   └── image56_standard_non_color_segmented.png
+│   │   │   │   │   ├── image57
+│   │   │   │   │   │   ├── image57.png
+│   │   │   │   │   │   ├── image57_cs.png
+│   │   │   │   │   │   ├── image57_cs_canny.png
+│   │   │   │   │   │   ├── image57_standard_color_segmented.png
+│   │   │   │   │   │   └── image57_standard_non_color_segmented.png
+│   │   │   │   │   ├── image58
+│   │   │   │   │   │   ├── image58.png
+│   │   │   │   │   │   ├── image58_cs.png
+│   │   │   │   │   │   ├── image58_cs_canny.png
+│   │   │   │   │   │   ├── image58_standard_color_segmented.png
+│   │   │   │   │   │   └── image58_standard_non_color_segmented.png
+│   │   │   │   │   ├── image59
+│   │   │   │   │   │   ├── image59.png
+│   │   │   │   │   │   ├── image59_cs.png
+│   │   │   │   │   │   ├── image59_cs_canny.png
+│   │   │   │   │   │   ├── image59_standard_color_segmented.png
+│   │   │   │   │   │   └── image59_standard_non_color_segmented.png
+│   │   │   │   │   ├── image6
+│   │   │   │   │   │   ├── image6.png
+│   │   │   │   │   │   ├── image6_cs.png
+│   │   │   │   │   │   ├── image6_cs_canny.png
+│   │   │   │   │   │   ├── image6_standard_color_segmented.png
+│   │   │   │   │   │   └── image6_standard_non_color_segmented.png
+│   │   │   │   │   ├── image61
+│   │   │   │   │   │   ├── image61.png
+│   │   │   │   │   │   ├── image61_cs.png
+│   │   │   │   │   │   ├── image61_cs_canny.png
+│   │   │   │   │   │   ├── image61_standard_color_segmented.png
+│   │   │   │   │   │   └── image61_standard_non_color_segmented.png
+│   │   │   │   │   ├── image62
+│   │   │   │   │   │   ├── image62.png
+│   │   │   │   │   │   ├── image62_cs.png
+│   │   │   │   │   │   ├── image62_cs_canny.png
+│   │   │   │   │   │   ├── image62_standard_color_segmented.png
+│   │   │   │   │   │   └── image62_standard_non_color_segmented.png
+│   │   │   │   │   ├── image63
+│   │   │   │   │   │   ├── image63.png
+│   │   │   │   │   │   ├── image63_cs.png
+│   │   │   │   │   │   ├── image63_cs_canny.png
+│   │   │   │   │   │   ├── image63_standard_color_segmented.png
+│   │   │   │   │   │   └── image63_standard_non_color_segmented.png
+│   │   │   │   │   ├── image64
+│   │   │   │   │   │   ├── image64.png
+│   │   │   │   │   │   ├── image64_cs.png
+│   │   │   │   │   │   ├── image64_cs_canny.png
+│   │   │   │   │   │   ├── image64_standard_color_segmented.png
+│   │   │   │   │   │   └── image64_standard_non_color_segmented.png
+│   │   │   │   │   ├── image65
+│   │   │   │   │   │   ├── image65.png
+│   │   │   │   │   │   ├── image65_cs.png
+│   │   │   │   │   │   ├── image65_cs_canny.png
+│   │   │   │   │   │   ├── image65_standard_color_segmented.png
+│   │   │   │   │   │   └── image65_standard_non_color_segmented.png
+│   │   │   │   │   ├── image66
+│   │   │   │   │   │   ├── image66.png
+│   │   │   │   │   │   ├── image66_cs.png
+│   │   │   │   │   │   ├── image66_cs_canny.png
+│   │   │   │   │   │   ├── image66_standard_color_segmented.png
+│   │   │   │   │   │   └── image66_standard_non_color_segmented.png
+│   │   │   │   │   ├── image67
+│   │   │   │   │   │   ├── image67.png
+│   │   │   │   │   │   ├── image67_cs.png
+│   │   │   │   │   │   ├── image67_cs_canny.png
+│   │   │   │   │   │   ├── image67_standard_color_segmented.png
+│   │   │   │   │   │   └── image67_standard_non_color_segmented.png
+│   │   │   │   │   ├── image68
+│   │   │   │   │   │   ├── image68.png
+│   │   │   │   │   │   ├── image68_cs.png
+│   │   │   │   │   │   ├── image68_cs_canny.png
+│   │   │   │   │   │   ├── image68_standard_color_segmented.png
+│   │   │   │   │   │   └── image68_standard_non_color_segmented.png
+│   │   │   │   │   ├── image69
+│   │   │   │   │   │   ├── image69.png
+│   │   │   │   │   │   ├── image69_cs.png
+│   │   │   │   │   │   ├── image69_cs_canny.png
+│   │   │   │   │   │   ├── image69_standard_color_segmented.png
+│   │   │   │   │   │   └── image69_standard_non_color_segmented.png
+│   │   │   │   │   ├── image7
+│   │   │   │   │   │   ├── image7.png
+│   │   │   │   │   │   ├── image7_cs.png
+│   │   │   │   │   │   ├── image7_cs_canny.png
+│   │   │   │   │   │   ├── image7_standard_color_segmented.png
+│   │   │   │   │   │   └── image7_standard_non_color_segmented.png
+│   │   │   │   │   ├── image8
+│   │   │   │   │   │   ├── image8.png
+│   │   │   │   │   │   ├── image8_cs.png
+│   │   │   │   │   │   ├── image8_cs_canny.png
+│   │   │   │   │   │   ├── image8_standard_color_segmented.png
+│   │   │   │   │   │   └── image8_standard_non_color_segmented.png
+│   │   │   │   │   └── image9
+│   │   │   │   │       ├── image9.png
+│   │   │   │   │       ├── image9_cs.png
+│   │   │   │   │       ├── image9_cs_canny.png
+│   │   │   │   │       ├── image9_standard_color_segmented.png
+│   │   │   │   │       └── image9_standard_non_color_segmented.png
+│   │   │   │   └── lane_6
+│   │   │   │       ├── image1
+│   │   │   │       │   ├── image1.png
+│   │   │   │       │   ├── image1_cs.png
+│   │   │   │       │   ├── image1_cs_canny.png
+│   │   │   │       │   ├── image1_standard_color_segmented.png
+│   │   │   │       │   └── image1_standard_non_color_segmented.png
+│   │   │   │       ├── image10
+│   │   │   │       │   ├── image10.png
+│   │   │   │       │   ├── image10_cs.png
+│   │   │   │       │   ├── image10_cs_canny.png
+│   │   │   │       │   ├── image10_standard_color_segmented.png
+│   │   │   │       │   └── image10_standard_non_color_segmented.png
+│   │   │   │       ├── image2
+│   │   │   │       │   ├── image2.png
+│   │   │   │       │   ├── image2_cs.png
+│   │   │   │       │   ├── image2_cs_canny.png
+│   │   │   │       │   ├── image2_standard_color_segmented.png
+│   │   │   │       │   └── image2_standard_non_color_segmented.png
+│   │   │   │       ├── image3
+│   │   │   │       │   ├── image3.png
+│   │   │   │       │   ├── image3_cs.png
+│   │   │   │       │   ├── image3_cs_canny.png
+│   │   │   │       │   ├── image3_standard_color_segmented.png
+│   │   │   │       │   └── image3_standard_non_color_segmented.png
+│   │   │   │       ├── image4
+│   │   │   │       │   ├── image4.png
+│   │   │   │       │   ├── image4_cs.png
+│   │   │   │       │   ├── image4_cs_canny.png
+│   │   │   │       │   ├── image4_standard_color_segmented.png
+│   │   │   │       │   └── image4_standard_non_color_segmented.png
+│   │   │   │       ├── image5
+│   │   │   │       │   ├── image5.png
+│   │   │   │       │   ├── image5_cs.png
+│   │   │   │       │   ├── image5_cs_canny.png
+│   │   │   │       │   ├── image5_standard_color_segmented.png
+│   │   │   │       │   └── image5_standard_non_color_segmented.png
+│   │   │   │       ├── image6
+│   │   │   │       │   ├── image6.png
+│   │   │   │       │   ├── image6_cs.png
+│   │   │   │       │   ├── image6_cs_canny.png
+│   │   │   │       │   ├── image6_standard_color_segmented.png
+│   │   │   │       │   └── image6_standard_non_color_segmented.png
+│   │   │   │       ├── image7
+│   │   │   │       │   ├── image7.png
+│   │   │   │       │   ├── image7_cs.png
+│   │   │   │       │   ├── image7_cs_canny.png
+│   │   │   │       │   ├── image7_standard_color_segmented.png
+│   │   │   │       │   └── image7_standard_non_color_segmented.png
+│   │   │   │       ├── image8
+│   │   │   │       │   ├── image8.png
+│   │   │   │       │   ├── image8_cs.png
+│   │   │   │       │   ├── image8_cs_canny.png
+│   │   │   │       │   ├── image8_standard_color_segmented.png
+│   │   │   │       │   └── image8_standard_non_color_segmented.png
+│   │   │   │       └── image9
+│   │   │   │           ├── image9.png
+│   │   │   │           ├── image9_cs.png
+│   │   │   │           ├── image9_cs_canny.png
+│   │   │   │           ├── image9_standard_color_segmented.png
+│   │   │   │           └── image9_standard_non_color_segmented.png
+│   │   │   └── untracked_hough_test.py
+│   │   ├── lane_detector_node.py
+│   │   ├── pure_pursuit.py
+│   │   └── visualization_tools.py
+│   ├── rviz
+│   │   ├── module3.rviz
+│   │   └── module4.rviz
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── test
+│       ├── test_copyright.py
+│       ├── test_flake8.py
+│       └── test_pep257.py
+├── shrinkray_heist
+│   ├── README.md
+│   ├── basement_point_publisher.py
+│   └── model
+│       ├── detection_node.py
+│       ├── detector.py
+│       └── speed_test.py
+├── tree.xml
+└── vs_msgs
+    ├── CMakeLists.txt
+    ├── msg
+    │   ├── LanePixels.msg
+    │   ├── LinePixels.msg
+    │   ├── LookaheadLocation.msg
+    │   ├── Point.msg
+    │   └── Trajectory.msg
+    └── package.xml
+
+213 directories, 1080 files

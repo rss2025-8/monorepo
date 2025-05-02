@@ -1,0 +1,45 @@
+# /**:
+#   ros__parameters:
+#     # Hough line detection parameters
+#     rho_resolution: 5
+#     theta_resolution: 0.05236  # np.pi / 60
+#     threshold: 50
+#     minLineLength: 0
+#     maxLineGap: 15
+
+#     # Color segmentation parameters
+#     max_saturation: 25.0
+#     min_value: 180.0
+
+#     # Angle range parameters (in radians)
+#     min_angle_left: 1.5708    # np.pi / 2
+#     max_angle_left: 1.5708    # np.pi / 2
+#     min_angle_right: 0.0
+#     max_angle_right: 1.5708   # np.pi / 2
+
+
+/**:
+  ros__parameters:
+    # Hough line detection parameters
+    rho_resolution: 5
+    theta_resolution: 0.1047  # np.pi / 30
+    threshold: 50
+    minLineLength: 20
+    maxLineGap: 100
+
+    # Color segmentation parameters
+    max_saturation: 40.0
+    min_value: 140.0
+
+    # Angle range parameters (in radians)
+    min_angle_left: 0.2618    # np.pi/12
+    max_angle_left: 1.5708    # np.pi/2
+    min_angle_right: 1.5708   # np.pi/2
+    max_angle_right: 2.8798   # 11*np.pi/12
+
+    # Row masking parameters
+    row_threshold_factor: 0.5
+
+    # Clustering parameters
+    x_intercept_cluster_eps: 30
+    x_intercept_min_samples: 1

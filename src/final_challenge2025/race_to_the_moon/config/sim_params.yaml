@@ -4,24 +4,24 @@
 
 lane_detector:
   ros__parameters:
-    hough_method: 'probabilistic'
-    left_lane_min_angle: -45
-    left_lane_max_angle: -15
-    right_lane_min_angle: 15
-    right_lane_max_angle: 45
-    image_topic: '/zed/zed_node/rgb/image_rect_color'
 
-lane_homography:
-  ros__parameters:
+    # Color for visualization
     left_lane_color: [0.0, 1.0, 0.0]  # Green
     right_lane_color: [1.0, 0.0, 0.0] # Red
-    lane_midline_color: [0.0, 0.0, 1.0] # Blue
-    lookahead_distance: 0.5
+    midline_color: [0.0, 0.0, 1.0] # Blue
+
+    # Topics
+    image_topic: '/zed/zed_node/rgb/image_rect_color'
+    safety_topic: 'vesc/low_level/input/safety'
+
+    # Homography parameters
     use_homography: "rss2025_8_old"
+    lookahead_dist: 4.0
+    meters_per_inch: 0.0254
 
 pure_pursuit:
   ros__parameters:
     drive_topic: '/drive'
-    look_ahead: 0.5
-    wheelbase: 0.34
-    default_velocity: 0.5
+    look_ahead: 0.5  # Initial lookahead distance in meters
+    wheelbase: 0.34  # Car wheelbase in meters
+    default_velocity: 0.5  # Default velocity in m/s (can be adjusted for racing)

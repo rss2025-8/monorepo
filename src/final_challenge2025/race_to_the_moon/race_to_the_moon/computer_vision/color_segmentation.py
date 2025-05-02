@@ -1,4 +1,4 @@
-import cv2
+import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -20,28 +20,38 @@ def image_print(img):
     Helper function to print out images, for debugging. Pass them in as a list.
     Press any key to continue.
     """
-    cv2.imshow("image", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv.imshow("image", img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
 
 def cd_color_segmentation(img, max_saturation=25, min_saturation=0., min_value=190., max_value=255.):
     """
-    Implement the cone detection using color segmentation algorithm
+    Returns mask of image having all possible hues and specified range of saturation and value
     Input:
     img: np.3darray; the input image with a cone to be detected. BGR.
     Return:
     mask: binary mask highlighting regions with specified saturation and value ranges
     """
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
-    mask = cv2.inRange(hsv,
+    # Good reference: https://colorizer.org Note cv2 has max saturation and max value = 255 not 100
+
+    mask = cv.inRange(hsv,
                       np.array([0, min_saturation, min_value]),
                       np.array([179, max_saturation, max_value]))
 
-    # Apply morphological operations to remove noise
+    mask = cv.inRange(hsv,
+                      np.array([0, min_saturation, min_value]),
+                      np.array([179, max_saturation, max_value]))
+
+    # # Apply morphological operations to remove noise
     kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
     return mask
+
+def bgr_color_segmentation(bgr_img, min_value, max_saturation):
+    mask = cd_color_segmentation(bgr_img, min_value=min_value, max_saturation=max_saturation)
+    return cv.bitwise_and(bgr_img, bgr_img, mask=mask)

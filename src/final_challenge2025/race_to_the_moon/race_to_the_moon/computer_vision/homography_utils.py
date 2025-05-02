@@ -49,8 +49,10 @@ class HomographyTransformer():
         return x, y
 
     def transformLine(self, line: np.ndarray):
-        u0, v0 = line[0], line[1]
-        u1, v1 = line[2], line[3]
+        # u0, v0 = line[0], line[1]
+        # u1, v1 = line[2], line[3]
+        u0, v0 = line[0, 0], line[0, 1]
+        u1, v1 = line[0, 2], line[0, 3]
 
         x0, y0 = self.transformUvToXy(u0, v0)
         x1, y1 = self.transformUvToXy(u1, v1)
