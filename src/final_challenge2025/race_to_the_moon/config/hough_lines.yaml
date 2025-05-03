@@ -38,8 +38,9 @@
     max_angle_right: 2.8798   # 11*np.pi/12
 
     # Row masking parameters
-    row_threshold_factor: 0.5
+    # row_threshold_factor: 0.5
 
     # Clustering parameters
     x_intercept_cluster_eps: 30
     x_intercept_min_samples: 1
+    x_intercept_error_threshold: 30

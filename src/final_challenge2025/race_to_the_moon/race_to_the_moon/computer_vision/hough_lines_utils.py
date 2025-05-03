@@ -229,3 +229,97 @@ def vectorized_point_to_segment_distance(P: np.ndarray, Lines: np.ndarray) -> np
     projection = S1 + diff * t[:, None]  # N x 2
     # Distances to closest points
     return np.linalg.norm(P - projection, axis=1)
+
+def get_left_and_right_lines_racecar(canny: np.ndarray, params: Dict[str, Any], left_angle_range: Tuple[float, float], right_angle_range: Tuple[float, float]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+    left_lines = get_line_candidates_racecar(canny, params, left_angle_range)
+    right_lines = get_line_candidates_racecar(canny, params, right_angle_range)
+    return left_lines, right_lines
+
+def get_line_candidates_racecar(canny: np.ndarray, params: Dict[str, Any], angle_range: Tuple[float, float]) -> np.ndarray:
+
+    min_angle, max_angle = angle_range
+    lines = cv.HoughLinesP(canny, rho=params["rho_resolution"], theta=params["theta_resolution"], threshold=params["threshold"], minLineLength=params["minLineLength"], maxLineGap=params["maxLineGap"])
+    if lines is None:
+        return []
+    lines = lines.reshape(-1, 4)
+
+    result = []
+    for line in lines:
+        x1, y1, x2, y2 = line
+        if y1 < y2: #y1 should be more than y2, so if not, switch the coordinates
+            x1, y1, x2, y2 = x2, y2, x1, y1
+        angle = -np.arctan2(y2 - y1, x2 - x1)
+        x_intercept = calculate_x_intercept_racecar(x1, x2, y1, y2)
+
+        filters_bool = \
+            y1 >= params["row_mask_lower_threshold"] and \
+            (min_angle <= angle <= max_angle) and \
+            x_intercept is not None
+        if filters_bool:
+            result.append([x1, y1, x2, y2, angle, x_intercept])
+    return np.array(result)
+
+def calculate_midpoint_distance_racecar(P: np.ndarray, Line: np.ndarray):
+    S1, S2 = Line[:, :2], Line[:, 2:]
+    diff = S2 - S1
+    L2 = np.sum(diff * diff, axis=1)
+    L2 = np.where(L2 > 0, L2, 1.0)
+
+    t = np.sum((P - S1) * diff, axis=1) / L2
+    t = np.clip(t, 0.0, 1.0)
+    projection = S1 + diff * t[:, None]
+    assert type(np.linalg.norm(P - projection, axis=1)[0]) != np.ndarray
+    return np.linalg.norm(P - projection, axis=1)[0]
+
+def calculate_x_intercept_racecar(x1: float, x2: float, y1: float, y2: float) -> float:
+    if y1 == y2:
+        return None
+    slope = (y2 - y1) / (x2 - x1)
+    return x1 - (y1 / slope)
+
+def cluster_and_merge_lines_racecar(line_candidates: np.ndarray, is_left: bool, image_width: int, image_height: int, params) -> np.ndarray:
+    error_threshold = params["x_intercept_error_threshold"]
+    eps = params["x_intercept_cluster_eps"]
+    min_samples = params["x_intercept_min_samples"]
+
+    if line_candidates.size == 0:  # Better check than shape[0]
+        return np.array([]).reshape(0, 5)  # Return empty array with correct shape
+
+    # line_candidates = np.array(line_candidates)  # Ensure it's a NumPy array
+    x_intercepts = line_candidates[:, 5:]
+
+    clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(x_intercepts)
+    labels = clustering.labels_
+
+    merged_lines = []
+    for cluster_id in range(max(labels) + 1):
+        cluster_indices = np.where(labels == cluster_id)[0]
+        if len(cluster_indices) == 0:
+            continue
+
+        cluster_lines = line_candidates[cluster_indices]
+        all_points = np.vstack((
+            cluster_lines[:, [0, 1]],
+            cluster_lines[:, [2, 3]]
+        ))
+
+        min_y_idx = np.argmin(all_points[:, 1])
+        max_y_idx = np.argmax(all_points[:, 1])
+
+        x1, y1 = all_points[max_y_idx]
+        x2, y2 = all_points[min_y_idx]
+
+        midpoint_radius = calculate_midpoint_distance_racecar(np.array([[image_width / 2, image_height]]), np.array([[x1, y1, x2, y2]]))
+
+        cluster_x_intercepts = x_intercepts[cluster_indices]
+        error = np.std(cluster_x_intercepts)
+
+        if is_left:
+            column_filter_bool = (x1 < image_width / 2)
+        else:
+            column_filter_bool = (x1 >= image_width / 2)
+
+        if error <= error_threshold and column_filter_bool:
+            merged_lines.append([x1, y1, x2, y2, midpoint_radius])
+
+    return np.array(merged_lines)

@@ -1,1 +1,24 @@
-# Outdated, see the other config files
+/**:
+lane_detector:
+  ros__parameters:
+
+    # Color for visualization
+    left_lane_color: [0.0, 1.0, 0.0]  # Green
+    right_lane_color: [1.0, 0.0, 0.0] # Red
+    midline_color: [0.0, 0.0, 1.0] # Blue
+
+    # Topics
+    image_topic: '/zed/zed_node/rgb/image_rect_color'
+    safety_topic: 'vesc/low_level/input/safety'
+
+    # Homography parameters
+    use_homography: "rss2025_8_old"
+    lookahead_dist: 4.0
+    meters_per_inch: 0.0254
+
+pure_pursuit:
+  ros__parameters:
+    drive_topic: "/vesc/high_level/input/nav_0"
+    look_ahead: 0.5  # Initial lookahead distance in meters
+    wheelbase: 0.34  # Car wheelbase in meters
+    default_velocity: 0.5  # Default velocity in m/s (can be adjusted for racing)
