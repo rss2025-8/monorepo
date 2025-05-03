@@ -76,10 +76,10 @@ class LaneDetector(Node):
         self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 5)
         self.bridge = CvBridge()
 
-        self.left_lane_pub = self.create_publisher(Marker, "/race/left_line", 10)
-        self.right_lane_pub = self.create_publisher(Marker, "/race/right_line", 10)
-        self.midline_visualization_pub = self.create_publisher(Marker, "/race/mid_line", 10)
-        self.trajectory_pub = self.create_publisher(Trajectory, "/trajectory", 10)
+        self.left_lane_pub = self.create_publisher(Marker, "/race/left_lane", 10)
+        self.right_lane_pub = self.create_publisher(Marker, "/race/right_lane", 10)
+        self.midline_visualization_pub = self.create_publisher(Marker, "/race/mid_lane", 10)
+        self.trajectory_pub = self.create_publisher(Trajectory, "/race/trajectory", 10)
         self.debug_image_pub = self.create_publisher(Image, "/race/debug_img", 10)
 
         # Configure Hough line detection parameters

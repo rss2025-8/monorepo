@@ -11,7 +11,7 @@
   </node>
 
   <node pkg="race_to_the_moon" name="visualizer_node" exec="visualizer_node" output="screen">
-    <param from="$(find-pkg-share race_to_the_moon)/config/sim_params.yaml"/>
+    <param from="$(find-pkg-share race_to_the_moon)/config/act_params.yaml"/>
   </node>
 
   <!-- Pure pursuit controller node -->

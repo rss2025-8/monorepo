@@ -1,7 +1,9 @@
 /**:
+  ros__parameters:
+    use_sim_time: False
+
 lane_detector:
   ros__parameters:
-
     # Color for visualization
     left_lane_color: [0.0, 1.0, 0.0]  # Green
     right_lane_color: [1.0, 0.0, 0.0] # Red
@@ -13,12 +15,12 @@ lane_detector:
 
     # Homography parameters
     use_homography: "rss2025_8_old"
-    lookahead_dist: 4.0
+    lookahead_dist: 1.5
     meters_per_inch: 0.0254
 
 pure_pursuit:
   ros__parameters:
     drive_topic: "/vesc/high_level/input/nav_0"
-    look_ahead: 0.5  # Initial lookahead distance in meters
+    look_ahead: 1.5  # Initial lookahead distance in meters
     wheelbase: 0.34  # Car wheelbase in meters
-    default_velocity: 0.5  # Default velocity in m/s (can be adjusted for racing)
+    default_velocity: 1.  # Default velocity in m/s (can be adjusted for racing)
