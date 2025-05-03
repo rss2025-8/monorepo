@@ -45,7 +45,9 @@ def color_segmentation_white(img, max_saturation=40, min_saturation=0.0, min_val
 
     # Apply morphological operations to remove noise
     kernel = np.ones((5, 5), np.uint8)
+    # kernel = np.ones((3, 3), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.dilate(mask, kernel)  # For easier line detection
 
     return mask

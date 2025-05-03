@@ -65,10 +65,10 @@ class LaneDetector(Node):
 
         self.declare_parameter("hough_method", "probabilistic")
         # Line angles are in [-90, 90] degrees, with 0 degrees being horizontal (-), 45 degrees (/), -45 degrees (\)
-        self.declare_parameter("left_lane_min_angle", 45)
+        self.declare_parameter("left_lane_min_angle", 15)
         self.declare_parameter("left_lane_max_angle", 75)
         self.declare_parameter("right_lane_min_angle", -75)
-        self.declare_parameter("right_lane_max_angle", -45)
+        self.declare_parameter("right_lane_max_angle", -15)
         self.declare_parameter("image_topic", "/zed/zed_node/rgb/image_rect_color")
 
         self.hough_method = self.get_parameter("hough_method").value
@@ -139,7 +139,7 @@ class LaneDetector(Node):
         if left_line:
             left_line_pxs = rho_theta_to_pxs(np.array(left_line))
             left_lane_xy = self.transform_line_uv_to_xy(left_line_pxs)
-            # self.get_logger().info(f"Left line: {left_line_pxs}")
+            self.get_logger().info(f"Left line: {left_line_pxs}")
             visualize.plot_line(
                 left_lane_xy[:, 0],
                 left_lane_xy[:, 1],
@@ -151,7 +151,7 @@ class LaneDetector(Node):
         if right_line:
             right_line_pxs = rho_theta_to_pxs(np.array(right_line))
             right_lane_xy = self.transform_line_uv_to_xy(right_line_pxs)
-            # self.get_logger().info(f"Right line: {right_line_pxs}")
+            self.get_logger().info(f"Right line: {right_line_pxs}")
             visualize.plot_line(
                 right_lane_xy[:, 0],
                 right_lane_xy[:, 1],
@@ -165,7 +165,7 @@ class LaneDetector(Node):
             mid_line = find_mid_line(left_line, right_line)
             # self.get_logger().info(f"Left line: {left_line}")
             # self.get_logger().info(f"Right line: {right_line}")
-            # self.get_logger().info(f"Midline: {mid_line}")
+            self.get_logger().info(f"Midline: {mid_line}")
             mid_line_pxs = rho_theta_to_pxs(mid_line)
             mid_line_xy = self.transform_line_uv_to_xy(mid_line_pxs)
             visualize.plot_line(

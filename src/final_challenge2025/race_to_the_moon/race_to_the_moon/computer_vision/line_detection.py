@@ -33,7 +33,8 @@ def get_raw_lines(hough_line_params, image):
 
     if hough_method == "standard":
         lines = cv.HoughLines(edges, 1, np.pi / 180, 100, None, 0, 0)
-        rho_thetas = [(rho, theta) for rho, theta in lines[0]]
+        if lines is not None:
+            rho_thetas = [(rho, theta) for rho, theta in lines[0]]
     elif hough_method == "probabilistic":
         linesP = cv.HoughLinesP(edges, 1, np.pi / 180, 50, None, 50, 10)
         if linesP is not None:

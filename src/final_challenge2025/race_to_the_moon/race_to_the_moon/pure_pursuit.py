@@ -27,7 +27,7 @@ class PurePursuit(Node):
         self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
         self.debug: bool = self.declare_parameter("debug", True).value
 
-        self.max_speed: float = self.declare_parameter("max_speed", 1.0).value
+        self.max_speed: float = self.declare_parameter("max_speed", 4.0).value
         self.speed: float = self.max_speed
         self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=5.0)
 
@@ -300,6 +300,7 @@ class PurePursuit(Node):
         path = np.array([[point.x, point.y] for point in msg.points])
         path_length = np.sum(np.linalg.norm(path[1:] - path[:-1], axis=1))
         num_points = int(path_length / dist_between_points) + 2
+        num_points = max(5, num_points)
         path, dtheta, step_size = self.smooth_path(path, num_points=num_points, smoothness=0.25)
         self.traj_points = path
         self.traj_dtheta = dtheta
@@ -322,7 +323,7 @@ class PurePursuit(Node):
         If `use_last_cmd` is set, uses the last drive command.
         """
         # steering_angle += 0.01  # A bit too much
-        steering_angle += 0.007
+        steering_angle += 0.007  # Seems ok for 3 m/s or so
         if abs(steering_angle) > math.pi / 2:
             self.get_logger().warning(f"Steering angle {steering_angle} is too large")
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
