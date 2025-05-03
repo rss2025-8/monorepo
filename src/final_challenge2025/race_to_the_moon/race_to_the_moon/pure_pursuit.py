@@ -7,6 +7,7 @@ import numpy as np
 import rclpy
 import tf_transformations
 from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
+from geometry_msgs.msg import Point as GeoPoint
 from geometry_msgs.msg import Pose, PoseArray
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -56,6 +57,15 @@ class PurePursuit(Node):
         #     self.run_tests()
 
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
+
+        # TODO
+        def homography_callback(msg: GeoPoint):
+            # Process
+            self.get_logger().info(f"Clicked [{msg.x}, {msg.y}]")
+
+        self.homography_debug_pub = self.create_subscription(
+            GeoPoint, "/zed/zed_node/left/image_rect_color_mouse_left", homography_callback, 1
+        )
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
         """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
@@ -311,6 +321,8 @@ class PurePursuit(Node):
         Publishes to the drive topic with the given steering angle (radians) and velocity (m/s).
         If `use_last_cmd` is set, uses the last drive command.
         """
+        # steering_angle += 0.01  # A bit too much
+        steering_angle += 0.007
         if abs(steering_angle) > math.pi / 2:
             self.get_logger().warning(f"Steering angle {steering_angle} is too large")
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)

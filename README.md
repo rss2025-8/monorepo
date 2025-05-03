@@ -10,6 +10,11 @@ Visualizing/testing the bag in simulation:
 ros2 launch race_to_the_moon visual_test.launch.xml bag_file:=local/bags/racetrack/
 ```
 
+On car:
+```sh
+ros2 launch race_to_the_moon act_race_to_the_moon.launch.xml
+```
+
 ## Lab 6: Path Planning
 
 Testing path planning/following in simulation:

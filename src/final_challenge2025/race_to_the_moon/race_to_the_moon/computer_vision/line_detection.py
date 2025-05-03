@@ -36,18 +36,19 @@ def get_raw_lines(hough_line_params, image):
         rho_thetas = [(rho, theta) for rho, theta in lines[0]]
     elif hough_method == "probabilistic":
         linesP = cv.HoughLinesP(edges, 1, np.pi / 180, 50, None, 50, 10)
-        for x1, y1, x2, y2 in linesP[:, 0]:
-            # Direction vector
-            dx, dy = x2 - x1, y2 - y1
-            # Angle of normal to the line
-            theta = np.arctan2(dy, dx) + np.pi / 2
-            # Constrain to be in (-pi/2, pi/2]
-            theta = theta % np.pi
-            if theta > np.pi / 2:
-                theta -= np.pi
-            # Distance from origin
-            rho = x1 * np.cos(theta) + y1 * np.sin(theta)
-            rho_thetas.append((rho, theta))
+        if linesP is not None:
+            for x1, y1, x2, y2 in linesP[:, 0]:
+                # Direction vector
+                dx, dy = x2 - x1, y2 - y1
+                # Angle of normal to the line
+                theta = np.arctan2(dy, dx) + np.pi / 2
+                # Constrain to be in (-pi/2, pi/2]
+                theta = theta % np.pi
+                if theta > np.pi / 2:
+                    theta -= np.pi
+                # Distance from origin
+                rho = x1 * np.cos(theta) + y1 * np.sin(theta)
+                rho_thetas.append((rho, theta))
     else:
         raise ValueError(f"Invalid Hough method: {hough_method}")
 
@@ -97,9 +98,7 @@ def get_best_lanes(hough_line_params, image):
     if right_rho_thetas:
         right_rho = np.mean([rho for rho, _ in right_rho_thetas])
         right_thetas = np.array([theta for _, theta in right_rho_thetas])
-        sigma_sin = np.sum(np.sin(right_thetas))
-        sigma_cos = np.sum(np.cos(right_thetas))
-        right_theta = np.arctan2(sigma_sin, sigma_cos)
+        right_theta = circular_mean(right_thetas)
         right_line = (right_rho, right_theta)
 
     return left_line, right_line

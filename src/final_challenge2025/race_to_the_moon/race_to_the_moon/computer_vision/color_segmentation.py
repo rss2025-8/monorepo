@@ -27,7 +27,7 @@ def image_print(img):
     cv2.destroyAllWindows()
 
 
-def color_segmentation_white(img, max_saturation=25, min_saturation=0.0, min_value=190.0, max_value=255.0):
+def color_segmentation_white(img, max_saturation=40, min_saturation=0.0, min_value=180.0, max_value=255.0):
     """
     Return a mask of the white portions of an image.
     Input:

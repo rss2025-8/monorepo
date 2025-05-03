@@ -1,1 +1,4 @@
 # Outdated, see the other config files
+pure_pursuit:
+  ros__parameters:
+    drive_topic: '/vesc/high_level/input/nav_0'

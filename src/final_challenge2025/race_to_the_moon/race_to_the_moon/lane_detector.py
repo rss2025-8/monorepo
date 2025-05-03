@@ -37,7 +37,7 @@ def find_mid_line(left_line, right_line):
     # Find intersection point of the two lines
     A = np.array([[np.cos(theta0), np.sin(theta0)], [np.cos(theta1), np.sin(theta1)]])
     b = np.array([rho0, rho1])
-    assert abs(np.linalg.det(A)) >= 1e-8
+    # assert abs(np.linalg.det(A)) >= 1e-8
     x_int, y_int = np.linalg.solve(A, b)
 
     # Find similar unit direction vectors along each line, ensuring they both point upwards
@@ -50,7 +50,7 @@ def find_mid_line(left_line, right_line):
 
     # Find the average direction
     d = d0 + d1
-    assert np.linalg.norm(d) > 1e-8
+    # assert np.linalg.norm(d) > 1e-8
     d /= np.linalg.norm(d)  # [-sin(theta), cos(theta)]
 
     # Compute rho, theta for the midline
