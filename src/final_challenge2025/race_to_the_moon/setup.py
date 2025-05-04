@@ -30,6 +30,7 @@ setup(
             "pure_pursuit = race_to_the_moon.pure_pursuit:main",
             "lane_detector = race_to_the_moon.lane_detector:main",
             "visualizer_node = race_to_the_moon.visualizer_node:main",
+            "cte_node = race_to_the_moon.cte_node:main",
         ],
     },
 )
