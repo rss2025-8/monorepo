@@ -82,8 +82,6 @@ class LaneDetector(Node):
         if left_line:
             left_line_uv = line_utils.rho_theta_to_endpoints(np.array(left_line))
             left_lane_xy = line_utils.endpoints_uv_to_xy(left_line_uv)
-            temp_1 = line_utils.endpoints_to_rho_theta(left_lane_xy)
-            left_lane_xy = line_utils.rho_theta_to_endpoints(temp_1)
             # self.get_logger().info(f"Left line: {left_line_uv}")
             visualize.plot_line(
                 left_lane_xy[:, 0],
@@ -96,8 +94,6 @@ class LaneDetector(Node):
         if right_line:
             right_line_uv = line_utils.rho_theta_to_endpoints(np.array(right_line))
             right_lane_xy = line_utils.endpoints_uv_to_xy(right_line_uv)
-            temp_2 = line_utils.endpoints_to_rho_theta(right_lane_xy)
-            right_lane_xy = line_utils.rho_theta_to_endpoints(temp_2)
             # self.get_logger().info(f"Right line: {right_line_uv}")
             visualize.plot_line(
                 right_lane_xy[:, 0],
@@ -119,10 +115,10 @@ class LaneDetector(Node):
             right_line_car = line_utils.endpoints_to_rho_theta(right_line_xy)
 
             mid_line_car = line_utils.find_midline_rho_theta(left_line_car, right_line_car, is_in_uv=False)
+            mid_line_xy = line_utils.rho_theta_to_endpoints(mid_line_car)
             # self.get_logger().info(f"Left line: {left_line_car}")
             # self.get_logger().info(f"Right line: {right_line_car}")
             # self.get_logger().info(f"Midline: {mid_line_car}")
-            mid_line_xy = line_utils.rho_theta_to_endpoints(mid_line_car)
             visualize.plot_line(
                 mid_line_xy[:, 0],
                 mid_line_xy[:, 1],

@@ -63,10 +63,9 @@ def transform_uv_to_xy(u, v):
     The top left pixel is the origin, u axis increases to right, and v axis
     increases down.
 
-    Returns a 1x2 numpy matrix of (x, y) displacement vector from base link
-    to the point on the ground.
-    Camera points along positive x axis and y axis increases to the left of
-    the camera. Units are in meters.
+    Returns a tuple (x, y) representing the ground point coordinates relative to base link.
+    Camera points along positive x axis and y axis increases to the left of the camera.
+    Units are in meters.
     """
     homogeneous_point = np.array([[u], [v], [1]])
     xy = np.dot(HOMOGRAPHY_MATRIX, homogeneous_point)
@@ -85,7 +84,7 @@ def transform_uv_to_xy(u, v):
 def transform_xy_to_uv(x, y):
     """
     x and y are coordinates on the ground plane in meters.
-    Returns the pixel coordinates (u, v) corresponding to that ground point.
+    Returns a tuple (u, v) representing the pixel coordinates of the ground point.
     Top-left pixel is (0,0), u increases to the right, v increases downward.
     """
     # Camera offset
