@@ -1,27 +1,150 @@
 """
-Uses PRM.
-Tunable parameters: Number of samples, dilation of obstacles, obstacle distance grid precomputation downsample factor,
-number of nearest neighbors considered, potential field weight/base cost.
+Uses A* on a 2D grid.
+Tunable parameters: Downsampling factor, gaussian blur sigma, added weight for cells near obstacles
 """
 
-import heapq
 import math
+import queue
+from dataclasses import dataclass
+from typing import Iterable
 
+# import dubins
 import cv2
+import numpy as np
 import rclpy
 from rclpy.node import Node
+from scipy.ndimage import gaussian_filter
 
 assert rclpy
-import queue
-
-import numpy as np
-from geometry_msgs.msg import Pose, PoseArray, PoseStamped, PoseWithCovarianceStamped
+import geometry_msgs
+from geometry_msgs.msg import (
+    Pose,
+    PoseArray,
+    PoseStamped,
+    PoseWithCovarianceStamped,
+    Quaternion,
+)
 from nav_msgs.msg import OccupancyGrid
-from scipy.spatial import KDTree
-from visualization_msgs.msg import Marker
+from std_msgs.msg import Header
 
-from . import visualize
 from .utils import LineTrajectory, load_map
+
+
+def convolution_downsample(mat: np.ndarray, kernel_size: int):
+    """idk what a "numpy" is
+    fortunately this is only ran once"""
+
+    height, width = mat.shape
+    out_height = (height + kernel_size - 1) // kernel_size
+    out_width = (width + kernel_size - 1) // kernel_size
+
+    result = np.zeros((out_height, out_width), dtype=int)
+
+    for i in range(out_height):
+        for j in range(out_width):
+            # Define the n x n window
+            start_i = i * kernel_size
+            start_j = j * kernel_size
+            end_i = min(start_i + kernel_size, height)
+            end_j = min(start_j + kernel_size, width)
+
+            result[i, j] = np.max(mat[start_i:end_i, start_j:end_j])
+
+    return result
+
+
+@dataclass(frozen=True, order=True)
+class Point:
+    x: int  # u
+    y: int  # v
+
+    @classmethod
+    def from_msg(cls, msg: geometry_msgs.msg.Point, grid: "Grid") -> "Point":
+        return grid.real_to_grid((msg.x, msg.y))
+
+    def dist(self, other: "Point") -> float:
+        return math.hypot(self.x - other.x, self.y - other.y)
+
+    def as_tuple(self) -> tuple[int, int]:
+        return (self.x, self.y)
+
+
+@dataclass(frozen=True)
+class Grid:
+    grid: np.ndarray
+    resolution: float  # px to m
+    origin: Point
+
+    @classmethod
+    def empty(cls) -> "Grid":
+        return cls(np.empty((1, 1)), 1, Point(0, 0))
+
+    @classmethod
+    def from_msg(cls, msg: OccupancyGrid, downsampling: int = 1) -> "Grid":
+        # Reshape the OccupancyGrid
+        grid = np.array(msg.data).reshape((msg.info.height, msg.info.width))
+        # treat empty space as walls
+        grid[grid == -1] = 100
+        grid[grid == 100] = 100
+
+        # idk numpy so 2d convolution
+        downsampled_grid = convolution_downsample(grid, downsampling)
+        inner_blur = gaussian_filter(downsampled_grid, sigma=3)
+        outer_blur = gaussian_filter(downsampled_grid, sigma=9)
+        # smooth =
+
+        return cls(
+            grid=np.maximum(np.maximum(inner_blur, outer_blur), downsampled_grid),
+            resolution=msg.info.resolution * downsampling,
+            origin=Point(msg.info.origin.position.x, msg.info.origin.position.y),
+        )
+
+    def get_weight(self, point: Point) -> float:
+        grid_y = int(point.y)
+        grid_x = int(point.x)
+
+        if self.in_bounds(grid_x, grid_y):
+            return self.grid[grid_y, grid_x]
+
+        return float("+inf")
+
+    def in_bounds(self, x: int, y: int) -> bool:
+        return 0 <= x < self.grid.shape[1] and 0 <= y < self.grid.shape[0]
+
+    def get_neighbors(self, point: Point, dist: int = 1) -> Iterable[Point]:
+        return (
+            Point(point.x - dist, point.y),
+            Point(point.x, point.y - dist),
+            Point(point.x + dist, point.y),
+            Point(point.x, point.y + dist),
+        )
+
+    def real_to_grid(self, p: tuple[float, float]) -> Point:
+        return Point(int((-p[0] + self.origin.x) / self.resolution), int((-p[1] + self.origin.y) / self.resolution))
+
+    def grid_to_real(self, p: Point) -> tuple[float, float]:
+        return (float(self.origin.x - p.x * self.resolution), float(self.origin.y - p.y * self.resolution))
+
+    def get_free_arr(self, resolution: float) -> PoseArray:
+        free_coords = np.argwhere(self.grid == 0)
+        # Pick out 1000 random points (for visualization)
+        if len(free_coords) > 1000:
+            free_coords = free_coords[np.random.choice(len(free_coords), 1000, replace=False)]
+        return PoseArray(
+            header=Header(frame_id="map"),
+            poses=[
+                Pose(
+                    position=geometry_msgs.msg.Point(
+                        y=-x * resolution + self.origin.y, x=self.origin.x - y * resolution, z=0.0
+                    )
+                )
+                for x, y in free_coords
+            ],
+        )
+
+
+def dubins_dist(start: Point, end: Point) -> float:
+    pass
 
 
 class PathPlan(Node):
@@ -40,23 +163,12 @@ class PathPlan(Node):
         self.goal_sub = self.create_subscription(PoseStamped, "/goal_pose", self.goal_cb, 10)
         self.traj_pub = self.create_publisher(PoseArray, "/trajectory/current", 10)
         self.pose_sub = self.create_subscription(PoseWithCovarianceStamped, self.initial_pose_topic, self.pose_cb, 10)
-        self.neighbors_pub = self.create_publisher(PoseArray, "/trajectory/end_point_neighbors", 10)
+        self.debug_pub = self.create_publisher(PoseArray, "/debug_map", 10)
 
-        self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory" if self.debug else None)
-        self.grid = None
-        self.dist_to_obstacle_grid = None
-        self.downsample_factor = 4
-        self.resolution = None
-        self.origin_x = None
-        self.origin_y = None
-
-        self.pose_x = None
-        self.pose_y = None
-        self.goal_x = None
-        self.goal_y = None
-
-        self.debug_text_pub = self.create_publisher(Marker, "/trajectory/debug_text", 1)
-        visualize.clear_marker(self.debug_text_pub)
+        self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory")
+        self.last_pose: Pose
+        self.last_goal: Pose
+        self.grid: Grid = Grid.empty()
 
         # Load the provided map (if given)
         self.map_set = False
@@ -66,304 +178,80 @@ class PathPlan(Node):
             self.map_cb(load_map(map_to_load))
         if self.debug:
             self.get_logger().info("DEBUG mode enabled")
-        self.get_logger().info(f"PRM trajectory planner initialized, map data of shape {self.grid.shape}")
+        self.get_logger().info(f"A* trajectory planner initialized")
 
-    def map_cb(self, msg):
+    def map_cb(self, msg: OccupancyGrid):
         if self.map_set:
             self.get_logger().info("Ignoring duplicate map message")
             return
         self.map_set = True
-
-        # Reshape the OccupancyGrid
-        self.grid = np.array(msg.data).reshape((msg.info.height, msg.info.width))
-        obstacle_mask = (self.grid != 0).astype(np.uint8)  # 0 is free, -1 is unknown, 100 is obstacle
-
-        # Dilate the obstacles with a kernel (size controls buffer)
-        kernel_size = 10  # TODO play with this value
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
-        dilated_obstacle_mask = cv2.dilate(obstacle_mask, kernel, iterations=1)
-
-        # Update grid: obstacles=100, free = original value
-        self.grid = np.where(dilated_obstacle_mask == 1, 100, self.grid)
-        self.resolution = msg.info.resolution
-        self.origin_x = msg.info.origin.position.x
-        self.origin_y = msg.info.origin.position.y
-
-        # Debug map image
-        # img_output = np.zeros((self.grid.shape[0], self.grid.shape[1], 3), dtype=np.uint8)
-        # img_output[self.grid == 0] = [255, 255, 255]
-        # img_output[self.grid == 100] = [0, 0, 0]
-        # img_output[self.grid == -1] = [150, 150, 150]
-        # cv2.imwrite("debug_img.png", img_output)
-
-        # Precompute distance to the nearest obstacle for each cell with BFS, in meters
-        # Downsample for faster computation
-        self.get_logger().info(
-            f"Dilation {kernel_size}, precomputing distance to obstacle grid (downsampled by {self.downsample_factor})..."
-        )
-        small_grid = cv2.resize(
-            self.grid,
-            (self.grid.shape[1] // self.downsample_factor, self.grid.shape[0] // self.downsample_factor),
-            interpolation=cv2.INTER_NEAREST,
-        )
-        self.dist_to_obstacle_grid = np.full_like(small_grid, np.inf, dtype=np.float32)
-        visited = np.zeros_like(small_grid, dtype=bool)
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        # Starting states
-        q = queue.Queue()
-        for i in range(small_grid.shape[0]):
-            for j in range(small_grid.shape[1]):
-                if small_grid[i, j] == 100:
-                    q.put((i, j))
-                    visited[i, j] = True
-                    self.dist_to_obstacle_grid[i, j] = 0
-        # BFS
-        while not q.empty():
-            i, j = q.get()
-            for di, dj in directions:
-                ni, nj = i + di, j + dj
-                if (
-                    0 <= ni < small_grid.shape[0]
-                    and 0 <= nj < small_grid.shape[1]
-                    and small_grid[ni, nj] != 100
-                    and not visited[ni, nj]
-                ):
-                    visited[ni, nj] = True
-                    self.dist_to_obstacle_grid[ni, nj] = (
-                        self.dist_to_obstacle_grid[i, j] + self.resolution * self.downsample_factor
-                    )
-                    q.put((ni, nj))
-
-    def pose_cb(self, pose):
-        self.pose_x = pose.pose.pose.position.x
-        self.pose_y = pose.pose.pose.position.y
-        # self.pose_x = 10.356518745422363
-        # self.pose_y = -1.18073570728302
-        self.get_logger().info(f"Received current pose: {self.pose_x}, {self.pose_y}")
-        self.plan_path((self.pose_x, self.pose_y), (self.goal_x, self.goal_y), self.grid)
-
-    def goal_cb(self, msg):
-        self.goal_x = msg.pose.position.x
-        self.goal_y = msg.pose.position.y
-        # self.goal_x = -18.909656524658203
-        # self.goal_y = 7.085318565368652
-        self.get_logger().info(f"Received goal pose: {self.goal_x}, {self.goal_y}")
-
-    def plan_path(self, start_point, end_point, map):
-        """Plan a path from start to end point using PRM (sampling-based method)."""
-        self.trajectory.clear()
-        if self.grid is None:
-            self.get_logger().warning(f"NO MAP! (Relaunch the map)")
-            if self.debug:
-                visualize.plot_debug_text("No map (relaunch)", self.debug_text_pub)
-            return
-
-        if start_point[0] is None:
-            self.get_logger().warning(f"NO START POINT!")
-            if self.debug:
-                visualize.plot_debug_text("No start point", self.debug_text_pub)
-            return
-
-        if end_point[0] is None:
-            self.get_logger().warning(f"NO GOAL POINT!")
-            if self.debug:
-                visualize.plot_debug_text("No goal point", self.debug_text_pub)
-            return
-
+        self.grid = Grid.from_msg(msg, downsampling=5)
+        # self.get_logger().info(f"orientation {msg.info.origin.orientation}")
+        # self.get_logger().info(
+        # f"Received grid: {self.grid}; shape: {self.grid.grid.shape}; neighbors {list(self.grid.get_weight(v) for v in self.grid.get_neighbors(Point(0, 0)))}"
+        # )
+        self.get_logger().info(f"Received map")
         if self.debug:
-            visualize.clear_marker(self.debug_text_pub)
+            self.debug_pub.publish(self.grid.get_free_arr(self.grid.resolution))
 
-        def is_free(x, y):
-            """Check if a point (x, y) is free in the grid."""
-            grid_x = min(int((self.origin_x - x) / self.resolution), self.grid.shape[1] - 1)
-            grid_y = min(int((self.origin_y - y) / self.resolution), self.grid.shape[0] - 1)
+    def pose_cb(self, pose: PoseWithCovarianceStamped):
+        self.last_pose = self.grid.real_to_grid((10.356518745422363, -1.18073570728302)) # Point.from_msg(pose.pose.pose.position, self.grid)
+        self.get_logger().info(
+            f"Received pose: {self.last_pose}; ({pose.pose.pose.position.x}, {pose.pose.pose.position.y})"
+        )
+        self.plan_path(self.last_pose, self.last_goal, self.grid)
 
-            if 0 <= grid_x < self.grid.shape[1] and 0 <= grid_y < self.grid.shape[0]:
-                return self.grid[grid_y, grid_x] == 0
-            return False
+    def goal_cb(self, msg: PoseStamped):
+        # self.last_goal = Point.from_msg(msg.pose.position, self.grid)
+        self.last_goal = self.grid.real_to_grid((-18.909656524658203, 7.085318565368652))
+        self.get_logger().info(f"Received goal: {self.last_goal}; ({msg.pose.position.x}, {msg.pose.position.y})")
 
-        def sample_free():
-            """Sample a random free point in the grid."""
-            # TODO can be faster by sampling all points at once, checking if they're free vectorized
-            while True:
-                x_max = self.origin_x
-                x_min = self.origin_x - self.grid.shape[1] * self.resolution
-                y_max = self.origin_y
-                y_min = self.origin_y - self.grid.shape[0] * self.resolution
-
-                x = np.random.uniform(x_min, x_max)
-                y = np.random.uniform(y_min, y_max)
-
-                if is_free(x, y):
-                    return (x, y)
-
-        def is_collision_free(p1, p2):
-            """Check if a line segment between two points is collision free."""
-            x1, y1 = p1
-            x2, y2 = p2
-            dx = x2 - x1
-            dy = y2 - y1
-            dist = math.hypot(dx, dy)
-            steps = int(dist / 0.5) + 1
-            for i in range(steps + 1):
-                t = i / steps
-                x = x1 + t * dx
-                y = y1 + t * dy
-                if not is_free(x, y):
-                    return False
-            return True
-
-        def batch_collision_free(P1, P2):
-            """Check if a batch of line segments are collision free.
-
-            P1 and P2 should be of size N x 2."""
-            vecs = P2 - P1  # N x 2
-            dist = np.hypot(vecs[:, 0], vecs[:, 1])  # N
-            steps = np.ceil(dist / 0.5).astype(int)  # N
-            max_steps = steps.max()
-
-            # s_i points along each line segment
-            t = np.linspace(0, 1, max_steps + 1)[:, None]  # 1 x S
-            pts = P1[None, :, :] + vecs[None, :, :] * t[:, :, None]  # S x N x 2
-
-            # Grid coordinates of the points
-            gx = ((self.origin_x - pts[:, :, 0]) / self.resolution).astype(int)  # S x N
-            gy = ((self.origin_y - pts[:, :, 1]) / self.resolution).astype(int)  # S x N
-            gx = np.clip(gx, 0, self.grid.shape[1] - 1)  # S x N
-            gy = np.clip(gy, 0, self.grid.shape[0] - 1)  # S x N
-
-            # For each segment, check if all points are free
-            free = self.grid[gy, gx] == 0  # S x N
-            return free.all(axis=0)  # N
-
-        def segment_dist_to_obstacle(p1, p2):
-            """Check approximately how close a line segment gets to an obstacle."""
-            x1, y1 = p1
-            x2, y2 = p2
-            dx = x2 - x1
-            dy = y2 - y1
-            dist = math.hypot(dx, dy)
-            steps = int(dist / 2) + 1  # Approximate is fine
-            min_dist = np.inf
-            for i in range(steps + 1):
-                t = i / steps
-                x = x1 + t * dx
-                y = y1 + t * dy
-                grid_x = min(
-                    int((self.origin_x - x) / self.resolution / self.downsample_factor),
-                    self.dist_to_obstacle_grid.shape[1] - 1,
-                )
-                grid_y = min(
-                    int((self.origin_y - y) / self.resolution / self.downsample_factor),
-                    self.dist_to_obstacle_grid.shape[0] - 1,
-                )
-                min_dist = min(min_dist, self.dist_to_obstacle_grid[grid_y, grid_x])
-            return min_dist
-
-        N = 1000  # TODO number of samples
+    def plan_path(self, start_point: Point, end_point: Point, map: Grid):
         start_time = self.get_clock().now()
-        points = [sample_free() for _ in range(N)]
-        points.append(start_point)
-        points.append(end_point)
-        self.get_logger().info(f"Sampling {N} points: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+        self.trajectory.clear()
 
-        # Build map
-        graph = {point: [] for point in points}
-        kdtree = KDTree(points)
+        agenda = queue.PriorityQueue()
+        agenda.put((0.0, start_point))
+        traversed = {start_point: None}
+        cost_map = {start_point: 0.0}
 
-        # Sample points and build the graph
-        start_time = self.get_clock().now()
-        np_points = np.array(points)  # N x 2
-        for i, point in enumerate(points):
-            distances, indices = kdtree.query(point, k=40)
-            neighbors = np_points[indices]
-            # Check all neighbors (vectorized)
-            free = batch_collision_free(np.tile(point, (neighbors.shape[0], 1)), neighbors)
-            # Add neighbors that are free (convert to tuples)
-            graph[point].extend([tuple(neighbor) for neighbor in neighbors[free].tolist() if tuple(neighbor) != point])
-        # self.get_logger().info("Graph: " + str(graph[end_point]))
-        neighbors_pose_array = PoseArray()
-        neighbors_pose_array.header.frame_id = "map"  # Set the appropriate frame ID
-        neighbors_pose_array.header.stamp = self.get_clock().now().to_msg()
-        for neighbor in points:
-            pose = Pose()
-            pose.position.x = neighbor[0]
-            pose.position.y = neighbor[1]
-            pose.position.z = 0.0
-            neighbors_pose_array.poses.append(pose)
-        if self.debug and self.neighbors_pub.get_subscription_count() > 0:
-            self.neighbors_pub.publish(neighbors_pose_array)
-        self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+        i = 0
+        while not agenda.empty():
+            current: Point = agenda.get()[1]
 
-        # Build path by implementing A*
-        start_time = self.get_clock().now()
-        queue = []
-        heapq.heappush(queue, (0, start_point))
-        costs = {start_point: 0}
-        parents = {start_point: None}
-        visited = set()
-        while queue:
-            # self.get_logger().info("Queue: " + str(queue))
-            current_cost, current_point = heapq.heappop(queue)
-            if current_point in visited:
-                continue
-            visited.add(current_point)
-
-            if current_point == end_point:
-                # self.get_logger().info("Reached the goal!")
+            if current == end_point:
                 break
 
-            for neighbor in graph[current_point]:
-                # Add a tunable cost based on approximate distance to the nearest obstacle
-                # Force is proportional to 1/r
-                dist_to_obstacle = segment_dist_to_obstacle(current_point, neighbor)
-                # TODO play with these
-                potential_field_weight = 1.0
-                potential_field_base = 0.25
-                new_cost = (
-                    costs[current_point]
-                    + math.hypot(neighbor[0] - current_point[0], neighbor[1] - current_point[1])
-                    + (potential_field_weight / (dist_to_obstacle + potential_field_base))
-                )
-                if neighbor not in costs or new_cost < costs[neighbor]:
-                    costs[neighbor] = new_cost
-                    priority = new_cost + math.hypot(end_point[0] - neighbor[0], end_point[1] - neighbor[1])
-                    heapq.heappush(queue, (priority, neighbor))
-                    parents[neighbor] = current_point
-        self.get_logger().info(f"A* pathfinding: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
-        # self.get_logger().info("Parents: " + str(parents[end_point]))
+            for next in map.get_neighbors(current):
+                i = i + 1
+                weight = map.get_weight(next)
+                if weight > 95:
+                    continue
+                self.get_logger().info(f"next point: {next.as_tuple()}")
+                new_cost = cost_map[current] + 1 + weight
 
-        # Reconstruct path
-        path = []
-        current = end_point
-        while current is not None:
-            path.append(current)
-            current = parents.get(current, None)
-        path.reverse()
-        # self.get_logger().info(f"Planned path: {path}")
-        for point in path:
-            self.trajectory.addPoint(point)
+                if next not in cost_map or new_cost < cost_map[next]:
+                    cost_map[next] = new_cost
 
-        # Calculate min distance to wall
-        minimum_dist = self.find_closest_point_to_wall(path)
-        self.get_logger().info(f"Minimum distance to any dilated wall: {minimum_dist}")
-        if self.debug:
-            self.trajectory.publish_viz()
+                    priority = new_cost + next.dist(end_point)
+                    self.get_logger().info(f"priority: {priority}")
+                    agenda.put((priority, next))
+                    traversed[next] = current
+
+        self.get_logger().info(f"Num points checked: {i}")
+        # backtrack and load beset path into trajectory object
+        self.trajectory.addPoint(self.grid.grid_to_real(current))
+        while current in traversed:
+            current = traversed[current]
+            if current is None:
+                break
+            self.trajectory.addPoint(self.grid.grid_to_real(current))
+        self.trajectory.reverse()
+
+        self.get_logger().info(f"A* planning time: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+
         self.traj_pub.publish(self.trajectory.toPoseArray())
-
-    def find_closest_point_to_wall(self, points):
-        """Find distance to the closest point on the wall of the map to the given list of points."""
-        min_distance = np.inf
-        for point in points:
-            x = point[0]
-            y = point[1]
-            grid_x = min(int(((self.origin_x - x) / self.resolution) / self.downsample_factor), self.grid.shape[1] - 1)
-            grid_y = min(int(((self.origin_y - y) / self.resolution) / self.downsample_factor), self.grid.shape[0] - 1)
-            if 0 <= grid_x < self.grid.shape[1] and 0 <= grid_y < self.grid.shape[0]:
-                distance = self.dist_to_obstacle_grid[grid_y, grid_x]
-                if distance < min_distance:
-                    min_distance = distance
-        return min_distance
+        self.trajectory.publish_viz()
 
 
 def main(args=None):
