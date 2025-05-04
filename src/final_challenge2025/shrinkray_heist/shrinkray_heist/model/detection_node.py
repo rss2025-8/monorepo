@@ -15,7 +15,7 @@ from tf2_ros import TransformBroadcaster
 class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
-        self.debug = True
+        self.debug = False
 
         self.detector = Detector()
         self.detector.set_threshold(0.25)
@@ -65,7 +65,7 @@ class DetectorNode(Node):
 
           self.debug_image_pub.publish(debug_img)
 
-        self.get_logger().info(f"bananas: {banana_bounding_boxes}")
+        # self.get_logger().info(f"bananas: {banana_bounding_boxes}")
         # self.
 
 def main(args=None):

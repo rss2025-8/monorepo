@@ -22,9 +22,9 @@ from geometry_msgs.msg import (
     PoseArray,
     PoseStamped,
     PoseWithCovarianceStamped,
-    Quaternion,
+    Quaternion
 )
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, Odometry
 from std_msgs.msg import Header
 
 from .utils import LineTrajectory, load_map
@@ -156,13 +156,13 @@ class PathPlan(Node):
         super().__init__("trajectory_planner")
         self.odom_topic: str = self.declare_parameter("odom_topic", "default").value
         self.map_topic: str = self.declare_parameter("map_topic", "default").value
-        self.initial_pose_topic: str = self.declare_parameter("initial_pose_topic", "default").value
+        self.initial_pose_topic: str = "/pf/pose/odom" # self.declare_parameter("initialposetopic", "default").value
         self.debug: bool = self.declare_parameter("debug", False).value
 
         self.map_sub = self.create_subscription(OccupancyGrid, self.map_topic, self.map_cb, 1)
         self.goal_sub = self.create_subscription(PoseStamped, "/goal_pose", self.goal_cb, 10)
         self.traj_pub = self.create_publisher(PoseArray, "/trajectory/current", 10)
-        self.pose_sub = self.create_subscription(PoseWithCovarianceStamped, self.initial_pose_topic, self.pose_cb, 10)
+        self.pose_sub = self.create_subscription(Odometry, self.initial_pose_topic, self.pose_cb, 10)
         self.debug_pub = self.create_publisher(PoseArray, "/debug_map", 10)
 
         self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory")
@@ -185,7 +185,7 @@ class PathPlan(Node):
             self.get_logger().info("Ignoring duplicate map message")
             return
         self.map_set = True
-        self.grid = Grid.from_msg(msg, downsampling=5)
+        self.grid = Grid.from_msg(msg, downsampling=3)
         # self.get_logger().info(f"orientation {msg.info.origin.orientation}")
         # self.get_logger().info(
         # f"Received grid: {self.grid}; shape: {self.grid.grid.shape}; neighbors {list(self.grid.get_weight(v) for v in self.grid.get_neighbors(Point(0, 0)))}"
@@ -194,17 +194,18 @@ class PathPlan(Node):
         if self.debug:
             self.debug_pub.publish(self.grid.get_free_arr(self.grid.resolution))
 
-    def pose_cb(self, pose: PoseWithCovarianceStamped):
-        self.last_pose = self.grid.real_to_grid((10.356518745422363, -1.18073570728302)) # Point.from_msg(pose.pose.pose.position, self.grid)
-        self.get_logger().info(
-            f"Received pose: {self.last_pose}; ({pose.pose.pose.position.x}, {pose.pose.pose.position.y})"
-        )
-        self.plan_path(self.last_pose, self.last_goal, self.grid)
+    def pose_cb(self, pose: Odometry):
+        self.last_pose = Point.from_msg(pose.pose.pose.position, self.grid)
+        # self.get_logger().info(
+        #     f"Received pose: {self.last_pose}; ({pose.pose.pose.position.x}, {pose.pose.pose.position.y})"
+        # )
+        # self.plan_path(self.last_pose, self.last_goal, self.grid)
 
     def goal_cb(self, msg: PoseStamped):
-        # self.last_goal = Point.from_msg(msg.pose.position, self.grid)
-        self.last_goal = self.grid.real_to_grid((-18.909656524658203, 7.085318565368652))
+        self.last_goal = Point.from_msg(msg.pose.position, self.grid)
+        # self.last_goal = self.grid.real_to_grid((-18.909656524658203, 7.085318565368652))
         self.get_logger().info(f"Received goal: {self.last_goal}; ({msg.pose.position.x}, {msg.pose.position.y})")
+        self.plan_path(self.last_pose, self.last_goal, self.grid)
 
     def plan_path(self, start_point: Point, end_point: Point, map: Grid):
         start_time = self.get_clock().now()
@@ -227,14 +228,12 @@ class PathPlan(Node):
                 weight = map.get_weight(next)
                 if weight > 95:
                     continue
-                self.get_logger().info(f"next point: {next.as_tuple()}")
                 new_cost = cost_map[current] + 1 + weight
 
                 if next not in cost_map or new_cost < cost_map[next]:
                     cost_map[next] = new_cost
 
                     priority = new_cost + next.dist(end_point)
-                    self.get_logger().info(f"priority: {priority}")
                     agenda.put((priority, next))
                     traversed[next] = current
 

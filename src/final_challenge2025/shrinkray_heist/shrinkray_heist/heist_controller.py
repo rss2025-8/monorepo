@@ -3,6 +3,7 @@ from typing import Optional
 
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Point, PointStamped, Pose, PoseArray, PoseStamped
 
@@ -16,6 +17,7 @@ class State(Enum):
   GOTO_FIRST_POINT = 1
   GOTO_SECOND_POINT = 2
   GOTO_BANANA = 3
+  GOINGTO_BANANA = 4
 
 
 class HeistController(Node):
@@ -61,22 +63,28 @@ class HeistController(Node):
         banana_tf = self.tf_buffer.lookup_transform(
           "map",
           "banana",
-          self.get_clock().now()
+          Time()
         )
+        self.goal_mut.pose.position.x = banana_tf.transform.translation.x
+        self.goal_mut.pose.position.y = banana_tf.transform.translation.y
+
+        self.get_logger().info(f"I SAW A BANANA!!!!!!!! {self.goal_mut.pose.position.x} {self.goal_mut.pose.position.y}")
+
+        self.active_mut.data = True
+
+        self.state = State.GOINGTO_BANANA
+
+        self.goal_pub.publish(self.goal_mut)
       except TransformException as ex:
-        self.get_logger().info(
-            f'Could not transform map to banana: {ex}')
-        return
+        pass
+        # self.get_logger().info(
+        #     f'Could not transform map to banana: {ex}')
 
-      self.goal_mut.pose.position.x = banana_tf.transform.translation.x
-      self.goal_mut.pose.position.y = banana_tf.transform.translation.y
+    elif self.state == State.GOINGTO_BANANA:
+      pass
 
-      self.get_logger().info(f"{self.goal_mut.pose.position.x} {self.goal_mut.pose.position.y}")
-
-      self.active_mut.data = True
 
     self.active_pub.publish(self.active_mut)
-    self.goal_pub.publish(self.goal_mut)
 
 def main(args=None):
     rclpy.init(args=args)
