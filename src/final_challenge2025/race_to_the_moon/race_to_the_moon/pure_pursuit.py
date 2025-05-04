@@ -27,9 +27,19 @@ class PurePursuit(Node):
         self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
         self.debug: bool = self.declare_parameter("debug", True).value
 
-        self.max_speed: float = self.declare_parameter("max_speed", 4.0).value
+        # Main pure pursuit parameters
+        self.max_speed: float = self.declare_parameter("max_speed", 2.0).value
         self.speed: float = self.max_speed
-        self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=5.0)
+        # Filter to smooth out steering commands
+        self.low_pass_cutoff_freq = self.declare_parameter("low_pass_cutoff_freq", 4.0).value
+        self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=self.low_pass_cutoff_freq)
+        # Bit tighter lookahead to prevent leaving lane
+        self.base_lookahead = self.declare_parameter("base_lookahead", 1.5).value
+        self.lookahead_speed_ratio = self.declare_parameter("lookahead_speed_ratio", 0.75).value
+
+        # max_lookahead = 2.25 + self.max_speed * 0.75  # Seemed ok in Lab 6
+        # max_lookahead = 2.0 + self.max_speed * 1.0  # Drifts a bit too far from the path at high speeds
+        # min_lookahead = 0.45 + self.max_speed * 0.3  # Distance near the car to ignore
 
         self.wheelbase_length = 0.33  # Between front and rear axles
         self.max_steering_angle = 0.34
@@ -100,43 +110,44 @@ class PurePursuit(Node):
         # No lookahead point found
         return None
 
-    def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> float:
-        """Returns the adaptive lookahead distance for the given car pose and nearest segment index."""
-        # Tuned lookahead distances
-        max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
-        # max_lookahead = 3.0 + (self.max_speed - 1) * 1.0  # Drifts a bit too far from the path at high speeds
-        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
-        min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
-        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
-        dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
+    # def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> float:
+    #     """Returns the adaptive lookahead distance for the given car pose and nearest segment index."""
+    #     # Tuned lookahead distances
+    #     max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+    #     # max_lookahead = 3.0 + (self.max_speed - 1) * 1.0  # Drifts a bit too far from the path at high speeds
+    #     # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
+    #     min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+    #     # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
+    #     dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
 
-        # Lookahead as large as possible until a sharp turn is detected
-        # Find sum of change in dtheta between current and future segments
-        dtheta_sum = 0.0
-        curr_dist = np.linalg.norm(self.traj_points[nearest_segment_idx + 1] - car_pose[:2])
-        # Sum angles a bit before current segment to keep lookahead shorter coming out of a turn
-        meters_before = self.max_speed * 0.25
-        # meters_before = 0
-        num_before = min(int(meters_before / self.traj_step_size), nearest_segment_idx)
-        curr_dist -= self.traj_step_size * num_before
-        # Determine lookahead distance based on curvature
-        cutoff_idx = len(self.traj_dtheta) - 1
-        for i in range(nearest_segment_idx + 1 - num_before, len(self.traj_dtheta)):
-            curr_dist += self.traj_step_size
-            dtheta_sum += self.traj_dtheta[i]
-            if abs(dtheta_sum) > dtheta_threshold or curr_dist - self.traj_step_size > max_lookahead:
-                cutoff_idx = i
-                break
-        # Set lookahead to be the distance to this segment
-        adaptive_lookahead = np.clip(
-            np.linalg.norm(self.traj_points[cutoff_idx] - car_pose[:2]), min_lookahead, max_lookahead
-        )
-        return adaptive_lookahead
+    #     # Lookahead as large as possible until a sharp turn is detected
+    #     # Find sum of change in dtheta between current and future segments
+    #     dtheta_sum = 0.0
+    #     curr_dist = np.linalg.norm(self.traj_points[nearest_segment_idx + 1] - car_pose[:2])
+    #     # Sum angles a bit before current segment to keep lookahead shorter coming out of a turn
+    #     meters_before = self.max_speed * 0.25
+    #     # meters_before = 0
+    #     num_before = min(int(meters_before / self.traj_step_size), nearest_segment_idx)
+    #     curr_dist -= self.traj_step_size * num_before
+    #     # Determine lookahead distance based on curvature
+    #     cutoff_idx = len(self.traj_dtheta) - 1
+    #     for i in range(nearest_segment_idx + 1 - num_before, len(self.traj_dtheta)):
+    #         curr_dist += self.traj_step_size
+    #         dtheta_sum += self.traj_dtheta[i]
+    #         if abs(dtheta_sum) > dtheta_threshold or curr_dist - self.traj_step_size > max_lookahead:
+    #             cutoff_idx = i
+    #             break
+    #     # Set lookahead to be the distance to this segment
+    #     adaptive_lookahead = np.clip(
+    #         np.linalg.norm(self.traj_points[cutoff_idx] - car_pose[:2]), min_lookahead, max_lookahead
+    #     )
+    #     return adaptive_lookahead
 
     def update_drive_command(self):
         """Called on every pose update. Updates the drive command, assuming the car's pose is (0, 0, 0)."""
         if not self.is_active:
             self.drive(use_last_cmd=True)
+            self.timing = [0, 0.0]
             return
         call_time = self.get_clock().now()
         car_pose = np.array([0.0, 0.0, 0.0])
@@ -146,24 +157,24 @@ class PurePursuit(Node):
         # Find the point on the trajectory nearest to the car
         nearest_segment_idx = self.get_nearest_segment(car_loc)
 
-        # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
-        allowed_dist = self.speed * 0.5
-        if (
-            nearest_segment_idx == len(self.traj_points) - 2
-            or np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist
-        ):
-            if nearest_segment_idx == len(self.traj_points) - 2:
-                self.get_logger().info(f"Goal reached (nearest to end segment). Stopping.")
-            else:
-                self.get_logger().info(f"Goal reached (dist < {allowed_dist}). Stopping.")
-            if self.debug:
-                visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
-            self.drive(0.0, 0.0)
-            self.is_active = False
-            return
+        # # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
+        # allowed_dist = self.speed * 0.5
+        # if (
+        #     nearest_segment_idx == len(self.traj_points) - 2
+        #     or np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist
+        # ):
+        #     if nearest_segment_idx == len(self.traj_points) - 2:
+        #         self.get_logger().info(f"Goal reached (nearest to end segment). Stopping.")
+        #     else:
+        #         self.get_logger().info(f"Goal reached (dist < {allowed_dist}). Stopping.")
+        #     if self.debug:
+        #         visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
+        #     self.drive(0.0, 0.0)
+        #     self.is_active = False
+        #     return
 
-        # Find adaptive lookahead distance using curvature
-        adaptive_lookahead = self.get_adaptive_lookahead(car_pose, nearest_segment_idx)
+        # Find lookahead distance using curvature
+        adaptive_lookahead = self.base_lookahead + self.max_speed * self.lookahead_speed_ratio
 
         # Find the lookahead point
         result = self.get_lookahead_point(car_pose, adaptive_lookahead, nearest_segment_idx)
@@ -194,10 +205,8 @@ class PurePursuit(Node):
             eta = math.pi / 2 * np.sign(eta)
         steering_angle = math.atan((2 * self.wheelbase_length * math.sin(eta)) / adaptive_lookahead)
 
-        # Set speed based on allowed velocity to lookahead distance ratio
-        min_speed = 1.0
-        min_v_to_lookahead_ratio = 0.75
-        self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, self.max_speed)
+        # Set speed to go fast
+        self.speed = self.max_speed
 
         # Low pass filter to smooth out sudden unexpected spikes
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
@@ -207,7 +216,7 @@ class PurePursuit(Node):
         # Draw circle that the car is following
         if self.debug and eta != 0:
             R = adaptive_lookahead / (2 * math.sin(eta))
-            if abs(R) > 20:
+            if abs(R) > 30:
                 # Near straight, don't plot
                 visualize.clear_marker(self.debug_driving_arc_pub)
             else:
@@ -323,7 +332,7 @@ class PurePursuit(Node):
         If `use_last_cmd` is set, uses the last drive command.
         """
         # steering_angle += 0.01  # A bit too much
-        steering_angle += 0.007  # Seems ok for 3 m/s or so
+        # steering_angle += 0.007  # Seems ok for 3 m/s or so
         if abs(steering_angle) > math.pi / 2:
             self.get_logger().warning(f"Steering angle {steering_angle} is too large")
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)

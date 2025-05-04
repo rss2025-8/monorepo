@@ -218,8 +218,8 @@ def plot_image(image, publisher, scale=0.05, sample_shape=None, frame="/base_lin
     global precomputed_xy, precomputed_uv
     if precomputed_xy is None:
         # Precompute (x, y) and integer (u, v) coordinates
-        x_coords = np.linspace(0, 5, 72, dtype=float)
-        y_coords = np.linspace(-2, 2, 64, dtype=float)
+        x_coords = np.linspace(0, 5, sample_shape[0], dtype=float)
+        y_coords = np.linspace(-2, 2, sample_shape[1], dtype=float)
         precomputed_xy, precomputed_uv = [], []
         for x in x_coords:
             for y in y_coords:

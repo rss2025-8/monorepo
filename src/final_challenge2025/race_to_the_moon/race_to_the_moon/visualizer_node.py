@@ -45,11 +45,12 @@ def pose_to_tf(pose: Pose, parent: str, child: str, time: rclpy.time.Time) -> Tr
 class VisualizerNode(Node):
 
     def __init__(self):
-        super().__init__("visualizer")
+        super().__init__("visualizer_node")
 
         self.image_topic: str = self.declare_parameter("image_topic", "/zed/zed_node/rgb/image_rect_color").value
         # self.image_topic: str = self.declare_parameter("image_topic", "/race/debug_img").value
         self.debug: bool = self.declare_parameter("debug", True).value
+        self.fast_mode: bool = self.declare_parameter("fast_mode", False).value
 
         self.image_pub = self.create_publisher(Marker, "/race/flat_image", 1)
         self.bridge = CvBridge()
@@ -58,15 +59,37 @@ class VisualizerNode(Node):
         map_to_base_link = pose_to_tf(point_to_pose(0.0, 0.0, 0.0), "map", "base_link", self.get_clock().now())
         self.static_br.sendTransform([map_to_base_link])
 
+        # Track runtime
+        self.timing = [0, 0.0]
+
         if self.debug:
             self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 1)
             self.get_logger().info("DEBUG mode enabled")
+        if self.fast_mode:
+            self.get_logger().info("FAST mode enabled")
         self.get_logger().info("Visualizer initialized")
 
     def image_callback(self, image_msg):
         if self.debug:
+            call_time = self.get_clock().now()
+
             image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
-            visualize.plot_image(image, self.image_pub, scale=0.08, sample_shape=(360 // 2, 640 // 20))
+            if self.fast_mode:
+                visualize.plot_image(image, self.image_pub, scale=0.16, sample_shape=(360 // 10, 640 // 20))
+            else:
+                visualize.plot_image(image, self.image_pub, scale=0.08, sample_shape=(360 // 5, 640 // 10))
+                # visualize.plot_image(image, self.image_pub, scale=0.08, sample_shape=(360 // 2, 640 // 20))
+
+            latency = (self.get_clock().now() - call_time).nanoseconds / 1e9
+            self.timing[0] += 1
+            self.timing[1] += latency
+            if self.timing[0] == 50:
+                avg_latency = self.timing[1] / 50
+                if avg_latency > 0.02:
+                    self.get_logger().warning(f"high visualizer latency, optimize: {avg_latency:.4f}s")
+                else:
+                    self.get_logger().info(f"visual: {avg_latency:.4f}s")
+                self.timing = [0, 0.0]
 
 
 def main(args=None):

@@ -1,4 +1,30 @@
-# Outdated, see the other config files
+lane_detector:
+  ros__parameters:
+    debug: True
+    image_topic: "/zed/zed_node/rgb/image_rect_color"
+    disable_topic: "/temp_disable"
+
 pure_pursuit:
   ros__parameters:
-    drive_topic: '/vesc/high_level/input/nav_0'
+    debug: True
+    drive_topic: "/vesc/high_level/input/nav_0"
+    max_speed: 2.0
+    low_pass_cutoff_freq: 4.0
+    base_lookahead: 1.5
+    lookahead_speed_ratio: 0.75
+    disable_topic: "/temp_disable"
+
+visualizer_node:
+  ros__parameters:
+    debug: True
+    fast_mode: True
+    image_topic: "/zed/zed_node/rgb/image_rect_color"
+
+safety_controller:
+  ros__parameters:
+    scan_topic: "/scan"
+    ackermann_cmd_topic: "/vesc/low_level/ackermann_cmd"
+    safety_topic: "/vesc/low_level/input/safety"
+    disable_topic: "/temp_disable"
+    temp_disable_timeout: 0.3
+    stopping_time: 0.7

@@ -1,4 +1,68 @@
-"""Contains color_segmentation_white() to find the white portions of an image."""
+"""Contains color_segmentation_white() to find the white portions of an image.
+
+H (0-360), S (0-100), V (0-100).
+
+Must include:
+[
+[45, 2, 99],
+[41.2, 7, 89],
+[180, 2, 91],
+[86.7, 4, 90],
+[132.9, 6, 93],
+[77.1, 4, 74],
+[17.1, 9, 88],
+]
+
+Ideally include:
+[
+[60, 2, 82],
+[33.7, 6, 97],
+[126.7, 4, 91],
+[51.4, 4, 75],
+[110.8, 6, 92],
+[9.2, 7, 71],
+[45, 9, 71],
+]
+
+Must avoid:
+[
+[184, 10, 56],
+[18, 37, 53],
+[17.8, 18, 59],
+[202.1, 14, 55],
+[11.8, 29, 69],
+[34.2, 62, 54],
+[216.6, 51, 49],
+]
+
+Ideally avoid:
+[
+[150, 7, 72],
+[144, 4, 47],
+[145.7, 4, 62],
+[5, 9, 50],
+[4.8, 66, 58],
+[355.4, 11, 45],
+]
+
+Strict thresholds:
+H: [0, 180]
+S: [0, 9]
+V: [71, 100]
+
+Obstacle thresholds:
+H: [0, 360]
+S: [4, 100]
+V: [0, 72]
+
+Final thresholds:
+H: [0, 360] -> [0, 179]
+S: [0, 16] -> [0, 41]
+V: [64, 100] -> [163, 255]
+
+Keep in mind that the top part of the image is masked out.
+It's slightly better to include too much than too little.
+"""
 
 import cv2
 import matplotlib.pyplot as plt
@@ -27,13 +91,13 @@ def image_print(img):
     cv2.destroyAllWindows()
 
 
-def color_segmentation_white(img, max_saturation=40, min_saturation=0.0, min_value=180.0, max_value=255.0):
+def color_segmentation_white(img, min_saturation=0, max_saturation=41, min_value=163, max_value=255):
     """
     Return a mask of the white portions of an image.
     Input:
     img: np.3darray; the input image. BGR.
-    max_saturation: float; the maximum saturation of the white portion.
     min_saturation: float; the minimum saturation of the white portion.
+    max_saturation: float; the maximum saturation of the white portion.
     min_value: float; the minimum value of the white portion.
     max_value: float; the maximum value of the white portion.
     Return:
@@ -45,9 +109,8 @@ def color_segmentation_white(img, max_saturation=40, min_saturation=0.0, min_val
 
     # Apply morphological operations to remove noise
     kernel = np.ones((5, 5), np.uint8)
-    # kernel = np.ones((3, 3), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    mask = cv2.dilate(mask, kernel)  # For easier line detection
+    # mask = cv2.dilate(mask, kernel)  # For easier line detection
 
     return mask

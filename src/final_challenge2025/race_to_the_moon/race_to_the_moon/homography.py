@@ -32,28 +32,28 @@ CAMERA_TF_Y = 2.375 * METERS_PER_INCH
 
 def get_homography_matrix():
     """Initialize data into a homography matrix."""
-    # np_pts_ground = np.array(PTS_GROUND_PLANE)
-    np_pts_ground = np.array([[56, -18.5], [56, 14], [23, -7], [31, 34.5]])
+    np_pts_ground = np.array(PTS_GROUND_PLANE)
+    # np_pts_ground = np.array([[56, -18.5], [56, 14], [23, -7], [31, 34.5]])
     np_pts_ground = np_pts_ground * METERS_PER_INCH
     np_pts_ground = np.float32(np_pts_ground[:, np.newaxis, :])
 
-    # np_pts_image = np.array(PTS_IMAGE_PLANE)
-    np_pts_image = np.array([[429, 202], [254, 202], [424, 256], [54, 226]])
+    np_pts_image = np.array(PTS_IMAGE_PLANE)
+    # np_pts_image = np.array([[429, 202], [254, 202], [424, 256], [54, 226]])
     np_pts_image = np_pts_image * 1.0
     np_pts_image = np.float32(np_pts_image[:, np.newaxis, :])
 
     homography_matrix, err = cv2.findHomography(np_pts_image, np_pts_ground)
 
     # Find error of each point
-    global HOMOGRAPHY_MATRIX
-    HOMOGRAPHY_MATRIX = homography_matrix
-    with open("errors.txt", "w") as fout:
-        for image, ground in zip(PTS_IMAGE_PLANE + TEST_PTS_IMAGE_PLANE, PTS_GROUND_PLANE + TEST_PTS_GROUND_PLANE):
-            x, y = transform_uv_to_xy(image[0], image[1])
-            true_x = ground[0] * METERS_PER_INCH + CAMERA_TF_X
-            true_y = ground[1] * METERS_PER_INCH + CAMERA_TF_Y
-            x_error, y_error = x - true_x, y - true_y
-            fout.write(f"{ground} = x error: {x_error:.3f} m, y error: {y_error:.3f} m\n")
+    # global HOMOGRAPHY_MATRIX
+    # HOMOGRAPHY_MATRIX = homography_matrix
+    # with open("errors.txt", "w") as fout:
+    #     for image, ground in zip(PTS_IMAGE_PLANE + TEST_PTS_IMAGE_PLANE, PTS_GROUND_PLANE + TEST_PTS_GROUND_PLANE):
+    #         x, y = transform_uv_to_xy(image[0], image[1])
+    #         true_x = ground[0] * METERS_PER_INCH + CAMERA_TF_X
+    #         true_y = ground[1] * METERS_PER_INCH + CAMERA_TF_Y
+    #         x_error, y_error = x - true_x, y - true_y
+    #         fout.write(f"{ground} = x error: {x_error:.3f} m, y error: {y_error:.3f} m\n")
     return homography_matrix
 
 
