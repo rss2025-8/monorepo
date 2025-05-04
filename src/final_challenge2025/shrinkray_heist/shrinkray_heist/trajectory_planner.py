@@ -15,7 +15,7 @@ assert rclpy
 import queue
 
 import numpy as np
-from geometry_msgs.msg import Pose, PoseArray, PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import Pose, Point, PoseArray, PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
 from scipy.spatial import KDTree
 from visualization_msgs.msg import Marker

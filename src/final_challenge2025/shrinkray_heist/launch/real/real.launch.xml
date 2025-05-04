@@ -16,4 +16,8 @@
     <node pkg="safety_controller" exec="safety_controller" name="safety_controller" output="screen">
         <param from="$(find-pkg-share path_planning)/config/real/config.yaml"/>
     </node>
+    <node pkg="shrinkray_heist" exec="detection_node" name="detection_node" output="screen">
+    </node>
+    <node pkg="shrinkray_heist" exec="heist_controller" name="heist_controller" output="screen">
+    </node>
 </launch>

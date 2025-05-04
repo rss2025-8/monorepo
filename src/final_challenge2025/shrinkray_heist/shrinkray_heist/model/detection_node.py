@@ -9,6 +9,9 @@ from sensor_msgs.msg import Image, CompressedImage
 from geometry_msgs.msg import PoseStamped
 from .detector import Detector
 
+from geometry_msgs.msg import TransformStamped
+from tf2_ros import TransformBroadcaster
+
 class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
@@ -22,8 +25,11 @@ class DetectorNode(Node):
         self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
         self.bridge = CvBridge()
 
-        self.out_pose_mut = PoseStamped()
-        self.out_pose_mut.header.frame_id = "zed_camera_center"
+        self.out_tf_mut = TransformStamped()
+        self.out_tf_mut.header.frame_id = "zed_camera_center"
+        self.out_tf_mut.child_frame_id = "banana"
+
+        self.broadcaster = TransformBroadcaster(self)
 
         self.get_logger().info("Detector Initialized")
 
@@ -42,9 +48,13 @@ class DetectorNode(Node):
             xmin, ymin, xmax, ymax = banana_bounding_boxes[0]
             x, y = ((xmin + xmax) / 2, (ymin + ymax) / 2)
             x, y = homography_utils.transform_uv_to_xy(x, y)
-            self.out_pose_mut.pose.position.x = x
-            self.out_pose_mut.pose.position.y = y
-            self.point_pub.publish(self.out_pose_mut)
+
+            self.out_tf_mut.header.stamp = self.get_clock().now().to_msg()
+
+            self.out_tf_mut.transform.translation.x = x
+            self.out_tf_mut.transform.translation.y = y
+
+            self.broadcaster.sendTransform(self.out_tf_mut)
         else:
             pass
 

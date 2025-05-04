@@ -7,7 +7,4 @@
     <node pkg="path_planning" exec="trajectory_follower" name="trajectory_follower">
         <param from="$(find-pkg-share path_planning)/config/sim/sim_config.yaml"/>
     </node>
-    <node>
-
-    </node>
 </launch>

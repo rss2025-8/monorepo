@@ -35,6 +35,7 @@ setup(
             'trajectory_follower = shrinkray_heist.trajectory_follower:main',
             'realistic_ackermann = shrinkray_heist.realistic_ackermann:main',
             'detection_node = shrinkray_heist.model.detection_node:main',
+            'heist_controller = shrinkray_heist.heist_controller:main',
         ],
     },
 )
