@@ -9,6 +9,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from visualization_msgs.msg import Marker
 from vs_msgs.msg import Point, Trajectory
+from race_to_the_moon.computer_vision.color_segmentation import bgr_color_segmentation
 from race_to_the_moon.visualization_tools import VisualizationTools
 from race_to_the_moon.computer_vision.homography_utils import HomographyTransformer
 
@@ -31,6 +32,10 @@ class LaneDetector(Node):
         self.declare_parameter('use_homography', 'rss2025_8_old')
         self.declare_parameter('meters_per_inch', 0.0254)
         self.declare_parameter('visualization', True)
+
+        # Color segmentation parameters
+        self.declare_parameter('min_value', 120.)
+        self.declare_parameter('max_saturation', 25.)
 
         # Hough line parameters declaration
         self.declare_parameter('rho_resolution', 2)
@@ -72,6 +77,11 @@ class LaneDetector(Node):
         self.visualization = self.get_parameter('visualization').value
         self.debug = self.get_parameter("debug").value
 
+        self.color_segmentation_params = {
+            "min_value": self.get_parameter("min_value").value,
+            "max_saturation": self.get_parameter("max_saturation").value,
+            }
+
         # Create subscriptions and publishers
         self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 5)
         self.bridge = CvBridge()
@@ -93,6 +103,13 @@ class LaneDetector(Node):
             "canny_high": self.get_parameter('canny_high').value,
         }
 
+        self.line_filtering_params = {
+            "max_left_angle": -np.pi / 12,
+            "min_left_angle": -11*np.pi / 12,
+            "max_right_angle": 11*np.pi / 12,
+            "min_right_angle": np.pi/12
+        }
+
         # Initialize homography transformer
         self.homography_transformer = HomographyTransformer(
             self.PTS_IMAGE_PLANE,
@@ -105,14 +122,14 @@ class LaneDetector(Node):
         self.get_logger().info(f"Hough line params: {self.hough_line_params}")
         self.get_logger().info("Lane detector initialized")
 
-    def canny_detection(self, image):
+    def get_canny(self, image):
         """Apply Canny edge detection to the image"""
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
         blur = cv.GaussianBlur(gray, (5, 5), 0)
         canny = cv.Canny(blur, self.hough_line_params["canny_low"], self.hough_line_params["canny_high"])
         return canny
 
-    def region_of_interest(self, image):
+    def crop_image(self, image):
         """Isolate the region of interest (ROI) using a rectangular mask"""
         height = image.shape[0]
         width = image.shape[1]
@@ -121,7 +138,7 @@ class LaneDetector(Node):
             [(0, height), (width, height), (width, height//2), (0, height//2)]
         ])
         mask = np.zeros_like(image)
-        cv.fillPoly(mask, polygons, 255)
+        cv.fillPoly(mask, polygons, (255, 255, 255))
         masked_image = cv.bitwise_and(image, mask)
         return masked_image
 
@@ -165,10 +182,12 @@ class LaneDetector(Node):
                 # Filter out unrealistic slopes
                 if abs(slope) > 0.1 and abs(slope) < 10:
                     # Separate left and right lanes based on slope
-                    if slope < 0:
+                    if self.line_filtering_params["min_left_angle"] < slope < self.line_filtering_params["max_left_angle"] and slope:
                         left_fit.append((slope, intercept))
-                    else:
+                    elif self.line_filtering_params["min_right_angle"] < slope < self.line_filtering_params["max_right_angle"] and slope:
                         right_fit.append((slope, intercept))
+                    else:
+                        pass
 
         lines_to_draw = []
         if len(left_fit) > 0:
@@ -199,29 +218,34 @@ class LaneDetector(Node):
             cv.line(line_image, (x1, y1), (x2, y2), (0, 0, 255), 10)
         return line_image
 
-    def temp_display_midline(self, image, lines):
-        """Draw the midline based on the average of detected lines"""
-        line_image = np.zeros_like(image)
-        if lines is not None and len(lines) > 0:
-            avg_line = np.mean(lines, axis=0).astype(int)
-            x1, y1, x2, y2 = avg_line
-            cv.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 10)
-        return line_image
+    # def temp_display_midline(self, image, lines):
+    #     """Draw the midline based on the average of detected lines"""
+    #     line_image = np.zeros_like(image)
+    #     if lines is not None and len(lines) > 0:
+    #         avg_line = np.mean(lines, axis=0).astype(int)
+    #         x1, y1, x2, y2 = avg_line
+    #         cv.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 10)
+    #     return line_image
 
     def image_callback(self, image_msg):
         bgr_image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
         if bgr_image is None:
             return
 
+        cropped_image = self.crop_image(bgr_image)
+
+        cropped_and_color_segmented_image = bgr_color_segmentation(cropped_image, self.color_segmentation_params["min_value"], self.color_segmentation_params["max_saturation"])
+
         # Step 1: Apply Canny edge detection
-        canny_image = self.canny_detection(bgr_image)
+        # canny_image = self.canny_detection(bgr_image)
+        canny_image = self.get_canny(cropped_and_color_segmented_image)
 
         # Step 2: Define region of interest
-        cropped_image = self.region_of_interest(canny_image)
+        # cropped_image = self.region_of_interest(canny_image)
 
         # Step 3: Apply Hough Transform
         lines = cv.HoughLinesP(
-            cropped_image,
+            canny_image,
             self.hough_line_params['rho_resolution'],
             self.hough_line_params['theta_resolution'],
             self.hough_line_params['threshold'],
@@ -264,15 +288,16 @@ class LaneDetector(Node):
             self.get_logger().warning("No lanes detected in Hough Transform")
 
         if self.debug:
+            image_param = cropped_and_color_segmented_image #cv.cvtColor(canny_image, cv.COLOR_GRAY2BGR)
             # Draw lines on image
-            line_image = self.display_lines(bgr_image, averaged_lines)
+            line_image = self.display_lines(image_param, averaged_lines)
             # line_image = self.temp_display_midline(line_image, averaged_lines)
 
             # Combine with original image
             if averaged_lines is not None:
-                combo_image = cv.addWeighted(bgr_image, 0.8, line_image, 1, 1)
+                combo_image = cv.addWeighted(image_param, 0.8, line_image, 1, 1)
             else:
-                combo_image = bgr_image
+                combo_image = image_param
 
             debug_msg = self.bridge.cv2_to_imgmsg(combo_image, "bgr8")
             self.debug_image_pub.publish(debug_msg)

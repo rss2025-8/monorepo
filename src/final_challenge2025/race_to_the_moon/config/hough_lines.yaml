@@ -28,8 +28,8 @@
     maxLineGap: 100
 
     # Color segmentation parameters
-    max_saturation: 40.0
-    min_value: 140.0
+    max_saturation: 25.0
+    min_value: 110.0
 
     # Angle range parameters (in radians)
     min_angle_left: 0.2618    # np.pi/12
