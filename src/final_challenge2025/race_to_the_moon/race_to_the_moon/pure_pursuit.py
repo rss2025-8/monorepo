@@ -136,21 +136,21 @@ class PurePursuit(Node):
         # Find the point on the trajectory nearest to the car
         nearest_segment_idx = self.get_nearest_segment(car_loc)
 
-        # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
-        allowed_dist = self.speed * 0.5
-        if (
-            nearest_segment_idx == len(self.traj_points) - 2
-            or np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist
-        ):
-            if nearest_segment_idx == len(self.traj_points) - 2:
-                self.get_logger().info(f"Goal reached (nearest to end segment). Stopping.")
-            else:
-                self.get_logger().info(f"Goal reached (dist < {allowed_dist}). Stopping.")
-            if self.debug:
-                visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
-            self.drive(0.0, 0.0)
-            self.is_active = False
-            return
+        # # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
+        # allowed_dist = self.speed * 0.5
+        # if (
+        #     nearest_segment_idx == len(self.traj_points) - 2
+        #     or np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist
+        # ):
+        #     if nearest_segment_idx == len(self.traj_points) - 2:
+        #         self.get_logger().info(f"Goal reached (nearest to end segment). Stopping.")
+        #     else:
+        #         self.get_logger().info(f"Goal reached (dist < {allowed_dist}). Stopping.")
+        #     if self.debug:
+        #         visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
+        #     self.drive(0.0, 0.0)
+        #     self.is_active = False
+        #     return
 
         # Find adaptive lookahead distance using curvature
         adaptive_lookahead = self.get_adaptive_lookahead(car_pose, nearest_segment_idx)
@@ -187,7 +187,7 @@ class PurePursuit(Node):
         # Set speed based on allowed velocity to lookahead distance ratio
         min_speed = 1.0
         min_v_to_lookahead_ratio = 0.75
-        self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, self.max_speed)
+        self.speed = self.max_speed #np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, self.max_speed)
 
         # Low pass filter to smooth out sudden unexpected spikes
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
