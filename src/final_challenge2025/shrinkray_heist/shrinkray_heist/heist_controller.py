@@ -85,6 +85,8 @@ class HeistController(Node):
 
     self.tf_static_broadcaster.sendTransform(traffic_light)
 
+    self.seen_green = False
+
 
   def points_callback(self, pose_array: PoseArray) -> None:
     self.poses = list(reversed(list(map(copy_pose, pose_array.poses))))
@@ -108,7 +110,7 @@ class HeistController(Node):
       )
       dist = math.hypot(traffic_light_tf.transform.translation.x, traffic_light_tf.transform.translation.y)
 
-      if dist < 2:
+      if dist < 2 and not self.seen_green:
         self.get_logger().info("NEXT TO TRAFFIC LIGHT")
         if not traffic_light_detector.light_is_green(self.image):
           self.get_logger().info("LIGHT IS NOT GREEN, DOING NOTHING")
@@ -117,19 +119,20 @@ class HeistController(Node):
           msg.header.stamp = self.get_clock().now().to_msg()
           self.drive_pub.publish(msg)
           return
+        self.seen_green = True
         self.following_enable_pub.publish(Bool(data=True))
     except TransformException as ex:
       pass
 
 
-    self.get_logger().info(f"{self.next_timestamp - self.get_clock().now().nanoseconds}")
+    # self.get_logger().info(f"{self.next_timestamp - self.get_clock().now().nanoseconds}")
 
     if self.state == State.WAIT_TIME:
       if self.get_clock().now().nanoseconds > self.next_timestamp:
         self.get_logger().info("wait 5s -> backup")
         self.state = State.BACKUP
         self.next_state = None
-        self.next_timestamp = self.get_clock().now().nanoseconds + 4e9
+        self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
 
     elif self.state == State.GOTO_POSE:
       if not self.poses:

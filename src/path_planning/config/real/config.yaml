@@ -19,4 +19,4 @@ safety_controller:
     ackermann_cmd_topic: "/vesc/low_level/ackermann_cmd"
     safety_topic: "/vesc/low_level/input/safety"
     watchdog_localize_topic: "/pf/pose/odom"
-    stopping_time: 0.5
+    stopping_time: 0.7
