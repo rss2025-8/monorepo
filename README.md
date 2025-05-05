@@ -8,6 +8,8 @@ Visualizing/testing a bag in simulation:
 ```sh
 # Replace bag_file with the path to your bag file
 ros2 launch race_to_the_moon visual_test.launch.xml bag_file:=local/bags/racetrack/
+ros2 launch race_to_the_moon bag_visual_test.launch.xml bag_file:=local/bags/actual_1mps
+ros2 launch race_to_the_moon bag_visual_test.launch.xml bag_file:=local/bags/actual_2.5mps
 ```
 
 On the racecar:

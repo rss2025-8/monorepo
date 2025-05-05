@@ -36,7 +36,7 @@ class LaneDetector(Node):
         self.disable_topic: str = self.declare_parameter("disable_topic", "/temp_disable").value  # Safety controller
 
         self.left_lane_color: tuple = self.declare_parameter("left_lane_color", (0.0, 1.0, 0.0)).value
-        self.right_lane_color: tuple = self.declare_parameter("right_lane_color", (1.0, 0.0, 0.0)).value
+        self.right_lane_color: tuple = self.declare_parameter("right_lane_color", (0.0, 1.0, 0.0)).value
         self.midline_color: tuple = self.declare_parameter("midline_color", (0.0, 0.0, 1.0)).value
 
         self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 5)
@@ -115,6 +115,8 @@ class LaneDetector(Node):
             right_line_car = line_utils.endpoints_to_rho_theta(right_line_xy)
 
             mid_line_car = line_utils.find_midline_rho_theta(left_line_car, right_line_car, is_in_uv=False)
+            # TODO find one closer to the left
+            # mid_line_car = line_utils.find_midline_rho_theta(left_line_car, mid_line_car, is_in_uv=False)
             mid_line_xy = line_utils.rho_theta_to_endpoints(mid_line_car)
             # self.get_logger().info(f"Left line: {left_line_car}")
             # self.get_logger().info(f"Right line: {right_line_car}")
@@ -189,8 +191,14 @@ class LaneDetector(Node):
                 #         break
                 # if not duplicate:
                 plot_line(rho, theta, color=(0.5, 0.5, 0.5), thickness=1)
+            # if left_line:
+            #     plot_line(left_line[0], left_line[1], color=(0.0, 1.0, 0.0), thickness=5)
+            # if right_line:
+            #     plot_line(right_line[0], right_line[1], color=(0.0, 1.0, 0.0), thickness=5)
+            # lines_image = cv2.addWeighted(original_image, 0.5, lines_image, 1, 0)
             # debug_msg = self.bridge.cv2_to_imgmsg(lines_image, "bgr8")
-            # self.debug_image_pub.publish(debug_msg)
+            # self.debug_image_pub_2.publish(debug_msg)
+            # lines_image = masked_image.copy()
             # lines_image = np.zeros_like(image)
             for rho, theta in left_lines:
                 plot_line(rho, theta, color=self.left_lane_color, thickness=2)

@@ -77,11 +77,14 @@ class PurePursuit(Node):
             GeoPoint, "/zed/zed_node/left/image_rect_color_mouse_left", homography_callback, 1
         )
 
-    def get_nearest_segment(self, car_loc: np.ndarray) -> int:
-        """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
+    def get_nearest_segment(self, car_loc: np.ndarray) -> Tuple[int, float]:
+        """
+        Return the segment i s.t. (points[i], points[i+1]) is nearest to the car,
+        and the distance to the nearest segment. car_loc is (x, y).
+        """
         car_locs = np.tile(car_loc, (len(self.traj_points) - 1, 1))  # N x 2, N (# of segments) copies of car_loc
         dists = vectorized_point_to_segment_distance(car_locs, self.traj_points[:-1], self.traj_points[1:])
-        return np.argmin(dists)
+        return np.argmin(dists), dists[np.argmin(dists)]
 
     def get_lookahead_point(
         self, car_pose: np.ndarray, lookahead_dist: float, nearest_segment_idx: int
@@ -155,7 +158,7 @@ class PurePursuit(Node):
         car_loc = np.array([car_x, car_y])
 
         # Find the point on the trajectory nearest to the car
-        nearest_segment_idx = self.get_nearest_segment(car_loc)
+        nearest_segment_idx, nearest_dist = self.get_nearest_segment(car_loc)
 
         # # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
         # allowed_dist = self.speed * 0.5
@@ -173,8 +176,24 @@ class PurePursuit(Node):
         #     self.is_active = False
         #     return
 
-        # Find lookahead distance using curvature
+        # Find curvature of the path
         adaptive_lookahead = self.base_lookahead + self.max_speed * self.lookahead_speed_ratio
+        # result = self.get_lookahead_point(car_pose, adaptive_lookahead, nearest_segment_idx)
+        # lookahead_point, l_seg_idx = result if result else (None, None)
+        # if lookahead_point is None:
+        #     l_seg_idx = nearest_segment_idx
+        #     lookahead_point = self.traj_points[l_seg_idx + 1]
+        # dx, dy = lookahead_point[0] - car_x, lookahead_point[1] - car_y
+        # local_x = math.cos(-car_theta) * dx - math.sin(-car_theta) * dy
+        # local_y = math.sin(-car_theta) * dx + math.cos(-car_theta) * dy
+        # eta = math.atan2(local_y, local_x)  # Angle between car and lookahead point
+        # Find lookahead distance using curvature
+        # adaptive_lookahead = self.base_lookahead + self.max_speed * self.lookahead_speed_ratio
+        # adaptive_lookahead -= nearest_dist * 5.0
+        # adaptive_lookahead -= abs(eta) * 10.0
+        # max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+        # adaptive_lookahead = np.clip(adaptive_lookahead, min_lookahead, max_lookahead)
 
         # Find the lookahead point
         result = self.get_lookahead_point(car_pose, adaptive_lookahead, nearest_segment_idx)
@@ -203,6 +222,12 @@ class PurePursuit(Node):
             if eta == 0:
                 eta = 1e-6
             eta = math.pi / 2 * np.sign(eta)
+
+        # Increase steering angle responsiveness
+        eta *= 1.5
+
+        # TODO Adaptive lookahead based on direction to lookahead point ~ curvature?
+        # adaptive_lookahead = np.clip(adaptive_lookahead - abs(eta) * 2, adaptive_lookahead / 2, adaptive_lookahead)
         steering_angle = math.atan((2 * self.wheelbase_length * math.sin(eta)) / adaptive_lookahead)
 
         # Set speed to go fast
@@ -220,7 +245,7 @@ class PurePursuit(Node):
                 # Near straight, don't plot
                 visualize.clear_marker(self.debug_driving_arc_pub)
             else:
-                visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(0, 0, 1), frame="/base_link")
+                visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(1, 0, 0), z=0.1, frame="/base_link")
 
         self.drive(steering_angle, self.speed)
         self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)

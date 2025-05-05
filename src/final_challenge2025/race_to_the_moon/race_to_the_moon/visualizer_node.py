@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point, Pose, Quaternion, TransformStamped, Vector3
 from race_to_the_moon.homography import transform_uv_to_xy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage, Image
 from std_msgs.msg import Header
 from visualization_msgs.msg import Marker
 from vs_msgs.msg import LookaheadLocation
@@ -49,6 +49,9 @@ class VisualizerNode(Node):
 
         self.image_topic: str = self.declare_parameter("image_topic", "/zed/zed_node/rgb/image_rect_color").value
         # self.image_topic: str = self.declare_parameter("image_topic", "/race/debug_img").value
+        self.compressed_image_topic: str = self.declare_parameter(
+            "compressed_image_topic", "/zed/zed_node/rgb/image_rect_color/compressed"
+        ).value
         self.debug: bool = self.declare_parameter("debug", True).value
         self.fast_mode: bool = self.declare_parameter("fast_mode", False).value
 
@@ -64,6 +67,10 @@ class VisualizerNode(Node):
 
         if self.debug:
             self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 1)
+            self.compressed_image_sub = self.create_subscription(
+                CompressedImage, self.compressed_image_topic, self.compressed_image_callback, 1
+            )
+            self.decompressed_image_pub = self.create_publisher(Image, "/zed/zed_node/rgb/image_rect_color", 1)
             self.get_logger().info("DEBUG mode enabled")
         if self.fast_mode:
             self.get_logger().info("FAST mode enabled")
@@ -90,6 +97,13 @@ class VisualizerNode(Node):
                 else:
                     self.get_logger().info(f"visual: {avg_latency:.4f}s")
                 self.timing = [0, 0.0]
+
+    def compressed_image_callback(self, compressed_image_msg):
+        # Uncompress image and republish
+        cv_image = self.bridge.compressed_imgmsg_to_cv2(compressed_image_msg, desired_encoding="bgr8")
+        raw_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
+        raw_msg.header = compressed_image_msg.header
+        self.decompressed_image_pub.publish(raw_msg)
 
 
 def main(args=None):

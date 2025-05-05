@@ -6,6 +6,7 @@ import rclpy.time
 from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 from nav_msgs.msg import Odometry
 from rcl_interfaces.msg import SetParametersResult
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import LaserScan
@@ -76,7 +77,8 @@ class SafetyController(Node):
         self.scan_timestamp = self.get_clock().now()
         self.ackermann_timestamp = self.get_clock().now()
         self.last_debug_timestamp = self.get_clock().now()
-        self.last_disable_timestamp = self.get_clock().now() - self.disable_timeout
+        self.old_time = self.get_clock().now() - Duration(seconds=99999)
+        self.last_disable_timestamp = self.old_time
         self.front_distance = float("inf")
         self.left_distance = float("inf")
         self.right_distance = float("inf")
