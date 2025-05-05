@@ -99,7 +99,7 @@ class SafetyController(Node):
 
     def ackermann_cmd_callback(self, cmd: AckermannDriveStamped) -> None:
         self.ackermann_timestamp = Time.from_msg(cmd.header.stamp)
-        self.speed = max(cmd.drive.speed, 0.0)
+        self.speed = cmd.drive.speed
         self.steering_angle = cmd.drive.steering_angle
         self.safety_check()
 
@@ -111,6 +111,7 @@ class SafetyController(Node):
         """Check safety conditions."""
         now = self.get_clock().now()
         should_stop = False
+        forward = self.speed > 0
 
         # Check watchdogs
         if self.watchdog_localize_topic:
@@ -129,7 +130,7 @@ class SafetyController(Node):
 
         # Check if we're too close to an obstacle in front
         close_in_front = self.front_distance < self.min_front_distance
-        if close_in_front:
+        if close_in_front and forward:
             self.print_warning(
                 f"Front too close ({self.front_distance:.3f} m < {self.min_front_distance:.3f} m), stopping car"
             )
@@ -137,12 +138,11 @@ class SafetyController(Node):
 
         # Check if we might crash in front
         will_crash = self.front_distance / (self.speed + 1e-6) < self.stopping_time
-        if will_crash:
+        if will_crash and forward:
             self.print_warning(
                 f"Front crash within {self.stopping_time:.3f} s ({self.front_distance:.3f} m at {self.speed:.3f} m/s), stopping car"
             )
             should_stop = True
-
         # TODO This might sees wires so it doesn't work as intended
         # Check if we might scrape a wall
         if self.steering_angle == 0:

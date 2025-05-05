@@ -7,6 +7,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
 from std_msgs.msg import Bool
+from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 from geometry_msgs.msg import Point, PointStamped, Pose, PoseArray, PoseStamped
 
 from tf2_ros.buffer import Buffer
@@ -19,6 +20,7 @@ class State(Enum):
   WAIT_TRAJECTORY = 1
   GOTO_POSE = 2
   GOTO_BANANA = 3
+  BACKUP = 4
 
 
 def copy_pose(incoming: Pose) -> Pose:
@@ -38,6 +40,9 @@ class HeistController(Node):
     self.points_sub = self.create_subscription(PoseArray, "/shell_points", self.points_callback, 1)
     self.goal_pub = self.create_publisher(PoseStamped, "/goal_pose", 10)
     self.at_goal_sub = self.create_subscription(Bool, "/at_goal", self.at_goal_callback, 1)
+    self.drive_pub = self.create_publisher(AckermannDriveStamped, "/vesc/high_level/input/nav_0", 1)
+    self.following_enable_pub = self.create_publisher(Bool, "/trajectory_following_enabled", 1)
+
     # self.detector_sub = self.create_subscription(PoseStamped, "/detected_point", self 10)
 
     self.create_timer(0.2, self.update)
@@ -48,7 +53,7 @@ class HeistController(Node):
     # self.active_mut = Bool()
     self.goal_mut = PoseStamped()
 
-    self.next_timestamp = self.get_clock().now()
+    self.next_timestamp = self.get_clock().now().nanoseconds
 
     # this is a terrible state machine
     # command based pls
@@ -69,8 +74,10 @@ class HeistController(Node):
 
   def update(self) -> None:
     if self.state == State.WAIT_TIME:
-      if self.get_clock().now() > self.next_timestamp:
-        self.state = self.next_state
+      if self.get_clock().now().nanoseconds > self.next_timestamp:
+        self.get_logger().info("wait 5s -> backup")
+        self.state = State.BACKUP
+        self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
 
     elif self.state == State.GOTO_POSE:
       if not self.poses:
@@ -83,7 +90,7 @@ class HeistController(Node):
       self.state = State.WAIT_TRAJECTORY
       self.next_state = State.GOTO_BANANA
 
-    elif self.state == State.GOTO_BANANA or (self.state == State.WAIT_TRAJECTORY and self.next_state == State.GOTO_BANANA):
+    elif self.state == State.GOTO_BANANA or (self.state == State.WAIT_TRAJECTORY and self.next_state == State.GOTO_BANANA and self.get_clock().now().nanoseconds > self.next_timestamp):
       try:
         banana_tf = self.tf_buffer.lookup_transform(
           "map",
@@ -119,11 +126,23 @@ class HeistController(Node):
 
     elif self.state == State.WAIT_TRAJECTORY:
       if self.at_goal:
-        self.get_logger().info("FINISHED TRAJECTORY, MOVING ON TO NEXT STATE")
+        self.get_logger().info(f"follow trajectory -> {self.next_state.name}")
         self.at_goal = False
-        self.next_timestamp = self.get_clock().now()
+        self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
         self.state = self.next_state
-        self.next_state = State.GOTO_POSE
+        # self.next_state = State.WAIT_TIME
+
+    elif self.state == State.BACKUP:
+      msg = AckermannDriveStamped()
+      msg.header.stamp = self.get_clock().now().to_msg()
+      msg.drive.speed = -0.3
+      self.following_enable_pub.publish(Bool(data=False))
+      self.drive_pub.publish(msg)
+      if self.get_clock().now().nanoseconds > self.next_timestamp:
+        self.get_logger().info("backup -> goto next pose")
+        self.state = State.GOTO_POSE
+        self.following_enable_pub.publish(Bool(data=True))
+        self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
 
 def main(args=None):
     rclpy.init(args=args)

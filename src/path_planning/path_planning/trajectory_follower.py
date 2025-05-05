@@ -42,6 +42,9 @@ class PurePursuit(Node):
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 1)
         self.drive_cmd = AckermannDrive()
 
+        self.enabled = True
+        self.enabled_sub = self.create_subscription(Bool, "/trajectory_following_enabled", self.enabled_callback, 1)
+
         self.at_goal_pub = self.create_publisher(Bool, "/at_goal", 1)
 
         self.debug_nearest_segment_pub = self.create_publisher(Marker, "/pure_pursuit/nearest_segment", 1)
@@ -61,6 +64,9 @@ class PurePursuit(Node):
         #     self.run_tests()
 
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
+
+    def enabled_callback(self, msg: Bool) -> None:
+        self.enabled = msg.data
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
         """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
@@ -130,6 +136,9 @@ class PurePursuit(Node):
 
     def pose_callback(self, odometry_msg):
         """Called on every pose update. Updates the drive command."""
+        if not self.enabled:
+            return
+
         if not self.is_active:
             self.drive(use_last_cmd=True)
             return
@@ -302,6 +311,9 @@ class PurePursuit(Node):
         path = np.array(self.trajectory.points)
         path_length = np.sum(np.linalg.norm(path[1:] - path[:-1], axis=1))
         num_points = int(path_length / dist_between_points) + 2
+
+        num_points = max(5, num_points)
+        
         path, dtheta, step_size = self.smooth_path(path, num_points=num_points, smoothness=0.25)
 
         self.trajectory.clear()
