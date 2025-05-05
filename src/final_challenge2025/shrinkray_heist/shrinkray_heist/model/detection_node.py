@@ -15,10 +15,10 @@ from tf2_ros import TransformBroadcaster
 class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
-        self.debug = False
+        self.debug = True
 
         self.detector = Detector()
-        self.detector.set_threshold(0.25)
+        self.detector.set_threshold(0.2)
 
         self.point_pub = self.create_publisher(PoseStamped, "/detected_point", 10)
         self.debug_image_pub = self.create_publisher(Image, "/debug_image", 10)
@@ -46,7 +46,7 @@ class DetectorNode(Node):
 
         if banana_bounding_boxes:
             xmin, ymin, xmax, ymax = banana_bounding_boxes[0]
-            x, y = ((xmin + xmax) / 2, (ymin + ymax) / 2)
+            x, y = ((xmin + xmax) / 2, ymax)
             x, y = homography_utils.transform_uv_to_xy(x, y)
 
             self.out_tf_mut.header.stamp = self.get_clock().now().to_msg()

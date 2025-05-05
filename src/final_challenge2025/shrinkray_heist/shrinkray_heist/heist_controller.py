@@ -1,3 +1,5 @@
+import math
+
 from enum import Enum
 from typing import Optional
 
@@ -65,8 +67,6 @@ class HeistController(Node):
     self.get_logger().info("RECEIVED TRAJECTORY FINISH")
     self.at_goal = True
 
-  # def detection_callback(self, detected_pose: )
-
   def update(self) -> None:
     if self.state == State.WAIT_TIME:
       if self.get_clock().now() > self.next_timestamp:
@@ -83,15 +83,27 @@ class HeistController(Node):
       self.state = State.WAIT_TRAJECTORY
       self.next_state = State.GOTO_BANANA
 
-    elif self.state == State.GOTO_BANANA:
+    elif self.state == State.GOTO_BANANA or (self.state == State.WAIT_TRAJECTORY and self.next_state == State.GOTO_BANANA):
       try:
         banana_tf = self.tf_buffer.lookup_transform(
           "map",
           "banana",
           Time()
         )
-        self.goal_mut.pose.position.x = banana_tf.transform.translation.x
-        self.goal_mut.pose.position.y = banana_tf.transform.translation.y
+        base_link_tf = self.tf_buffer.lookup_transform(
+          "map",
+          "base_link",
+          Time()
+        )
+        dx = banana_tf.transform.translation.x - base_link_tf.transform.translation.x
+        dy = banana_tf.transform.translation.y - base_link_tf.transform.translation.y
+        # normalize
+        mag = 1 / math.hypot(dx, dy)
+        dx *= mag
+        dy *= mag
+
+        self.goal_mut.pose.position.x = banana_tf.transform.translation.x - dx
+        self.goal_mut.pose.position.y = banana_tf.transform.translation.y - dy
 
         self.get_logger().info(f"I SAW A BANANA!!!!!!!! {self.goal_mut.pose.position.x} {self.goal_mut.pose.position.y}")
         self.get_logger().info(f"STATE TRANSITION: GOTO_BANANA -> WAIT_TRAJECTORY (-> wait time) ")
@@ -109,7 +121,7 @@ class HeistController(Node):
       if self.at_goal:
         self.get_logger().info("FINISHED TRAJECTORY, MOVING ON TO NEXT STATE")
         self.at_goal = False
-        self.next_timestamp = self.get_clock().now().nanoseconds / 10e9
+        self.next_timestamp = self.get_clock().now()
         self.state = self.next_state
         self.next_state = State.GOTO_POSE
 

@@ -27,7 +27,7 @@ class PurePursuit(Node):
         self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
         self.debug: bool = self.declare_parameter("debug", False).value
 
-        self.max_speed: float = 1 # self.declare_parameter("max_speed", 1.0).value
+        self.max_speed: float = 0.8 # self.declare_parameter("max_speed", 1.0).value
         self.speed: float = self.max_speed
         self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=5.0)
 
