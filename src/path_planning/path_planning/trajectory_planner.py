@@ -83,12 +83,21 @@ class Grid:
     def from_msg(cls, msg: OccupancyGrid, downsampling: int = 1) -> "Grid":
         # Reshape the OccupancyGrid
         grid = np.array(msg.data).reshape((msg.info.height, msg.info.width))
+
         # treat empty space as walls
         grid[grid == -1] = 100
         grid[grid == 100] = 100
 
         # idk numpy so 2d convolution
         downsampled_grid = convolution_downsample(grid, downsampling)
+
+        # Dilate the obstacles with a kernel (size controls buffer)
+        obstacle_mask = (downsampled_grid != 0).astype(np.uint8)  # 0 is free, -1 is unknown, 100 is obstacle
+        kernel_size = 8
+        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        dilated_obstacle_mask = cv2.dilate(obstacle_mask, kernel, iterations=1)
+        final_grid = np.where(dilated_obstacle_mask == 1, 100, downsampled_grid)
+        
         inner_blur = gaussian_filter(downsampled_grid, sigma=3)
         outer_blur = gaussian_filter(downsampled_grid, sigma=9)
         # smooth =

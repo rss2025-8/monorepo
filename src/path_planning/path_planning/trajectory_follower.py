@@ -11,7 +11,7 @@ from geometry_msgs.msg import Pose, PoseArray
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from scipy.interpolate import splev, splprep
-from std_msgs.msg import Float32, Header
+from std_msgs.msg import Float32, Header, Bool
 from visualization_msgs.msg import Marker
 
 from . import visualize
@@ -41,6 +41,8 @@ class PurePursuit(Node):
         self.odom_sub = self.create_subscription(Odometry, self.odom_topic, self.pose_callback, 1)
         self.drive_pub = self.create_publisher(AckermannDriveStamped, self.drive_topic, 1)
         self.drive_cmd = AckermannDrive()
+
+        self.at_goal_pub = self.create_publisher(Bool, "/at_goal", 1)
 
         self.debug_nearest_segment_pub = self.create_publisher(Marker, "/pure_pursuit/nearest_segment", 1)
         self.debug_lookahead_point_pub = self.create_publisher(Marker, "/pure_pursuit/lookahead_point", 1)
@@ -153,6 +155,7 @@ class PurePursuit(Node):
                 visualize.plot_debug_text("At goal", self.debug_text_pub, color=(0.0, 0.0, 1.0))
             self.drive(0.0, -0.01)  # TODO negative velocity should activate VESC braking
             self.is_active = False
+            self.at_goal_pub.publish(Bool(data=True))
             return
 
         # Find adaptive lookahead distance using curvature

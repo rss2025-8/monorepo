@@ -19,7 +19,9 @@ setup(
         (os.path.join('share', package_name, 'config', 'sim'), glob.glob('config/sim/*.yaml')),
         (os.path.join('share', package_name, 'config', 'real'), glob.glob('config/real/*.yaml')),
         (os.path.join('share', package_name, 'config', 'debug'), glob.glob('config/debug/*.yaml')),
-        ('share/shrinkray_heist/example_trajectories', glob.glob(os.path.join('example_trajectories', '*.traj')))],
+        ('share/shrinkray_heist/example_trajectories', glob.glob(os.path.join('example_trajectories', '*.traj'))),
+        ("share/shrinkray_heist/maps", glob.glob(os.path.join("map", "*")))],
+
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Sebastian',
@@ -36,6 +38,8 @@ setup(
             'realistic_ackermann = shrinkray_heist.realistic_ackermann:main',
             'detection_node = shrinkray_heist.model.detection_node:main',
             'heist_controller = shrinkray_heist.heist_controller:main',
+            'basement_point_publisher = shrinkray_heist.basement_point_publisher:main',
+            'safety_controller = shrinkray_heist.safety_controller:main',
         ],
     },
 )

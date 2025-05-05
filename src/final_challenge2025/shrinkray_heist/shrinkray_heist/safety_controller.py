@@ -99,7 +99,7 @@ class SafetyController(Node):
 
     def ackermann_cmd_callback(self, cmd: AckermannDriveStamped) -> None:
         self.ackermann_timestamp = Time.from_msg(cmd.header.stamp)
-        self.speed = cmd.drive.speed
+        self.speed = max(cmd.drive.speed, 0.0)
         self.steering_angle = cmd.drive.steering_angle
         self.safety_check()
 
