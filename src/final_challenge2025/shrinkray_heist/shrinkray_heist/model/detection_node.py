@@ -18,7 +18,7 @@ class DetectorNode(Node):
         self.debug = True
 
         self.detector = Detector()
-        self.detector.set_threshold(0.2)
+        self.detector.set_threshold(0.25)
 
         self.point_pub = self.create_publisher(PoseStamped, "/detected_point", 10)
         self.debug_image_pub = self.create_publisher(Image, "/debug_image", 10)

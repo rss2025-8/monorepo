@@ -145,21 +145,21 @@ class SafetyController(Node):
             should_stop = True
         # TODO This might sees wires so it doesn't work as intended
         # Check if we might scrape a wall
-        if self.steering_angle == 0:
-            scrape_dist = max(self.left_distance, self.right_distance)
-        elif self.steering_angle > 0:
-            scrape_dist = self.left_distance  # Turning towards left wall
-        else:
-            scrape_dist = self.right_distance  # Turning towards right wall
-        scrape = scrape_dist < self.min_side_distance
-        if scrape:
-            self.print_warning(
-                f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
-            )
-            self.print_warning(
-                f"If this is erroneously triggered (ex: due to wires), comment it out in the safety controller."
-            )
-            should_stop = True
+        # if self.steering_angle == 0:
+        #     scrape_dist = max(self.left_distance, self.right_distance)
+        # elif self.steering_angle > 0:
+        #     scrape_dist = self.left_distance  # Turning towards left wall
+        # else:
+        #     scrape_dist = self.right_distance  # Turning towards right wall
+        # scrape = scrape_dist < self.min_side_distance
+        # if scrape:
+        #     self.print_warning(
+        #         f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
+        #     )
+        #     self.print_warning(
+        #         f"If this is erroneously triggered (ex: due to wires), comment it out in the safety controller."
+        #     )
+        #     should_stop = True
 
         # Monitor responsiveness of timer callback
         if self.timing[0] == self.timer_hertz:

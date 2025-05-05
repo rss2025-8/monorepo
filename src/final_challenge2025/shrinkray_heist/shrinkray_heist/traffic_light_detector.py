@@ -69,14 +69,14 @@ def light_is_green(img):
     contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # displays in rviz
-    image_print(img)
-    image_print(mask)
-    image_print(cleaned_mask)
+    # image_print(img)
+    # image_print(mask)
+    # image_print(cleaned_mask)
 
     # Check contour area
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
-        print(cv2.contourArea(largest_contour))
+        # print(cv2.contourArea(largest_contour))
         if cv2.contourArea(largest_contour) > 15:
             return True
     return False
