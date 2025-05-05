@@ -14,7 +14,7 @@ lane_detector:
     safety_topic: 'vesc/low_level/input/safety'
 
     # Homography parameters
-    use_homography: "rss2025_8_old"
+    use_homography: "rss2025_8_new"
     lookahead_dist: 4.
     meters_per_inch: 0.0254
 

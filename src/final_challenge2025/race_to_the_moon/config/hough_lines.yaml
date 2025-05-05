@@ -28,7 +28,7 @@
     maxLineGap: 100
 
     # Color segmentation parameters
-    max_saturation: 25.0
+    max_saturation: 40.0
     min_value: 110.0
 
     # Angle range parameters (in radians)

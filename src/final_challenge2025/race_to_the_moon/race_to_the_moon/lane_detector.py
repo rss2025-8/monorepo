@@ -107,7 +107,7 @@ class LaneDetector(Node):
             "max_left_angle": -np.pi / 12,
             "min_left_angle": -11*np.pi / 12,
             "max_right_angle": 11*np.pi / 12,
-            "min_right_angle": np.pi/12
+            "min_right_angle": np.pi/ 12
         }
 
         # Initialize homography transformer
