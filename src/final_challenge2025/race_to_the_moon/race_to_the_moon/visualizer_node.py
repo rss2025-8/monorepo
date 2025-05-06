@@ -42,6 +42,9 @@ def pose_to_tf(pose: Pose, parent: str, child: str, time: rclpy.time.Time) -> Tr
     return msg
 
 
+img_counter = 0
+
+
 class VisualizerNode(Node):
 
     def __init__(self):
@@ -77,6 +80,13 @@ class VisualizerNode(Node):
         self.get_logger().info("Visualizer initialized")
 
     def image_callback(self, image_msg):
+        # Save to image with increasing timestamp
+        # image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
+        # global img_counter
+        # cv2.imwrite(f"images/{img_counter}.png", image)
+        # img_counter += 1
+        # return
+
         if self.debug:
             call_time = self.get_clock().now()
 
