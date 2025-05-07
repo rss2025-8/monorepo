@@ -11,7 +11,7 @@ from geometry_msgs.msg import Pose, PoseArray
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from scipy.interpolate import splev, splprep
-from std_msgs.msg import Float32, Header, Bool
+from std_msgs.msg import Bool, Float32, Header
 from visualization_msgs.msg import Marker
 
 from . import visualize
@@ -27,7 +27,7 @@ class PurePursuit(Node):
         self.drive_topic: str = self.declare_parameter("drive_topic", "default").value
         self.debug: bool = self.declare_parameter("debug", False).value
 
-        self.max_speed: float = 0.8 # self.declare_parameter("max_speed", 1.0).value
+        self.max_speed: float = self.declare_parameter("max_speed", 1.0).value
         self.speed: float = self.max_speed
         self.low_pass_filter = LowPassFilter(self.get_clock().now(), cutoff_freq=5.0)
 
@@ -44,6 +44,11 @@ class PurePursuit(Node):
 
         self.enabled = True
         self.enabled_sub = self.create_subscription(Bool, "/trajectory_following_enabled", self.enabled_callback, 1)
+
+        self.is_backwards = False
+        self.is_backwards_sub = self.create_subscription(
+            Bool, "/trajectory_following_backwards", self.is_backwards_callback, 1
+        )
 
         self.at_goal_pub = self.create_publisher(Bool, "/at_goal", 1)
 
@@ -64,9 +69,13 @@ class PurePursuit(Node):
         #     self.run_tests()
 
         self.pose_to_traj_error_pub = self.create_publisher(Float32, "/pose_to_traj_error", 1)
+        self.pose_to_goal_error_pub = self.create_publisher(Float32, "/pose_to_goal_error", 1)
 
     def enabled_callback(self, msg: Bool) -> None:
         self.enabled = msg.data
+
+    def is_backwards_callback(self, msg: Bool) -> None:
+        self.is_backwards = msg.data
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> int:
         """Return the segment i s.t. (points[i], points[i+1]) is nearest to the car. car_loc is (x, y)."""
@@ -144,6 +153,10 @@ class PurePursuit(Node):
             return
         call_time = self.get_clock().now()
         car_pose = pose_to_vec(odometry_msg.pose.pose)
+        if self.is_backwards:  # Pretend the car is going backwards
+            car_pose[2] = car_pose[2] + math.pi
+            if car_pose[2] > math.pi:
+                car_pose[2] -= 2 * math.pi
         car_x, car_y, car_theta = car_pose
         car_loc = np.array([car_x, car_y])
 
@@ -151,7 +164,7 @@ class PurePursuit(Node):
         nearest_segment_idx = self.get_nearest_segment(car_loc)
 
         # Check if we're at the goal (2nd to last point or closest segment is the one after the goal)
-        allowed_dist = self.speed * 0.25
+        allowed_dist = 0.5
         if (
             nearest_segment_idx == len(self.traj_points) - 2
             or np.linalg.norm(self.traj_points[-2] - car_loc) <= allowed_dist
@@ -199,10 +212,11 @@ class PurePursuit(Node):
             eta = math.pi / 2 * np.sign(eta)
         steering_angle = math.atan((2 * self.wheelbase_length * math.sin(eta)) / adaptive_lookahead)
 
-        # Set speed based on allowed velocity to lookahead distance ratio
+        # Set speed based on allowed velocity to lookahead distance ratio and distance to goal
         min_speed = 1.0
         min_v_to_lookahead_ratio = 0.75
-        self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, self.max_speed)
+        max_speed = min(self.max_speed, 0.5 + np.linalg.norm(self.traj_points[-2] - car_loc))
+        self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, max_speed)
 
         # Low pass filter to smooth out sudden unexpected spikes
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
@@ -218,7 +232,10 @@ class PurePursuit(Node):
             else:
                 visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(0, 0, 1), frame="/base_link")
 
-        self.drive(steering_angle, self.speed)
+        if self.is_backwards:
+            self.drive(-steering_angle, -self.speed / 2)
+        else:
+            self.drive(steering_angle, self.speed)
         self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
 
         # Debug
@@ -313,7 +330,7 @@ class PurePursuit(Node):
         num_points = int(path_length / dist_between_points) + 2
 
         num_points = max(5, num_points)
-        
+
         path, dtheta, step_size = self.smooth_path(path, num_points=num_points, smoothness=0.25)
 
         self.trajectory.clear()
@@ -422,11 +439,17 @@ class PurePursuit(Node):
         s1 = self.traj_points[nearest_segment_idx]
         s2 = self.traj_points[nearest_segment_idx + 1]
 
+        # Trajectory error
         error = point_to_segment_distance(car_pose, s1, s2)
-
         error_msg = Float32()
         error_msg.data = float(error)
         self.pose_to_traj_error_pub.publish(error_msg)
+
+        # Goal error
+        error = np.linalg.norm(car_pose[:2] - self.traj_points[-2])
+        error_msg = Float32()
+        error_msg.data = float(error)
+        self.pose_to_goal_error_pub.publish(error_msg)
 
 
 class LowPassFilter:

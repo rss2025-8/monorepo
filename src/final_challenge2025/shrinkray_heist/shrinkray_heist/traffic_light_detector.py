@@ -22,11 +22,30 @@ Bounds:
 H: [158, 186] -> [79, 93]
 S: [52, 100] -> [132, 255]
 V: [55, 100] -> [140, 255]
+
+(Red)
+Include:
+[
+[3.7, 96, 100],
+[0, 99, 49],
+[0, 95, 59],
+[359, 97, 69],
+[4.4, 92, 52],
+]
+
+Avoid: Everything else
+
+Bounds:
+H: [0, 6] and [358, 360]
+S: [88, 100]
+V: [50, 100]
 """
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+
+DEBUG = True
 
 
 def image_print(img):
@@ -34,9 +53,10 @@ def image_print(img):
     Helper function to print out images, for debugging. Pass them in as a list.
     Press any key to continue.
     """
-    cv2.imshow("image", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if DEBUG:
+        cv2.imshow("image", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 def light_is_green(img):
@@ -44,22 +64,11 @@ def light_is_green(img):
     img: np.3darray; the input image with a cone to be detected. BGR.
     Returns True if a green light is visible, False otherwise.
     """
-    # Set top third of image to black
-    img[: img.shape[0] // 3, :, :] = 0
+    # Set top 0.35 of image to black to avoid exit sign
+    img[: int(img.shape[0] * 0.35), :, :] = 0
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
-    # values i got from an hsv color picker online:
-    # 160, 100, 80
-    # 170, 100, 50
-    # math inside np converts from hsv color space to cv hsv color space
-    # lower_color = np.array([160 / 2, 100 * 2.55, 70 * 2.55])  # lower-bound value
-    # upper_color = np.array([170 / 2, 100 * 2.55, 80 * 2.55])  # upper-bound value
-
-    # lower_color = np.array([79, 132, 153])  # lower-bound value
     lower_color = np.array([79, 132, 140])  # lower-bound value
-    # upper_color = np.array([82, 145, 255])  # upper-bound value
     upper_color = np.array([93, 255, 255])  # upper-bound value
-    # upper_color = np.array([82, 255, 255])  # upper-bound value
 
     mask = cv2.inRange(hsv, lower_color, upper_color)
     # Apply an opening, followed by a closing operation to remove noise and fill in small holes
@@ -69,14 +78,62 @@ def light_is_green(img):
     contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # displays in rviz
-    # image_print(img)
-    # image_print(mask)
-    # image_print(cleaned_mask)
+    image_print(img)
+    image_print(mask)
+    image_print(cleaned_mask)
 
     # Check contour area
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
-        # print(cv2.contourArea(largest_contour))
-        if cv2.contourArea(largest_contour) > 15:
+        print(cv2.contourArea(largest_contour))
+        # Draw box around the largest contour
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
+        image_print(img)
+        if cv2.contourArea(largest_contour) > 20:
+            return True
+    return False
+
+
+def light_is_red(img):
+    """
+    img: np.3darray; the input image with a cone to be detected. BGR.
+    Returns True if a red light is visible, False otherwise.
+    """
+    # Set top 0.35 of image to black to avoid exit sign
+    img[: int(img.shape[0] * 0.35), :, :] = 0
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    image_print(img)
+
+    # math inside np converts from hsv color space to cv hsv color space
+    lower_color = np.array([0 / 2, 88 * 2.55, 50 * 2.55])  # lower-bound value
+    upper_color = np.array([6 / 2, 100 * 2.55, 100 * 2.55])  # upper-bound value
+
+    # Also get near 360
+    lower_color_360 = np.array([358 / 2, 88 * 2.55, 50 * 2.55])
+    upper_color_360 = np.array([360 / 2, 100 * 2.55, 100 * 2.55])
+
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+    mask_360 = cv2.inRange(hsv, lower_color_360, upper_color_360)
+    mask = cv2.bitwise_or(mask, mask_360)
+    # Apply an opening, followed by a closing operation to remove noise and fill in small holes
+    kernel = np.ones((9, 9), np.uint8)
+    cleaned_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    cleaned_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # displays in rviz
+    image_print(mask)
+    image_print(cleaned_mask)
+
+    # Check contour area
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        print(cv2.contourArea(largest_contour))
+        # Draw box around the largest contour
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
+        image_print(img)
+        if cv2.contourArea(largest_contour) > 20:
             return True
     return False

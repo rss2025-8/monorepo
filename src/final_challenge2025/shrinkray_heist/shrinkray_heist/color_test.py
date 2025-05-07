@@ -2,7 +2,7 @@ import os
 
 import cv2
 import numpy as np
-from final_challenge2025.shrinkray_heist.shrinkray_heist.traffic_light_detector import cd_color_segmentation, image_print
+from traffic_light_detector import image_print, light_is_red
 
 # test_folder = "./traffic_test_images"
 # ground_truth = {
@@ -23,12 +23,12 @@ from final_challenge2025.shrinkray_heist.shrinkray_heist.traffic_light_detector 
 
 # Iterate through images in test_folder
 ground_truth = {}
-for filename in os.listdir("test_images/light/green"):
-    if filename.endswith(".png"):
-        ground_truth[f"test_images/light/green/{filename}"] = "green"
 for filename in os.listdir("test_images/light/red"):
     if filename.endswith(".png"):
         ground_truth[f"test_images/light/red/{filename}"] = "red"
+for filename in os.listdir("test_images/light/green"):
+    if filename.endswith(".png"):
+        ground_truth[f"test_images/light/green/{filename}"] = "green"
 for filename in os.listdir("test_images/light/yellow"):
     if filename.endswith(".png"):
         ground_truth[f"test_images/light/yellow/{filename}"] = "yellow"
@@ -39,12 +39,12 @@ total = 0
 for filepath, true_label in ground_truth.items():
     img = cv2.imread(filepath)
     if img is not None:
-        predicted = cd_color_segmentation(img)
-        if true_label == "green" and predicted:
+        predicted = light_is_red(img)
+        if true_label == "green" and not predicted:
             correct += 1
         elif true_label == "yellow" and not predicted:
             correct += 1
-        elif true_label == "red" and not predicted:
+        elif true_label == "red" and predicted:
             correct += 1
         else:
             print(f"Incorrectly predicted {filepath} as {predicted}")

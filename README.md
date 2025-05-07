@@ -2,6 +2,18 @@
 
 All our code will be in here!
 
+## Final Challenge Part B
+
+Testing in sim:
+```sh
+ros2 launch shrinkray_heist sim.launch.xml
+```
+
+Testing on car:
+```sh
+ros2 launch shrinkray_heist act.launch.xml
+```
+
 ## Lab 6: Path Planning
 
 Testing path planning/following in simulation:

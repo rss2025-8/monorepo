@@ -37,7 +37,7 @@ class PathPlan(Node):
         self.debug: bool = self.declare_parameter("debug", False).value
 
         self.map_sub = self.create_subscription(OccupancyGrid, self.map_topic, self.map_cb, 1)
-        self.goal_sub = self.create_subscription(PoseStamped, "/goal_pose", self.goal_cb, 10)
+        self.goal_sub = self.create_subscription(PoseStamped, "/heist_goal_pose", self.goal_cb, 10)
         self.traj_pub = self.create_publisher(PoseArray, "/trajectory/current", 10)
         self.pose_sub = self.create_subscription(Odometry, self.odom_topic, self.pose_cb, 10)
         self.neighbors_pub = self.create_publisher(PoseArray, "/trajectory/end_point_neighbors", 10)
