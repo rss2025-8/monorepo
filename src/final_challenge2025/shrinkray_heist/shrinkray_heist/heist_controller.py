@@ -129,7 +129,7 @@ class HeistController(Node):
         self.get_logger().info("wait 5s -> backup")
         self.state = State.BACKUP
         self.next_state = None
-        self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
+        self.next_timestamp = self.get_clock().now().nanoseconds + 4e9
 
     elif self.state == State.GOTO_POSE:
       if not self.poses:
@@ -144,7 +144,7 @@ class HeistController(Node):
       self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
       self.next_state = State.GOTO_BANANA
 
-    elif self.state == State.GOTO_BANANA or (self.next_state == State.GOTO_BANANA and self.get_clock().now().nanoseconds > self.next_timestamp):
+    elif self.state == State.GOTO_BANANA:
       try:
         banana_tf = self.tf_buffer.lookup_transform(
           "map",
