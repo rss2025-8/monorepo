@@ -18,6 +18,7 @@ from geometry_msgs.msg import (
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import Image
+from nav_msgs.msg import Odometry
 from shrinkray_heist import traffic_light_detector
 from std_msgs.msg import Bool
 from tf2_ros import TransformException
@@ -47,6 +48,7 @@ def copy_pose(incoming: Pose) -> Pose:
 
 
 TRAFFIC_LIGHT: tuple[int, int] = (-12.3667, 14.6265)
+CLOSENESS_POINT: tuple[int, int] = (-5.4, 22.7)
 
 
 class HeistController(Node):
@@ -70,8 +72,13 @@ class HeistController(Node):
         self.following_enable_pub = self.create_publisher(Bool, "/trajectory_following_enabled", 1)
         self.following_backwards_pub = self.create_publisher(Bool, "/trajectory_following_backwards", 1)
         self.traffic_light_pub = self.create_publisher(Marker, "/traffic_light_point", 1)
-        self.banana_point_pub = self.create_publisher(Marker, "/detected_banana", 1)
+        self.seen_banana_pub = self.create_publisher(Marker, "/detected_banana", 1)
         self.text_state_pub = self.create_publisher(Marker, "/heist_state", 1)
+
+        self.odom_sub = self.create_subscription(Odometry, "/odom", self.update_pose, 1)
+        self.last_pose_mut: tuple[float, float] = (0, 0)
+
+        self.banana_state_pub = self.create_publisher(Bool, "/i_hate_ros", 1)
 
         self.image_sub = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.image_callback, 1)
         self.bridge = CvBridge()
@@ -113,16 +120,19 @@ class HeistController(Node):
         self.start_pose = copy_pose(pose.pose.pose)
         self.get_logger().info(f"RECEIVED INITIAL POSE: {self.start_pose}")
 
+    def update_pose(self, odom: Odometry) -> None:
+        self.last_pose_mut = (odom.pose.pose.position.x, odom.pose.pose.position.y)
+
     def points_callback(self, pose_array: PoseArray) -> None:
         self.poses = list(map(copy_pose, pose_array.poses))
         assert self.start_pose is not None
         # Order by distance to start pose
         self.poses.sort(
             key=lambda pose: math.hypot(
-                pose.position.x - self.start_pose.position.x, pose.position.y - self.start_pose.position.y
-            )
+                pose.position.x - CLOSENESS_POINT[0], pose.position.y - CLOSENESS_POINT[1]
+            ),
+            reverse=True
         )
-        self.poses = self.poses[::-1]
         self.get_logger().info(f"received two waypoints: {self.poses}")
         self.state = State.GOTO_POSE
         self.next_state = None
@@ -166,6 +176,8 @@ class HeistController(Node):
         except TransformException as ex:
             pass
 
+        within_banana_range = math.hypot(self.last_pose_mut[0] - self.goal_mut.pose.position.x, self.last_pose_mut[1] - self.goal_mut.pose.position.y) < 3
+
         # self.get_logger().info(f"{self.next_timestamp - self.get_clock().now().nanoseconds}")
 
         if self.state == State.WAIT_TIME:
@@ -198,17 +210,21 @@ class HeistController(Node):
             self.goal_mut.pose = self.poses.pop()
             self.goal_pub.publish(self.goal_mut)
             self.state = State.WAIT_TRAJECTORY
-            self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
+            self.next_timestamp = self.get_clock().now().nanoseconds + 8e9
             self.next_state = State.GOTO_BANANA
+            self.banana_state_pub.publish(Bool(data=True))
 
-        elif self.state == State.GOTO_BANANA:
+            # no longer seeing banana
+            # self.banana_state_pub.publish(Bool(data=False))
+
+        elif self.state == State.GOTO_BANANA or (self.state == State.WAIT_TRAJECTORY and within_banana_range and self.get_clock().now().nanoseconds > self.next_timestamp):
             try:
                 banana_tf = self.tf_buffer.lookup_transform("map", "banana", Time())
                 base_link_tf = self.tf_buffer.lookup_transform("map", "base_link", Time())
                 visualize.plot_point(
                     banana_tf.transform.translation.x,
                     banana_tf.transform.translation.y,
-                    self.banana_point_pub,
+                    self.seen_banana_pub,
                     scale=0.2,
                     color=(1, 1, 0),
                     frame="map",
@@ -231,6 +247,7 @@ class HeistController(Node):
 
                 self.state = State.WAIT_TRAJECTORY
                 self.next_state = State.WAIT_TIME
+                self.next_timestamp = float('inf')
 
                 self.goal_pub.publish(self.goal_mut)
             except TransformException as ex:

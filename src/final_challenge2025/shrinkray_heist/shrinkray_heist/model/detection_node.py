@@ -1,8 +1,11 @@
+import os
+
 import cv2
 import numpy as np
 import rclpy
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage, Image
@@ -41,7 +44,15 @@ class DetectorNode(Node):
 
             self.broadcaster = TransformBroadcaster(self)
 
+        self.banana_state_sub = self.create_subscription(Bool, "/i_hate_ros", self.seen_banana_update, 1)
+        self.seen_banana = False
+
         self.get_logger().info("Detector Initialized")
+
+
+    def seen_banana_update(self, msg: Bool) -> None:
+        self.seen_banana = True
+
 
     def callback(self, img_msg):
         if self.is_sim:
@@ -60,7 +71,7 @@ class DetectorNode(Node):
         predictions = results["predictions"]
         original_image = results["original_image"]
 
-        banana_bounding_boxes = [point for point, label in predictions if label in ("banana", "frisbee")]
+        banana_bounding_boxes = [point for point, label in predictions if label == "banana"]
 
         if banana_bounding_boxes:
             xmin, ymin, xmax, ymax = banana_bounding_boxes[0]
@@ -75,8 +86,15 @@ class DetectorNode(Node):
         else:
             pass
 
+        boxed_img = self.detector.draw_box(original_image, predictions, draw_all=True)
+
+        # save image
+        if self.seen_banana and banana_bounding_boxes:
+            self.seen_banana = False
+            save_path = f"{os.path.dirname(__file__)}/banana_{self.get_clock().now().nanoseconds}.png"
+            boxed_img.save(save_path)
+
         if self.debug:
-            boxed_img = self.detector.draw_box(original_image, predictions, draw_all=True)
             cv2_img = cv2.cvtColor(np.array(boxed_img), cv2.COLOR_RGB2BGR)
             debug_img = self.bridge.cv2_to_imgmsg(cv2_img, "bgr8")
 

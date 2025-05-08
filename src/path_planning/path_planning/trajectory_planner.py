@@ -261,7 +261,7 @@ class PathPlan(Node):
                 min_dist = min(min_dist, self.dist_to_obstacle_grid[grid_y, grid_x])
             return min_dist
 
-        N = 1000  # TODO number of samples
+        N = 2000  # TODO number of samples
         start_time = self.get_clock().now()
         points = [sample_free() for _ in range(N)]
         points.append(start_point)
