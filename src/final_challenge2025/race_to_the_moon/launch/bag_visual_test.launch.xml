@@ -17,5 +17,5 @@
 
   <!-- Play bag file -->
   <arg name="bag_file" description="Path to bag file"/>
-  <executable cmd="ros2 bag play $(var bag_file) --topics /zed/zed_node/rgb/image_rect_color/compressed" output="screen"/>
+  <executable cmd="ros2 bag play $(var bag_file) --topics /zed/zed_node/rgb/image_rect_color/compressed --start-offset 0" output="screen"/>
 </launch>

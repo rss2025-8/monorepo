@@ -254,9 +254,19 @@ class PurePursuit(Node):
         # self.get_logger().info(f"Nearest point: {nearest_point}")
         # self.get_logger().info(f"Lookahead point: {lookahead_point}")
         if lookahead_point is not None:
+            # Adjust lookahead point based on steering offset
+            local_lookahead_x = math.cos(eta) * adaptive_lookahead
+            local_lookahead_y = math.sin(eta) * adaptive_lookahead
+            local_lookahead_point = np.array([local_lookahead_x, local_lookahead_y])
+            # visualize.plot_point(
+            #     lookahead_point[0],
+            #     lookahead_point[1],
+            #     self.debug_lookahead_point_pub,
+            #     color=(0, 1, 0),
+            # )
             visualize.plot_point(
-                lookahead_point[0],
-                lookahead_point[1],
+                local_lookahead_point[0],
+                local_lookahead_point[1],
                 self.debug_lookahead_point_pub,
                 color=(0, 1, 0),
             )
@@ -444,6 +454,9 @@ class PurePursuit(Node):
         s2 = self.traj_points[nearest_segment_idx + 1]
 
         error = point_to_segment_distance(car_pose, s1, s2)
+        # Signed error: Check if the car is on the right of the trajectory
+        # if s1[1] > 0.0:
+        #     error = -error
 
         error_msg = Float32()
         error_msg.data = float(error)
