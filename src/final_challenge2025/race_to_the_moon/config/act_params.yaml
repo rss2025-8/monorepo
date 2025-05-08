@@ -9,8 +9,8 @@ pure_pursuit:
   ros__parameters:
     debug: True
     drive_topic: "/vesc/high_level/input/nav_0"
-    # max_speed: 4.0
-    max_speed: 2.5
+    max_speed: 4.0
+    # max_speed: 2.5
     # max_speed: 1.0
     low_pass_cutoff_freq: 40.0  # workd
     # low_pass_cutoff_freq: 4.0
@@ -34,5 +34,5 @@ safety_controller:
     ackermann_cmd_topic: "/vesc/low_level/ackermann_cmd"
     safety_topic: "/vesc/low_level/input/safety"
     disable_topic: "/temp_disable"
-    temp_disable_timeout: 0.3
+    temp_disable_timeout: 0.1
     stopping_time: 0.7
