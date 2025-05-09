@@ -194,8 +194,8 @@ class HeistController(Node):
                 self.get_logger().info("wait 5s -> backup")
                 # Plan path to last point
                 self.get_logger().info(f"BACKING UP TO {self.last_point}")
-                self.goal_pub.publish(self.last_point)
-                self.following_backwards_pub.publish(Bool(data=True))
+                # self.goal_pub.publish(self.last_point)
+                # self.following_backwards_pub.publish(Bool(data=True))
                 self.state = State.BACKUP
                 self.next_state = None
                 self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
@@ -285,27 +285,28 @@ class HeistController(Node):
             if self.at_goal:
                 self.get_logger().info(f"follow trajectory -> {self.next_state.name}")
                 self.at_goal = False
-                self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
+                self.next_timestamp = self.get_clock().now().nanoseconds + 4e9
                 self.state = self.next_state
                 self.next_state = None
                 # self.next_state = State.WAIT_TIME
 
         elif self.state == State.BACKUP:
-            # msg = AckermannDriveStamped()
-            # msg.header.stamp = self.get_clock().now().to_msg()
-            # msg.drive.speed = -0.4
-            # self.following_enable_pub.publish(Bool(data=False))
-            # self.drive_pub.publish(msg)
+            msg = AckermannDriveStamped()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.drive.speed = -0.4
+            self.following_enable_pub.publish(Bool(data=False))
+            self.drive_pub.publish(msg)
+
             if self.get_clock().now().nanoseconds > self.next_timestamp:
                 self.get_logger().info("backup -> goto next pose")
                 self.state = State.GOTO_POSE
                 self.next_state = State.GOTO_POSE
-                self.following_enable_pub.publish(Bool(data=False))
-                self.following_backwards_pub.publish(Bool(data=False))
-                msg = AckermannDriveStamped()
-                msg.header.stamp = self.get_clock().now().to_msg()
+                # self.following_enable_pub.publish(Bool(data=False))
+                # self.following_backwards_pub.publish(Bool(data=False))
+                # msg = AckermannDriveStamped()
+                # msg.header.stamp = self.get_clock().now().to_msg()
                 self.drive_pub.publish(msg)
-                # self.following_enable_pub.publish(Bool(data=True))
+                self.following_enable_pub.publish(Bool(data=True))
                 self.next_timestamp = self.get_clock().now().nanoseconds + 1.5e9
 
         visualize.plot_debug_text(self.state.name, self.text_state_pub)
