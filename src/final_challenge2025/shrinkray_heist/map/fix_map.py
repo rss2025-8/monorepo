@@ -27,15 +27,15 @@ obstacles = [
     [(1644, 472), (1644, 501)],
     [(0, 0), (1729, 0), (1729, 1299), (0, 1299)],
     # [(1563, 982), (1563, 996), (1530, 996), (1530, 982)],
-    # [(1317, 260), (1542, 260), (1542, 386), (1317, 386)],  # Prevents planning the long way around the map
+    [(1317, 260), (1542, 260), (1542, 386), (1317, 386)],  # Prevents planning the long way around the map
     [(804, 539), (793, 573), (735, 636), (721, 629), (757, 538)],  # Traffic light funnel 1
     [(863, 555), (851, 545), (755, 652), (765, 660)],  # Traffic light funnel 2
     [(667, 806), (647, 818), (652, 827), (670, 815)],  # Obstacle 1
     [(839, 840), (834, 845), (843, 854), (848, 848)],  # Obstacle 2
     [(1007, 1019), (1021, 1019), (1021, 1039), (1007, 1039)],  # Obstacle 3
-    [(940, 895), (916, 986), (942, 985)],  # Banana obstacle
+    [(890, 959), (929, 959), (929, 987), (890, 987)],  # Banana obstacle
 
-    [(791, 671), (683, 597), (570, 721), (711, 776)],  # Prevents planning through the main hallway
+    # [(791, 671), (683, 597), (570, 721), (711, 776)],  # Prevents planning through the main hallway
 ]
 fill = [WHITE, None, GRAY, GRAY, WHITE, None, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, WHITE, None, None, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY]
 
