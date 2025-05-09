@@ -9,9 +9,10 @@ pure_pursuit:
     debug: True
     drive_topic: "/drive"
     max_speed: 4.0
-    low_pass_cutoff_freq: 40.0
+    low_pass_cutoff_freq: 7.5
     base_lookahead: 1.5
     lookahead_speed_ratio: 0.6
+    eta_multiplier: 1.5
     disable_topic: "/temp_disable"
 
 visualizer_node:

@@ -230,6 +230,7 @@ def filter_close_lanes(left_rho_thetas, right_rho_thetas, last_left_line, last_r
     # rho_threshold = 10
     # theta_threshold = np.pi / 8
     angle_weight = 16
+    # num_lines = 6
     num_lines = 4
 
     def angle_diff(theta1, theta2):

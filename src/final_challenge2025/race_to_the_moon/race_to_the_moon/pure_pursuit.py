@@ -29,6 +29,7 @@ class PurePursuit(Node):
 
         # Main pure pursuit parameters
         self.max_speed: float = self.declare_parameter("max_speed", 2.0).value
+        self.eta_multiplier: float = self.declare_parameter("eta_multiplier", 1.5).value
         self.speed: float = self.max_speed
         # Filter to smooth out steering commands
         self.low_pass_cutoff_freq = self.declare_parameter("low_pass_cutoff_freq", 4.0).value
@@ -224,7 +225,7 @@ class PurePursuit(Node):
             eta = math.pi / 2 * np.sign(eta)
 
         # Increase steering angle responsiveness
-        eta *= 1.5
+        eta *= self.eta_multiplier
 
         # TODO Adaptive lookahead based on direction to lookahead point ~ curvature?
         # adaptive_lookahead = np.clip(adaptive_lookahead - abs(eta) * 2, adaptive_lookahead / 2, adaptive_lookahead)
@@ -367,7 +368,7 @@ class PurePursuit(Node):
         If `use_last_cmd` is set, uses the last drive command.
         """
         # steering_angle += 0.01  # A bit too much
-        # steering_angle += 0.007  # Seems ok for 3 m/s or so
+        # steering_angle += 0.003
         if abs(steering_angle) > math.pi / 2:
             self.get_logger().warning(f"Steering angle {steering_angle} is too large")
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)

@@ -2,6 +2,7 @@ lane_detector:
   ros__parameters:
     debug: False
     image_topic: "/zed/zed_node/rgb/image_rect_color"
+    # image_topic: "/zed/zed_node/right/image_rect_color"
     disable_topic: "/temp_disable"
 
 # All tests on lane 4
@@ -9,17 +10,26 @@ pure_pursuit:
   ros__parameters:
     debug: True
     drive_topic: "/vesc/high_level/input/nav_0"
-    max_speed: 4.0
-    # max_speed: 2.5
-    # max_speed: 1.0
-    low_pass_cutoff_freq: 40.0  # workd
-    # low_pass_cutoff_freq: 4.0
+    max_speed: 3.0
+    low_pass_cutoff_freq: 40.0
+    # low_pass_cutoff_freq: 15.0
+    # base_lookahead: 1.8
+    base_lookahead: 1.5
+    # base_lookahead: 5.0
+    # lookahead_speed_ratio: 0.6
+    lookahead_speed_ratio: 0.8
     # base_lookahead: 1.5
-    # lookahead_speed_ratio: 0.75
-    base_lookahead: 1.5  # worked
-    lookahead_speed_ratio: 0.6  # worked
+    # lookahead_speed_ratio: 0.6
+    # eta_multiplier: 1.5
+    eta_multiplier: 1.25
+    # eta_multiplier: 1.4
+
+    # Worked before
+    # max_speed: 4.0
+    # low_pass_cutoff_freq: 40.0
     # base_lookahead: 1.5
-    # lookahead_speed_ratio: 0.5
+    # lookahead_speed_ratio: 0.6
+    # eta_multiplier: 1.5
     disable_topic: "/temp_disable"
 
 visualizer_node:
@@ -27,6 +37,7 @@ visualizer_node:
     debug: False
     fast_mode: True
     image_topic: "/zed/zed_node/rgb/image_rect_color"
+    # image_topic: "/zed/zed_node/right/image_rect_color"
 
 safety_controller:
   ros__parameters:

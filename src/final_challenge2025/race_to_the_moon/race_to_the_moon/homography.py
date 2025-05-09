@@ -28,6 +28,8 @@ HOMOGRAPHY_MATRIX = None
 # Offset to transform left lens coordinates into base_link
 CAMERA_TF_X = 10.5 * METERS_PER_INCH
 CAMERA_TF_Y = 2.375 * METERS_PER_INCH
+# Hack to make it go toward the inside lane
+# CAMERA_TF_Y -= 0.15
 
 
 def get_homography_matrix():
