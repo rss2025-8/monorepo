@@ -19,6 +19,32 @@ from vs_msgs.msg import Point, Trajectory
 from . import visualize
 
 
+class PID:
+    """A Proportional-Integral-Derivative controller.
+
+    The accumulated error (for Ki) is not clipped or reset.
+    """
+
+    def __init__(self, time: rclpy.time.Time, kp: float, ki=0.0, kd=0.0):
+        """Creates a PID controller with the given initial time, Kp, Ki, and Kd."""
+        self.prev_time = time
+        self.kp, self.ki, self.kd = kp, ki, kd
+        self.prev_error = 0.0
+        self.total_error = 0.0  # Integral of error w.r.t. t
+
+    def update(self, error: float, time: rclpy.time.Time) -> float:
+        """Update PID state with the current error and the time that error was *measured*. Returns a new control output.
+
+        For example, with Kp = 2 and Ki = Kd = 0, an error of 1 results in a control output of -2.
+        """
+        dt = (time.nanoseconds - self.prev_time.nanoseconds) / 1e9  # Time elapsed in seconds
+        d_error = (error - self.prev_error) / dt  # d(Error)/dt
+        self.total_error += error / dt
+        correction = -(self.kp * error + self.kd * d_error + self.ki * self.total_error)
+        self.prev_time, self.prev_error = time, error
+        return correction
+
+
 class PurePursuit(Node):
     """Implements Pure Pursuit trajectory tracking with a fixed lookahead and speed."""
 
@@ -63,7 +89,6 @@ class PurePursuit(Node):
 
         if self.debug:
             self.get_logger().info("DEBUG mode enabled")
-        self.get_logger().info("Trajectory follower initialized")
         # if self.debug:
         #     self.run_tests()
 
@@ -76,6 +101,14 @@ class PurePursuit(Node):
 
         self.homography_debug_pub = self.create_subscription(
             GeoPoint, "/zed/zed_node/left/image_rect_color_mouse_left", homography_callback, 1
+        )
+
+        self.Kp_dist = self.declare_parameter("Kp", 0.0).value
+        self.Kp_angle = self.declare_parameter("Kd", 0.0).value
+        self.pid_dist = PID(self.get_clock().now(), self.Kp_dist, 0, 0)
+        self.pid_angle = PID(self.get_clock().now(), self.Kp_angle, 0, 0)
+        self.get_logger().info(
+            f"************\nTrajectory follower initialized with params: lookahead {self.base_lookahead} speed {self.max_speed} eta_multiplier {self.eta_multiplier} low pass {self.low_pass_cutoff_freq} Kp {self.Kp_dist} Kd {self.Kp_angle}"
         )
 
     def get_nearest_segment(self, car_loc: np.ndarray) -> Tuple[int, float]:
@@ -147,7 +180,7 @@ class PurePursuit(Node):
     #     )
     #     return adaptive_lookahead
 
-    def update_drive_command(self):
+    def update_drive_command(self, msg_time: rclpy.time.Time):
         """Called on every pose update. Updates the drive command, assuming the car's pose is (0, 0, 0)."""
         if not self.is_active:
             self.drive(use_last_cmd=True)
@@ -248,9 +281,16 @@ class PurePursuit(Node):
             else:
                 visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(1, 0, 0), z=0.1, frame="/base_link")
 
-        self.drive(steering_angle, self.speed)
-        self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
-
+        # PD control with two P controllers
+        dist_error, angle_error = self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
+        dist_update = self.pid_dist.update(dist_error, msg_time)
+        angle_update = self.pid_angle.update(angle_error, msg_time)
+        if abs(dist_error) > 0.4 or abs(angle_error) > 0.25:
+            self.get_logger().info(f"dist_error: {dist_error:.4f}, angle_error: {angle_error:.4f}")
+            self.get_logger().info(f"pp: {steering_angle:.4f}, dist: {dist_update:.4f}, angle: {angle_update:.4f}")
+            self.drive(steering_angle, self.speed)
+        else:
+            self.drive(steering_angle + dist_update + angle_update, self.speed)
         # Debug
         # self.get_logger().info(f"Nearest point: {nearest_point}")
         # self.get_logger().info(f"Lookahead point: {lookahead_point}")
@@ -360,7 +400,7 @@ class PurePursuit(Node):
         # self.get_logger().info(f"Received trajectory with {len(msg.points)} -> {len(self.traj_points)} points")
 
         # Drive based on this trajectory
-        self.update_drive_command()
+        self.update_drive_command(self.get_clock().now())
 
     def drive(self, steering_angle=0.0, velocity=0.0, use_last_cmd=False):
         """
@@ -454,14 +494,20 @@ class PurePursuit(Node):
         s1 = self.traj_points[nearest_segment_idx]
         s2 = self.traj_points[nearest_segment_idx + 1]
 
-        error = point_to_segment_distance(car_pose, s1, s2)
+        dist_error = point_to_segment_distance(car_pose, s1, s2)
         # Signed error: Check if the car is on the right of the trajectory
-        # if s1[1] > 0.0:
-        #     error = -error
+        if s1[1] > 0.0:
+            dist_error = -dist_error
 
         error_msg = Float32()
-        error_msg.data = float(error)
+        error_msg.data = float(dist_error)
         self.pose_to_traj_error_pub.publish(error_msg)
+
+        # Returns (error from midline, angle error from midline)
+        # Angle error
+        vec = s2 - s1
+        angle_error = -math.atan(vec[1] / vec[0])
+        return dist_error, angle_error
 
 
 class LowPassFilter:

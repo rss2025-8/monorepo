@@ -78,12 +78,14 @@ class LaneDetector(Node):
             self.hough_line_params, white_line_mask, self.last_left_line, self.last_right_line
         )
 
-        # if not left_line:
-        #     # Use last left line
-        #     left_line = self.last_left_line
-        # if not right_line:
-        #     # Use last right line
-        #     right_line = self.last_right_line
+        saw_left_line = left_line is not None
+        saw_right_line = right_line is not None
+        if not saw_left_line:
+            # Use last left line
+            left_line = self.last_left_line
+        if not saw_right_line:
+            # Use last right line
+            right_line = self.last_right_line
 
         if left_line:
             left_line_uv = line_utils.rho_theta_to_endpoints(np.array(left_line))
@@ -124,6 +126,7 @@ class LaneDetector(Node):
             # TODO find one closer to the left
             # mid_line_car = line_utils.find_midline_rho_theta(left_line_car, mid_line_car, is_in_uv=False)
             mid_line_xy = line_utils.rho_theta_to_endpoints(mid_line_car)
+            mid_line_xy[1] += 0.1
             # self.get_logger().info(f"Left line: {left_line_car}")
             # self.get_logger().info(f"Right line: {right_line_car}")
             # self.get_logger().info(f"Midline: {mid_line_car}")
@@ -149,7 +152,7 @@ class LaneDetector(Node):
 
             # Disable the safety controller (on track)
             disable_msg = Bool()
-            disable_msg.data = True
+            disable_msg.data = saw_left_line and saw_right_line
             self.disable_pub.publish(disable_msg)
 
         if self.debug:
@@ -211,8 +214,6 @@ class LaneDetector(Node):
             for rho, theta in right_lines:
                 plot_line(rho, theta, color=self.right_lane_color, thickness=2)
 
-            plot_line(rho, theta, color=(1.0, 0.0, 0.0), thickness=1)
-
             # left_line, right_line = line_utils.get_best_lanes(self.hough_line_params, white_line_mask)
             # if left_line and right_line:
             #     mid_line = line_utils.find_midline_rho_theta(left_line, right_line, is_in_uv=True)
@@ -223,8 +224,10 @@ class LaneDetector(Node):
             self.debug_image_pub.publish(debug_msg)
 
         # Update last lines
-        self.last_left_line = left_line
-        self.last_right_line = right_line
+        if saw_left_line:
+            self.last_left_line = left_line
+        if saw_right_line:
+            self.last_right_line = right_line
         # self.get_logger().info(f"Left line: {left_line}")
         # self.get_logger().info(f"Right line: {right_line}")
 

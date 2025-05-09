@@ -5,31 +5,46 @@ transform_uv_to_xy(u, v), transform_xy_to_uv(x, y).
 import cv2
 import numpy as np
 
-# In inches from the center of the left camera eye
-PTS_GROUND_PLANE = [[36, -24], [36, 24], [84, -24], [84, 0], [84, 24], [120, -36], [120, 36]]
-# In image pixel coordinates
-PTS_IMAGE_PLANE = [
-    [537.0, 249.0],
-    [99.0, 252.0],
-    [417.0, 210.0],
-    [322.0, 208.0],
-    [226.0, 209.0],
-    [423.0, 200.0],
-    [222.0, 200.0],
-]
 # Conversion factor (inches to meters)
 METERS_PER_INCH = 0.0254
 
+# In inches from the center of the left camera eye
+# Note that the top 60% of the image is unreliable for homography!!!
+PTS_GROUND_PLANE = [[36, -24], [36, 24], [84, -24], [84, 0], [84, 24]]
 # Test points (not used to compute homography): [24, -12], [108, 12]
-TEST_PTS_GROUND_PLANE = [[24, -12], [108, 12]]
-TEST_PTS_IMAGE_PLANE = [[482.0, 287.0], [286.0, 202.5]]
+TEST_PTS_GROUND_PLANE = [[24, -12], [72, 12]]
+# In image pixel coordinates
+PTS_IMAGE_PLANE = [
+    (540.0, 239.0),
+    (104.0, 243.0),
+    (418.0, 199.0),
+    (324.0, 200.0),
+    (229.0, 201.0),
+]
+TEST_PTS_IMAGE_PLANE = [
+    (487.0, 277.0),
+    (268.0, 205.0),
+]
+
+# BELOW VALUES ARE FOR THE RIGHT CAMERA EYE!
+# PTS_IMAGE_PLANE = [
+#     (539.0, 238.0),
+#     (102.0, 244.0),
+#     (417.0, 198.0),
+#     (323.0, 200.5),
+#     (228.0, 201.0),
+# ]
+# TEST_PTS_IMAGE_PLANE = [
+#     (483.0, 276.0),
+#     (267.0, 205.0),
+# ]
+
 HOMOGRAPHY_MATRIX = None
 
 # Offset to transform left lens coordinates into base_link
 CAMERA_TF_X = 10.5 * METERS_PER_INCH
 CAMERA_TF_Y = 2.375 * METERS_PER_INCH
-# Hack to make it go toward the inside lane
-# CAMERA_TF_Y -= 0.15
+# CAMERA_TF_Y *= -1
 
 
 def get_homography_matrix():
@@ -65,9 +80,10 @@ def transform_uv_to_xy(u, v):
     The top left pixel is the origin, u axis increases to right, and v axis
     increases down.
 
-    Returns a tuple (x, y) representing the ground point coordinates relative to base link.
-    Camera points along positive x axis and y axis increases to the left of the camera.
-    Units are in meters.
+    Returns a 1x2 numpy matrix of (x, y) displacement vector from base link
+    to the point on the ground.
+    Camera points along positive x axis and y axis increases to the left of
+    the camera. Units are in meters.
     """
     homogeneous_point = np.array([[u], [v], [1]])
     xy = np.dot(HOMOGRAPHY_MATRIX, homogeneous_point)
@@ -86,7 +102,7 @@ def transform_uv_to_xy(u, v):
 def transform_xy_to_uv(x, y):
     """
     x and y are coordinates on the ground plane in meters.
-    Returns a tuple (u, v) representing the pixel coordinates of the ground point.
+    Returns the pixel coordinates (u, v) corresponding to that ground point.
     Top-left pixel is (0,0), u increases to the right, v increases downward.
     """
     # Camera offset

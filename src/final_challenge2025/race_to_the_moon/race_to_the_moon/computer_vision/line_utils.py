@@ -69,9 +69,9 @@ def circular_mean(thetas):
     return np.arctan2(sin_sum, cos_sum)
 
 
-def normalize_endpoints(endpoints, amount_in_front=5.0):
+def normalize_endpoints(endpoints, amount_base=0.0, amount_in_front=5.0):
     """
-    Extends the line to make the returned endpoints have x1 = 0 and x2 = amount_in_front.
+    Extends the line to make the returned endpoints have x1 = amount_base and x2 = amount_in_front.
     """
     assert endpoints.shape == (2, 2)
     x0, y0 = endpoints[0]
@@ -86,16 +86,20 @@ def normalize_endpoints(endpoints, amount_in_front=5.0):
         dx = 1e-6  # Avoid division by zero
     t = -x0 / dx
     new_x0, new_y0 = 0.0, y0 + t * (y1 - y0)
+    # Calculate point on line that has x = amount_base
+    # t = (amount_base - x0) / dx
+    # new_xb, new_yb = amount_base, y0 + t * (y1 - y0)
     # Calculate point on line that has x = amount_in_front
     t = (amount_in_front - x0) / dx
     new_x1, new_y1 = amount_in_front, y0 + t * (y1 - y0)
     return np.array([[new_x0, new_y0], [new_x1, new_y1]])
+    # return np.array([[new_xb, new_yb], [new_x1, new_y1]])
 
 
-def rho_theta_to_endpoints(rho_theta, amount_in_front=5.0):
+def rho_theta_to_endpoints(rho_theta, amount_base=0.0, amount_in_front=5.0):
     """Returns a 2D numpy array of [[x1, y1], [x2, y2]] for the line endpoints in pixel coordinates.
 
-    Guarantees that x1 = 0 and x2 = amount_in_front.
+    Guarantees that x1 = amount_base (0 by default) and x2 = amount_in_front (5 by default).
     """
     assert (type(rho_theta) == tuple and len(rho_theta) == 2) or rho_theta.shape == (2,)
     rho, theta = rho_theta
@@ -113,7 +117,7 @@ def rho_theta_to_endpoints(rho_theta, amount_in_front=5.0):
 
     # Return the line endpoints
     raw_line = np.array([[pt1[0], pt1[1]], [pt2[0], pt2[1]]])
-    return normalize_endpoints(raw_line, amount_in_front)
+    return normalize_endpoints(raw_line, amount_base, amount_in_front)
 
 
 def endpoints_to_rho_theta(endpoints):

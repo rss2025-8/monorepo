@@ -10,21 +10,28 @@ pure_pursuit:
   ros__parameters:
     debug: True
     drive_topic: "/vesc/high_level/input/nav_0"
-    max_speed: 3.0
-    low_pass_cutoff_freq: 40.0
+    max_speed: 4.0
+    low_pass_cutoff_freq: 15.0
     # low_pass_cutoff_freq: 15.0
-    # base_lookahead: 1.8
-    base_lookahead: 1.5
+    base_lookahead: 3.9
+    lookahead_speed_ratio: 0.0
     # base_lookahead: 5.0
-    # lookahead_speed_ratio: 0.6
-    lookahead_speed_ratio: 0.8
+    # eta_multiplier: 1.5
+    eta_multiplier: 1.0
+    # eta_multiplier: 1.25
+    # eta_multiplier: 1.4
+    Kp: 0.0
+    Kd: 0.1
+    # Kd: 0.1
+
+    # Works at 2.5 m/s
+    # max_speed: 2.5
+    # low_pass_cutoff_freq: 15.0
     # base_lookahead: 1.5
     # lookahead_speed_ratio: 0.6
     # eta_multiplier: 1.5
-    eta_multiplier: 1.25
-    # eta_multiplier: 1.4
 
-    # Worked before
+    # Worked before kinda at 4 m/s
     # max_speed: 4.0
     # low_pass_cutoff_freq: 40.0
     # base_lookahead: 1.5
