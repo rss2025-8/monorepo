@@ -122,7 +122,6 @@ class HeistController(Node):
     def initial_pose_callback(self, pose: PoseWithCovarianceStamped) -> None:
         self.start_pose = copy_pose(pose.pose.pose)
         self.get_logger().info(f"RECEIVED INITIAL POSE: {self.start_pose}")
-        self.update_map_pub.publish(String(data=self.main_map))
 
     def update_pose(self, odom: Odometry) -> None:
         self.last_pose_mut = (odom.pose.pose.position.x, odom.pose.pose.position.y)
@@ -139,7 +138,7 @@ class HeistController(Node):
         self.get_logger().info(f"received waypoints: {self.poses}")
         self.following_backwards_pub.publish(Bool(data=False))
         self.state = State.GOTO_POSE
-        self.next_state = None
+        self.next_state = State.GOTO_POSE
 
     def at_goal_callback(self, idk) -> None:
         self.get_logger().info("RECEIVED TRAJECTORY FINISH")
@@ -202,30 +201,46 @@ class HeistController(Node):
                 self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
 
         elif self.state == State.GOTO_POSE:
-            if not self.poses:
-                self.get_logger().info("Finished!")
-                self.state = State.NONE
-                return
+            # Plan path once
+            if self.next_state == State.GOTO_POSE:
+                if not self.poses:
+                    self.get_logger().info("Finished!")
+                    self.state = State.NONE
+                    return
 
-            self.last_point = copy.deepcopy(self.goal_mut)
-            self.goal_mut.pose = self.poses.pop()
-            self.goal_pub.publish(self.goal_mut)
-            self.state = State.WAIT_TRAJECTORY
-            self.next_timestamp = self.get_clock().now().nanoseconds + 8e9
-            if self.poses:
-                self.next_state = State.GOTO_BANANA
-                if len(self.poses) == 1:
-                    # Next is the bonus, use bonus map
-                    self.update_map_pub.publish(String(data=self.bonus_map))
-            else:
-                self.next_state = State.NONE
-            self.banana_state_pub.publish(Bool(data=True))
+                self.last_point = copy.deepcopy(self.goal_mut)
+                self.goal_mut.pose = self.poses.pop()
+                self.goal_pub.publish(self.goal_mut)
+                self.banana_state_pub.publish(Bool(data=True))
+                self.next_state = None
 
-            # no longer seeing banana
-            # self.banana_state_pub.publish(Bool(data=False))
+            # Stop moving
+            msg = AckermannDriveStamped()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            self.drive_pub.publish(msg)
+
+            # Wait for path planning
+            if self.get_clock().now().nanoseconds > self.next_timestamp:
+                # Follow path
+                self.following_enable_pub.publish(Bool(data=True))
+                self.state = State.WAIT_TRAJECTORY
+                self.next_timestamp = self.get_clock().now().nanoseconds + 8e9
+                if self.poses:
+                    self.next_state = State.GOTO_BANANA
+                    if len(self.poses) == 1:
+                        # Next is the bonus, use bonus map
+                        self.update_map_pub.publish(String(data=self.bonus_map))
+                else:
+                    # End state
+                    self.next_state = State.NONE
+                    self.update_map_pub.publish(String(data=self.main_map))
+
+                # no longer seeing banana
+                # self.banana_state_pub.publish(Bool(data=False))
 
         elif self.state == State.GOTO_BANANA or (
             self.state == State.WAIT_TRAJECTORY
+            and self.next_state == State.GOTO_BANANA
             and within_banana_range
             and self.get_clock().now().nanoseconds > self.next_timestamp
         ):
@@ -284,10 +299,14 @@ class HeistController(Node):
             if self.get_clock().now().nanoseconds > self.next_timestamp:
                 self.get_logger().info("backup -> goto next pose")
                 self.state = State.GOTO_POSE
-                self.next_state = None
+                self.next_state = State.GOTO_POSE
+                self.following_enable_pub.publish(Bool(data=False))
                 self.following_backwards_pub.publish(Bool(data=False))
+                msg = AckermannDriveStamped()
+                msg.header.stamp = self.get_clock().now().to_msg()
+                self.drive_pub.publish(msg)
                 # self.following_enable_pub.publish(Bool(data=True))
-                self.next_timestamp = self.get_clock().now().nanoseconds + 5e9
+                self.next_timestamp = self.get_clock().now().nanoseconds + 1.5e9
 
         visualize.plot_debug_text(self.state.name, self.text_state_pub)
 

@@ -61,15 +61,15 @@ def get_homography_matrix():
     homography_matrix, err = cv2.findHomography(np_pts_image, np_pts_ground)
 
     # Find error of each point
-    global HOMOGRAPHY_MATRIX
-    HOMOGRAPHY_MATRIX = homography_matrix
-    with open("errors.txt", "w") as fout:
-        for image, ground in zip(PTS_IMAGE_PLANE + TEST_PTS_IMAGE_PLANE, PTS_GROUND_PLANE + TEST_PTS_GROUND_PLANE):
-            x, y = transform_uv_to_xy(image[0], image[1])
-            true_x = ground[0] * METERS_PER_INCH + CAMERA_TF_X
-            true_y = ground[1] * METERS_PER_INCH + CAMERA_TF_Y
-            x_error, y_error = x - true_x, y - true_y
-            fout.write(f"{ground} = x error: {x_error:.3f} m, y error: {y_error:.3f} m\n")
+    # global HOMOGRAPHY_MATRIX
+    # HOMOGRAPHY_MATRIX = homography_matrix
+    # with open("errors.txt", "w") as fout:
+    #     for image, ground in zip(PTS_IMAGE_PLANE + TEST_PTS_IMAGE_PLANE, PTS_GROUND_PLANE + TEST_PTS_GROUND_PLANE):
+    #         x, y = transform_uv_to_xy(image[0], image[1])
+    #         true_x = ground[0] * METERS_PER_INCH + CAMERA_TF_X
+    #         true_y = ground[1] * METERS_PER_INCH + CAMERA_TF_Y
+    #         x_error, y_error = x - true_x, y - true_y
+    #         fout.write(f"{ground} = x error: {x_error:.3f} m, y error: {y_error:.3f} m\n")
     return homography_matrix
 
 

@@ -140,6 +140,7 @@ class PathPlan(Node):
                         self.dist_to_obstacle_grid[i, j] + self.resolution * self.downsample_factor
                     )
                     q.put((ni, nj))
+        self.get_logger().info("Done with precomputation.")
 
     def pose_cb(self, pose: Odometry):
         self.pose_x = pose.pose.pose.position.x
@@ -268,13 +269,19 @@ class PathPlan(Node):
                 min_dist = min(min_dist, self.dist_to_obstacle_grid[grid_y, grid_x])
             return min_dist
 
-        N = 2000  # TODO number of samples
         num_attempts = 5
+        init_start_point = start_point
+        init_end_point = end_point
         for attempt in range(num_attempts):
+            N = 2000 + 1000 * attempt  # TODO number of samples
+            start_point = init_start_point
+            end_point = init_end_point
             start_time = self.get_clock().now()
             points = [sample_free() for _ in range(N)]
-            points.append(start_point)
-            points.append(end_point)
+            if is_free(start_point[0], start_point[1]):
+                points.append(start_point)
+            if is_free(end_point[0], end_point[1]):
+                points.append(end_point)
             self.get_logger().info(
                 f"Sampling {N} points: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s"
             )
@@ -308,6 +315,27 @@ class PathPlan(Node):
             if self.debug and self.neighbors_pub.get_subscription_count() > 0:
                 self.neighbors_pub.publish(neighbors_pose_array)
             self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+
+            # Check if the start point is free
+            if not is_free(start_point[0], start_point[1]):
+                self.get_logger().warning("Start point is not free, moving to nearest free point...")
+                min_dist = float("inf")
+                start_point = init_start_point
+                for point in points:
+                    dist = math.hypot(init_start_point[0] - point[0], init_start_point[1] - point[1])
+                    if dist < min_dist:
+                        min_dist = dist
+                        start_point = point
+            # Check if the goal point is free
+            if not is_free(end_point[0], end_point[1]):
+                self.get_logger().warning("Goal point is not free, moving to nearest free point...")
+                min_dist = float("inf")
+                end_point = init_end_point
+                for point in points:
+                    dist = math.hypot(init_end_point[0] - point[0], init_end_point[1] - point[1])
+                    if dist < min_dist:
+                        min_dist = dist
+                        end_point = point
 
             # Build path by implementing A*
             start_time = self.get_clock().now()
@@ -356,19 +384,8 @@ class PathPlan(Node):
                     self.get_logger().warning("No path found, retrying...")
                     continue
                 else:
-                    self.get_logger().warning("No path found, using the closest reachable point to the goal...")
-                    best_dist = float("inf")
-                    current = None
-                    for point in points:
-                        if parents.get(point, None) is None:
-                            continue
-                        dist = math.hypot(end_point[0] - point[0], end_point[1] - point[1])
-                        if dist < best_dist:
-                            best_dist = dist
-                            current = point
-                    if current is None:
-                        self.get_logger().warning("No reachable point found, giving up")
-                        return
+                    self.get_logger().warning("No path found, giving up")
+                    return
             while current is not None:
                 path.append(current)
                 current = parents.get(current, None)

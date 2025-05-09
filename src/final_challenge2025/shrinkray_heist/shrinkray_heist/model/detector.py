@@ -37,7 +37,7 @@ class Detector:
             Batch not supported.
 
         Runs detection on a single image and returns a list of
-        ((xmin, ymin, xmax, ymax), class_label) for each detection
+        ((xmin, ymin, xmax, ymax), class_label, confidence) for each detection
         above the given confidence threshold.
         """
         results = list(self.model(img, conf=self.threshold, verbose=not silent))[0]
@@ -51,7 +51,7 @@ class Detector:
                 x1, y1, x2, y2 = xyxy.tolist()
                 # Map class index to class label using model/ results
                 label = results.names[int(cls_idx.item())]
-                predictions.append(((x1, y1, x2, y2), label))
+                predictions.append(((x1, y1, x2, y2), label, conf.item()))
 
         # convert original image to rgb
         original_image = results.orig_img
