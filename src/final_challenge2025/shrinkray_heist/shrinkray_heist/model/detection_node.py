@@ -24,7 +24,7 @@ class DetectorNode(Node):
         self.debug = True
         self.update_period: int = self.declare_parameter("update_period", 3).value
         self.update_period_counter: int = 0
-        self.threshold = 0.25
+        self.threshold = 0.1
         self.lower_threshold = 0.01
 
         if not self.is_sim:
@@ -91,7 +91,7 @@ class DetectorNode(Node):
         original_image = results["original_image"]
 
         banana_bounding_boxes = [
-            point for point, label, _ in predictions if label == "banana" and x[2] >= self.threshold
+            point for point, label, confidence in predictions if label == "banana" and confidence >= self.threshold
         ]
 
         if banana_bounding_boxes:
@@ -116,8 +116,9 @@ class DetectorNode(Node):
             save_path = f"{os.path.dirname(__file__)}/banana_{self.get_clock().now().nanoseconds}.png"
             banana_img.save(save_path)
             self.get_logger().info(f"Saved banana image to {save_path}")
+
         if self.debug:
-            boxed_img = self.detector.draw_box(original_image, banana_predictions, draw_all=True)
+            boxed_img = self.detector.draw_box(original_image, [(point, label) for point, label, _ in predictions], draw_all=True)
             cv2_img = cv2.cvtColor(np.array(boxed_img), cv2.COLOR_RGB2BGR)
             debug_img = self.bridge.cv2_to_imgmsg(cv2_img, "bgr8")
 

@@ -113,12 +113,12 @@ class PurePursuit(Node):
     def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> float:
         """Returns the adaptive lookahead distance for the given car pose and nearest segment index."""
         # Tuned lookahead distances
-        # max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
-        max_lookahead = 1.5 + (self.speed - 0.8) * 0.75
+        max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+        # max_lookahead = 1.5 + (self.speed - 0.8) * 0.75
         # max_lookahead = 3.0 + (self.max_speed - 1) * 1.0  # Drifts a bit too far from the path at high speeds
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
-        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
-        min_lookahead = 0.75 + (self.speed - 0.8) * 0.3  # Distance near the car to ignore
+        min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+        # min_lookahead = 0.75 + (self.speed - 0.8) * 0.3  # Distance near the car to ignore
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
         dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
 

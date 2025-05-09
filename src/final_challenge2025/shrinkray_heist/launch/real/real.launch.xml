@@ -13,9 +13,9 @@
         <param from="$(find-pkg-share path_planning)/config/real/pf_config.yaml"/>
         <param name="map_to_load" value="$(find-pkg-share shrinkray_heist)/maps/stata_basement_obs.yaml"/>
     </node>
-    <!-- <node pkg="shrinkray_heist" exec="safety_controller" name="safety_controller" output="screen">
+    <node pkg="shrinkray_heist" exec="safety_controller" name="safety_controller" output="screen">
         <param from="$(find-pkg-share path_planning)/config/real/config.yaml"/>
-    </node> -->
+    </node>
     <node pkg="shrinkray_heist" exec="detection_node" name="detection_node" output="screen">
     </node>
     <node pkg="shrinkray_heist" exec="heist_controller" name="heist_controller" output="screen">
