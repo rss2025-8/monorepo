@@ -9,6 +9,7 @@ TOPICS="$TOPICS /followed_trajectory/start_point /followed_trajectory/end_pose /
 # Pure pursuit visuals
 TOPICS="$TOPICS /pure_pursuit/drive_line /pure_pursuit/driving_arc /pure_pursuit/lookahead_circle /pure_pursuit/lookahead_point /pure_pursuit/nearest_segment"
 TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color/compressed /debug_image /shell_points /detected_point"
+TOPICS="$TOPICS /heist_state /detected_banana /traffic_light_point"
 echo "Recording bag (run this on the car, edit topics in script)..."
 
 # Start recording on the robot (Ctrl‑C to stop)

@@ -152,7 +152,7 @@ class HeistController(Node):
             traffic_light_tf = self.tf_buffer.lookup_transform("base_link", "traffic_light", Time())
             dist = math.hypot(traffic_light_tf.transform.translation.x, traffic_light_tf.transform.translation.y)
 
-            if dist < 1.5:
+            if dist < 1.64:
                 self.get_logger().info("NEXT TO TRAFFIC LIGHT")
                 if not self.is_sim:
                     is_red = traffic_light_detector.light_is_red(self.image)
@@ -184,7 +184,7 @@ class HeistController(Node):
                 self.last_pose_mut[0] - self.goal_mut.pose.position.x,
                 self.last_pose_mut[1] - self.goal_mut.pose.position.y,
             )
-            < 3
+            < 4
         )
 
         # self.get_logger().info(f"{self.next_timestamp - self.get_clock().now().nanoseconds}")
