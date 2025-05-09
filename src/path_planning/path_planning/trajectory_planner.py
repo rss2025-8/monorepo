@@ -18,6 +18,7 @@ import numpy as np
 from geometry_msgs.msg import Pose, PoseArray, PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid, Odometry
 from scipy.spatial import KDTree
+from std_msgs.msg import String
 from visualization_msgs.msg import Marker
 
 from . import visualize
@@ -41,6 +42,7 @@ class PathPlan(Node):
         self.traj_pub = self.create_publisher(PoseArray, "/trajectory/current", 10)
         self.pose_sub = self.create_subscription(Odometry, self.odom_topic, self.pose_cb, 10)
         self.neighbors_pub = self.create_publisher(PoseArray, "/trajectory/end_point_neighbors", 10)
+        self.update_map_sub = self.create_subscription(String, "/planner_update_map", self.update_map_cb, 10)
 
         self.trajectory = LineTrajectory(node=self, viz_namespace="/planned_trajectory" if self.debug else None)
         self.grid = None
@@ -67,6 +69,11 @@ class PathPlan(Node):
         if self.debug:
             self.get_logger().info("DEBUG mode enabled")
         self.get_logger().info(f"PRM trajectory planner initialized, map data of shape {self.grid.shape}")
+
+    def update_map_cb(self, msg):
+        self.get_logger().info(f"Received update map message: {msg.data}")
+        self.map_set = False
+        self.map_cb(load_map(msg.data))
 
     def map_cb(self, msg):
         if self.map_set:
@@ -262,95 +269,121 @@ class PathPlan(Node):
             return min_dist
 
         N = 2000  # TODO number of samples
-        start_time = self.get_clock().now()
-        points = [sample_free() for _ in range(N)]
-        points.append(start_point)
-        points.append(end_point)
-        self.get_logger().info(f"Sampling {N} points: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+        num_attempts = 5
+        for attempt in range(num_attempts):
+            start_time = self.get_clock().now()
+            points = [sample_free() for _ in range(N)]
+            points.append(start_point)
+            points.append(end_point)
+            self.get_logger().info(
+                f"Sampling {N} points: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s"
+            )
 
-        # Build map
-        graph = {point: [] for point in points}
-        kdtree = KDTree(points)
+            # Build map
+            graph = {point: [] for point in points}
+            kdtree = KDTree(points)
 
-        # Sample points and build the graph
-        start_time = self.get_clock().now()
-        np_points = np.array(points)  # N x 2
-        for i, point in enumerate(points):
-            distances, indices = kdtree.query(point, k=40)
-            neighbors = np_points[indices]
-            # Check all neighbors (vectorized)
-            free = batch_collision_free(np.tile(point, (neighbors.shape[0], 1)), neighbors)
-            # Add neighbors that are free (convert to tuples)
-            graph[point].extend([tuple(neighbor) for neighbor in neighbors[free].tolist() if tuple(neighbor) != point])
-        # self.get_logger().info("Graph: " + str(graph[end_point]))
-        neighbors_pose_array = PoseArray()
-        neighbors_pose_array.header.frame_id = "map"  # Set the appropriate frame ID
-        neighbors_pose_array.header.stamp = self.get_clock().now().to_msg()
-        for neighbor in points:
-            pose = Pose()
-            pose.position.x = neighbor[0]
-            pose.position.y = neighbor[1]
-            pose.position.z = 0.0
-            neighbors_pose_array.poses.append(pose)
-        if self.debug and self.neighbors_pub.get_subscription_count() > 0:
-            self.neighbors_pub.publish(neighbors_pose_array)
-        self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
-
-        # Build path by implementing A*
-        start_time = self.get_clock().now()
-        queue = []
-        heapq.heappush(queue, (0, start_point))
-        costs = {start_point: 0}
-        parents = {start_point: None}
-        visited = set()
-        while queue:
-            # self.get_logger().info("Queue: " + str(queue))
-            current_cost, current_point = heapq.heappop(queue)
-            if current_point in visited:
-                continue
-            visited.add(current_point)
-
-            if current_point == end_point:
-                # self.get_logger().info("Reached the goal!")
-                break
-
-            for neighbor in graph[current_point]:
-                # Add a tunable cost based on approximate distance to the nearest obstacle
-                # Force is proportional to 1/r
-                dist_to_obstacle = segment_dist_to_obstacle(current_point, neighbor)
-                # TODO play with these
-                potential_field_weight = 1.0
-                potential_field_base = 0.25
-                new_cost = (
-                    costs[current_point]
-                    + math.hypot(neighbor[0] - current_point[0], neighbor[1] - current_point[1])
-                    + (potential_field_weight / (dist_to_obstacle + potential_field_base))
+            # Sample points and build the graph
+            start_time = self.get_clock().now()
+            np_points = np.array(points)  # N x 2
+            for i, point in enumerate(points):
+                distances, indices = kdtree.query(point, k=40)
+                neighbors = np_points[indices]
+                # Check all neighbors (vectorized)
+                free = batch_collision_free(np.tile(point, (neighbors.shape[0], 1)), neighbors)
+                # Add neighbors that are free (convert to tuples)
+                graph[point].extend(
+                    [tuple(neighbor) for neighbor in neighbors[free].tolist() if tuple(neighbor) != point]
                 )
-                if neighbor not in costs or new_cost < costs[neighbor]:
-                    costs[neighbor] = new_cost
-                    priority = new_cost + math.hypot(end_point[0] - neighbor[0], end_point[1] - neighbor[1])
-                    heapq.heappush(queue, (priority, neighbor))
-                    parents[neighbor] = current_point
-        self.get_logger().info(f"A* pathfinding: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
-        # self.get_logger().info("Parents: " + str(parents[end_point]))
+            # self.get_logger().info("Graph: " + str(graph[end_point]))
+            neighbors_pose_array = PoseArray()
+            neighbors_pose_array.header.frame_id = "map"  # Set the appropriate frame ID
+            neighbors_pose_array.header.stamp = self.get_clock().now().to_msg()
+            for neighbor in points:
+                pose = Pose()
+                pose.position.x = neighbor[0]
+                pose.position.y = neighbor[1]
+                pose.position.z = 0.0
+                neighbors_pose_array.poses.append(pose)
+            if self.debug and self.neighbors_pub.get_subscription_count() > 0:
+                self.neighbors_pub.publish(neighbors_pose_array)
+            self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
 
-        # Reconstruct path
-        path = []
-        current = end_point
-        while current is not None:
-            path.append(current)
-            current = parents.get(current, None)
-        path.reverse()
-        # self.get_logger().info(f"Planned path: {path}")
-        for point in path:
-            self.trajectory.addPoint(point)
+            # Build path by implementing A*
+            start_time = self.get_clock().now()
+            queue = []
+            heapq.heappush(queue, (0, start_point))
+            costs = {start_point: 0}
+            parents = {start_point: None}
+            visited = set()
+            while queue:
+                # self.get_logger().info("Queue: " + str(queue))
+                current_cost, current_point = heapq.heappop(queue)
+                if current_point in visited:
+                    continue
+                visited.add(current_point)
 
-        # Calculate min distance to wall
-        minimum_dist = self.find_closest_point_to_wall(path)
-        self.get_logger().info(f"Minimum distance to any dilated wall: {minimum_dist}")
-        if self.debug:
-            self.trajectory.publish_viz()
-        self.traj_pub.publish(self.trajectory.toPoseArray())
+                if current_point == end_point:
+                    # self.get_logger().info("Reached the goal!")
+                    break
+
+                for neighbor in graph[current_point]:
+                    # Add a tunable cost based on approximate distance to the nearest obstacle
+                    # Force is proportional to 1/r
+                    dist_to_obstacle = segment_dist_to_obstacle(current_point, neighbor)
+                    # TODO play with these
+                    potential_field_weight = 1.2
+                    potential_field_base = 0.25
+                    segment_len = math.hypot(neighbor[0] - current_point[0], neighbor[1] - current_point[1])
+                    new_cost = (
+                        costs[current_point]
+                        + segment_len
+                        + segment_len * (potential_field_weight / (dist_to_obstacle + potential_field_base))
+                    )
+                    if neighbor not in costs or new_cost < costs[neighbor]:
+                        costs[neighbor] = new_cost
+                        priority = new_cost + math.hypot(end_point[0] - neighbor[0], end_point[1] - neighbor[1])
+                        heapq.heappush(queue, (priority, neighbor))
+                        parents[neighbor] = current_point
+            self.get_logger().info(f"A* pathfinding: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+            # self.get_logger().info("Parents: " + str(parents[end_point]))
+
+            # Reconstruct path
+            path = []
+            current = end_point
+            if parents.get(end_point, None) is None:
+                if attempt < num_attempts - 1:
+                    self.get_logger().warning("No path found, retrying...")
+                    continue
+                else:
+                    self.get_logger().warning("No path found, using the closest reachable point to the goal...")
+                    best_dist = float("inf")
+                    current = None
+                    for point in points:
+                        if parents.get(point, None) is None:
+                            continue
+                        dist = math.hypot(end_point[0] - point[0], end_point[1] - point[1])
+                        if dist < best_dist:
+                            best_dist = dist
+                            current = point
+                    if current is None:
+                        self.get_logger().warning("No reachable point found, giving up")
+                        return
+            while current is not None:
+                path.append(current)
+                current = parents.get(current, None)
+            path.reverse()
+            # self.get_logger().info(f"Planned path: {path}")
+            for point in path:
+                self.trajectory.addPoint(point)
+
+            # Calculate min distance to wall
+            minimum_dist = self.find_closest_point_to_wall(path)
+            self.get_logger().info(f"Minimum distance to any dilated wall: {minimum_dist}")
+            if self.debug:
+                self.trajectory.publish_viz()
+            self.traj_pub.publish(self.trajectory.toPoseArray())
+            return
 
     def find_closest_point_to_wall(self, points):
         """Find distance to the closest point on the wall of the map to the given list of points."""

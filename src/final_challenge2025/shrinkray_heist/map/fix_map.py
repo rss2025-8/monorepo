@@ -27,8 +27,12 @@ obstacles = [
     [(1644, 472), (1644, 501)],
     [(0, 0), (1729, 0), (1729, 1299), (0, 1299)],
     [(1563, 982), (1563, 996), (1530, 996), (1530, 982)],
+    [(1317, 260), (1542, 260), (1542, 386), (1317, 386)],  # Prevents planning the long way around the map
+    [(804, 539), (793, 573), (735, 636), (721, 629), (757, 538)],  # Traffic light funnel 1
+    [(863, 555), (851, 545), (755, 652), (765, 660)],  # Traffic light funnel 2
+    # [(791, 671), (683, 597), (570, 721), (711, 776)],  # Prevents planning through the main hallway
 ]
-fill = [WHITE, None, GRAY, GRAY, WHITE, None, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, WHITE, None, None, GRAY]
+fill = [WHITE, None, GRAY, GRAY, WHITE, None, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, GRAY, WHITE, None, None, GRAY, GRAY, GRAY, GRAY, GRAY]
 
 # Draw lines and/or fill obstacles
 for i, points in enumerate(obstacles):

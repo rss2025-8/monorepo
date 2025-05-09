@@ -113,10 +113,12 @@ class PurePursuit(Node):
     def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> float:
         """Returns the adaptive lookahead distance for the given car pose and nearest segment index."""
         # Tuned lookahead distances
-        max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+        # max_lookahead = 3.0 + (self.max_speed - 1) * 0.75
+        max_lookahead = 1.5 + (self.speed - 0.8) * 0.75
         # max_lookahead = 3.0 + (self.max_speed - 1) * 1.0  # Drifts a bit too far from the path at high speeds
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
-        min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+        # min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+        min_lookahead = 0.75 + (self.speed - 0.8) * 0.3  # Distance near the car to ignore
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
         dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
 
@@ -215,8 +217,11 @@ class PurePursuit(Node):
         # Set speed based on allowed velocity to lookahead distance ratio and distance to goal
         min_speed = 1.0
         min_v_to_lookahead_ratio = 0.75
-        max_speed = min(self.max_speed, 0.5 + np.linalg.norm(self.traj_points[-2] - car_loc))
-        self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, max_speed)
+        max_speed = min(self.max_speed, 0.5 + max(0, np.linalg.norm(self.traj_points[-2] - car_loc) - 0.5))
+        if self.is_backwards:
+            self.speed = 0.5
+        else:
+            self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, max_speed)
 
         # Low pass filter to smooth out sudden unexpected spikes
         steering_angle = np.clip(steering_angle, -self.max_steering_angle, self.max_steering_angle)
@@ -233,7 +238,7 @@ class PurePursuit(Node):
                 visualize.plot_circle(0, R, R, self.debug_driving_arc_pub, color=(0, 0, 1), frame="/base_link")
 
         if self.is_backwards:
-            self.drive(-steering_angle, -self.speed / 2)
+            self.drive(-steering_angle, -self.speed)
         else:
             self.drive(steering_angle, self.speed)
         self.publish_pose_to_traj_error(car_loc, nearest_segment_idx)
@@ -278,7 +283,8 @@ class PurePursuit(Node):
             if avg_latency > 0.01:
                 self.get_logger().warning(f"high pure pursuit latency, optimize: {avg_latency:.4f}s")
             else:
-                self.get_logger().info(f"pp: {avg_latency:.4f}s")
+                pass
+                # self.get_logger().info(f"pp: {avg_latency:.4f}s")
             self.timing = [0, 0.0]
 
     def smooth_path(self, path: np.ndarray, num_points: int, smoothness: float) -> Tuple[np.ndarray, np.ndarray, float]:

@@ -6,23 +6,39 @@ import cv2
 import numpy as np
 
 # In inches from the center of the left camera eye
-PTS_GROUND_PLANE = [[36, -24], [36, 24], [84, -24], [84, 0], [84, 24], [120, -36], [120, 36]]
+# Note that the top 60% of the image is unreliable for homography!!!
+PTS_GROUND_PLANE = [[36, -24], [36, 24], [84, -24], [84, 0], [84, 24]]
 # In image pixel coordinates
 PTS_IMAGE_PLANE = [
-    [537.0, 249.0],
-    [99.0, 252.0],
-    [417.0, 210.0],
-    [322.0, 208.0],
-    [226.0, 209.0],
-    [423.0, 200.0],
-    [222.0, 200.0],
+    (540.0, 239.0),
+    (104.0, 243.0),
+    (418.0, 199.0),
+    (324.0, 200.0),
+    (229.0, 201.0),
 ]
 # Conversion factor (inches to meters)
 METERS_PER_INCH = 0.0254
 
 # Test points (not used to compute homography): [24, -12], [108, 12]
-TEST_PTS_GROUND_PLANE = [[24, -12], [108, 12]]
-TEST_PTS_IMAGE_PLANE = [[482.0, 287.0], [286.0, 202.5]]
+TEST_PTS_GROUND_PLANE = [[24, -12], [72, 12]]
+TEST_PTS_IMAGE_PLANE = [
+    (487.0, 277.0),
+    (268.0, 205.0),
+]
+
+# BELOW VALUES ARE FOR THE RIGHT CAMERA EYE!
+# PTS_IMAGE_PLANE = [
+#     (539.0, 238.0),
+#     (102.0, 244.0),
+#     (417.0, 198.0),
+#     (323.0, 200.5),
+#     (228.0, 201.0),
+# ]
+# TEST_PTS_IMAGE_PLANE = [
+#     (483.0, 276.0),
+#     (267.0, 205.0),
+# ]
+
 HOMOGRAPHY_MATRIX = None
 
 # Offset to transform left lens coordinates into base_link
@@ -45,15 +61,15 @@ def get_homography_matrix():
     homography_matrix, err = cv2.findHomography(np_pts_image, np_pts_ground)
 
     # Find error of each point
-    # global HOMOGRAPHY_MATRIX
-    # HOMOGRAPHY_MATRIX = homography_matrix
-    # with open("errors.txt", "w") as fout:
-    #     for image, ground in zip(PTS_IMAGE_PLANE + TEST_PTS_IMAGE_PLANE, PTS_GROUND_PLANE + TEST_PTS_GROUND_PLANE):
-    #         x, y = transform_uv_to_xy(image[0], image[1])
-    #         true_x = ground[0] * METERS_PER_INCH + CAMERA_TF_X
-    #         true_y = ground[1] * METERS_PER_INCH + CAMERA_TF_Y
-    #         x_error, y_error = x - true_x, y - true_y
-    #         fout.write(f"{ground} = x error: {x_error:.3f} m, y error: {y_error:.3f} m\n")
+    global HOMOGRAPHY_MATRIX
+    HOMOGRAPHY_MATRIX = homography_matrix
+    with open("errors.txt", "w") as fout:
+        for image, ground in zip(PTS_IMAGE_PLANE + TEST_PTS_IMAGE_PLANE, PTS_GROUND_PLANE + TEST_PTS_GROUND_PLANE):
+            x, y = transform_uv_to_xy(image[0], image[1])
+            true_x = ground[0] * METERS_PER_INCH + CAMERA_TF_X
+            true_y = ground[1] * METERS_PER_INCH + CAMERA_TF_Y
+            x_error, y_error = x - true_x, y - true_y
+            fout.write(f"{ground} = x error: {x_error:.3f} m, y error: {y_error:.3f} m\n")
     return homography_matrix
 
 

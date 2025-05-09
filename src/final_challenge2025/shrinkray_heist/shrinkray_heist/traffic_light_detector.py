@@ -45,7 +45,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-DEBUG = True
+DEBUG = False
 
 
 def image_print(img):

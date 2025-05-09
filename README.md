@@ -11,7 +11,7 @@ ros2 launch shrinkray_heist sim.launch.xml
 
 Testing on car:
 ```sh
-ros2 launch shrinkray_heist act.launch.xml
+ros2 launch shrinkray_heist real.launch.xml
 ```
 
 ## Lab 6: Path Planning

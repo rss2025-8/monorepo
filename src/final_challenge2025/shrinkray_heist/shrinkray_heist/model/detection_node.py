@@ -4,11 +4,11 @@ import cv2
 import numpy as np
 import rclpy
 from cv_bridge import CvBridge
-from geometry_msgs.msg import PoseStamped, TransformStamped
-from std_msgs.msg import Bool
+from geometry_msgs.msg import Point, PoseStamped, TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage, Image
+from std_msgs.msg import Bool
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 from visualization_msgs.msg import Marker
 
@@ -28,6 +28,7 @@ class DetectorNode(Node):
             self.detector.set_threshold(0.25)
             self.debug_image_pub = self.create_publisher(Image, "/debug_image", 10)
             self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
+            # self.homography_sub = self.create_subscription(Point, "/zed/zed_node/left/image_rect_color_mouse_left", self.homography_callback, 1)
             self.bridge = CvBridge()
 
             self.out_tf_mut = TransformStamped()
@@ -48,6 +49,12 @@ class DetectorNode(Node):
         self.seen_banana = False
 
         self.get_logger().info("Detector Initialized")
+    
+
+    # def homography_callback(self, msg: Point) -> None:
+    #     # Convert to xy
+    #     x, y = homography_utils.transform_uv_to_xy(msg.x, msg.y)
+    #     self.get_logger().info(f"({msg.x}, {msg.y}) -> Homography: {x:.2f} m, {y:.2f} m")
 
 
     def seen_banana_update(self, msg: Bool) -> None:
@@ -56,11 +63,12 @@ class DetectorNode(Node):
 
     def callback(self, img_msg):
         if self.is_sim:
-            # Just always put a banana
-            self.out_tf_mut.header.stamp = self.get_clock().now().to_msg()
-            self.out_tf_mut.transform.translation.x = 1.0
-            self.out_tf_mut.transform.translation.y = -0.5
-            self.broadcaster.sendTransform(self.out_tf_mut)
+            # Put a banana sometimes
+            if np.random.rand() < 0.1:
+                self.out_tf_mut.header.stamp = self.get_clock().now().to_msg()
+                self.out_tf_mut.transform.translation.x = np.random.uniform(0.7, 1.3)
+                self.out_tf_mut.transform.translation.y = np.random.uniform(-0.5, 0.5)
+                self.broadcaster.sendTransform(self.out_tf_mut)
             return
 
         # Process image with CV Bridge
