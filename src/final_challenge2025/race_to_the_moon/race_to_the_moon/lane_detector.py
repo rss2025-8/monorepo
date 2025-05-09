@@ -38,6 +38,7 @@ class LaneDetector(Node):
         self.left_lane_color: tuple = self.declare_parameter("left_lane_color", (0.0, 1.0, 0.0)).value
         self.right_lane_color: tuple = self.declare_parameter("right_lane_color", (0.0, 1.0, 0.0)).value
         self.midline_color: tuple = self.declare_parameter("midline_color", (0.0, 0.0, 1.0)).value
+        self.forced_midline_color: tuple = self.declare_parameter("forced_midline_color", (1.0, 0.0, 0.0)).value
 
         self.image_sub = self.create_subscription(Image, self.image_topic, self.image_callback, 5)
         self.bridge = CvBridge()
@@ -49,6 +50,10 @@ class LaneDetector(Node):
         self.debug_image_pub = self.create_publisher(Image, "/race/debug_img", 10)
         self.debug_image_pub_2 = self.create_publisher(Image, "/race/debug_img_2", 10)
         self.disable_pub = self.create_publisher(Bool, self.disable_topic, 10)
+
+        # Debug params 5/8
+        self.force_both_lanes = True
+        self.image_width = 672.
 
         # Track runtime
         self.timing = [0, 0.0]
@@ -145,6 +150,31 @@ class LaneDetector(Node):
             disable_msg = Bool()
             disable_msg.data = True
             self.disable_pub.publish(disable_msg)
+        elif self.force_both_lanes and (left_line or right_line):
+            if not left_line:
+                mid_line_xy_forced = line_utils.endpoints_uv_to_xy(np.array([[0, 5.0], [0, 0]]))
+                mid_line_xy = mid_line_xy_forced
+                visualize.plot_line(
+                    mid_line_xy[:, 0],
+                    mid_line_xy[:, 1],
+                    self.midline_pub,
+                    color=self.forced_midline_color,
+                    z=0.05,
+                    frame="base_link",
+                )
+            elif not right_line:
+                mid_line_xy_forced = line_utils.endpoints_uv_to_xy(np.array([[self.image_width, 5.0], [self.image_width, 0]]))
+                mid_line_xy = mid_line_xy_forced
+                visualize.plot_line(
+                    mid_line_xy[:, 0],
+                    mid_line_xy[:, 1],
+                    self.midline_pub,
+                    color=self.forced_midline_color,
+                    z=0.05,
+                    frame="base_link",
+                )
+            else:
+                raise Exception
 
         if self.debug:
             # Draw lines on image
@@ -204,6 +234,8 @@ class LaneDetector(Node):
                 plot_line(rho, theta, color=self.left_lane_color, thickness=2)
             for rho, theta in right_lines:
                 plot_line(rho, theta, color=self.right_lane_color, thickness=2)
+
+            plot_line(rho, theta, color=(1., 0., 0.), thickness=1)
 
             # left_line, right_line = line_utils.get_best_lanes(self.hough_line_params, white_line_mask)
             # if left_line and right_line:
