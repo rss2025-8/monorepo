@@ -14,9 +14,7 @@ echo "Recording bag (run this on the car, edit topics in script)..."
 # Race to the moon topics
 TOPICS="$TOPICS /race/left_lane /race/right_lane /race/mid_lane /race/trajectory"
 # TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color"
-TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color/compressed"
-# Compressed images for direct visualization
-# TOPICS="$TOPICS /race/flat_image/compressed /race/debug_img/compressed"
+TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color/compressed /pose_to_traj_error"
 
 # Start recording on the robot (Ctrl‑C to stop)
 BAG=bag_$(date +%Y%m%d_%H%M%S)

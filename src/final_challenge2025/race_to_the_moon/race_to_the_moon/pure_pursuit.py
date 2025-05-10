@@ -69,7 +69,7 @@ class PurePursuit(Node):
         # min_lookahead = 0.45 + self.max_speed * 0.3  # Distance near the car to ignore
 
         self.wheelbase_length = 0.33  # Between front and rear axles
-        self.max_steering_angle = 0.34
+        self.max_steering_angle = 0.34 / 2  # Steering of 0.34 makes no sense
         self.traj_points = np.array([])  # Empty
         self.is_active = False
 
@@ -286,8 +286,8 @@ class PurePursuit(Node):
         dist_update = self.pid_dist.update(dist_error, msg_time)
         angle_update = self.pid_angle.update(angle_error, msg_time)
         if abs(dist_error) > 0.4 or abs(angle_error) > 0.25:
-            self.get_logger().info(f"dist_error: {dist_error:.4f}, angle_error: {angle_error:.4f}")
-            self.get_logger().info(f"pp: {steering_angle:.4f}, dist: {dist_update:.4f}, angle: {angle_update:.4f}")
+            # self.get_logger().info(f"dist_error: {dist_error:.4f}, angle_error: {angle_error:.4f}")
+            # self.get_logger().info(f"pp: {steering_angle:.4f}, dist: {dist_update:.4f}, angle: {angle_update:.4f}")
             self.drive(steering_angle, self.speed)
         else:
             self.drive(steering_angle + dist_update + angle_update, self.speed)

@@ -152,7 +152,7 @@ class SafetyController(Node):
 
         # Check if we might crash in front
         will_crash = self.front_distance / (self.speed + 1e-6) < self.stopping_time
-        if will_crash:
+        if self.speed > 0 and will_crash:
             self.print_warning(
                 f"Front crash within {self.stopping_time:.3f} s ({self.front_distance:.3f} m at {self.speed:.3f} m/s), stopping car"
             )
