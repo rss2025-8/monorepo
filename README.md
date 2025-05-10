@@ -11,6 +11,12 @@ ros2 launch shrinkray_heist sim.launch.xml
 
 Testing on car:
 ```sh
+# Consider changing power modes
+sudo nvpmodel -m 2
+sudo nvpmodel -q –verbose
+sudo reboot
+# Wait a bit...
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed
 ros2 launch shrinkray_heist real.launch.xml
 ```
 

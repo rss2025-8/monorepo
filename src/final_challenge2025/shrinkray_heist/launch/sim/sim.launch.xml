@@ -1,6 +1,6 @@
 <launch>
     <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml">
-        <arg name="map" value="$(find-pkg-share shrinkray_heist)/maps/stata_basement_obs.yaml"/>
+        <arg name="map" value="$(find-pkg-share shrinkray_heist)/maps/stata_main_plan.yaml"/>
     </include>
     <node pkg="path_planning" exec="trajectory_planner" name="trajectory_planner" output="screen">
         <param from="$(find-pkg-share path_planning)/config/sim/pf_sim_config.yaml"/>

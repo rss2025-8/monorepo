@@ -85,7 +85,7 @@ def light_is_green(img):
     # Check contour area
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
-        print(cv2.contourArea(largest_contour))
+        # print(cv2.contourArea(largest_contour))
         # Draw box around the largest contour
         x, y, w, h = cv2.boundingRect(largest_contour)
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
@@ -129,7 +129,7 @@ def light_is_red(img):
     # Check contour area
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
-        print(cv2.contourArea(largest_contour))
+        # print(cv2.contourArea(largest_contour))
         # Draw box around the largest contour
         x, y, w, h = cv2.boundingRect(largest_contour)
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)

@@ -9,41 +9,42 @@ import numpy as np
 # Note that the top 60% of the image is unreliable for homography!!!
 PTS_GROUND_PLANE = [[36, -24], [36, 24], [84, -24], [84, 0], [84, 24]]
 # In image pixel coordinates
-PTS_IMAGE_PLANE = [
-    (540.0, 239.0),
-    (104.0, 243.0),
-    (418.0, 199.0),
-    (324.0, 200.0),
-    (229.0, 201.0),
-]
+# PTS_IMAGE_PLANE = [
+#     (540.0, 239.0),
+#     (104.0, 243.0),
+#     (418.0, 199.0),
+#     (324.0, 200.0),
+#     (229.0, 201.0),
+# ]
 # Conversion factor (inches to meters)
 METERS_PER_INCH = 0.0254
 
 # Test points (not used to compute homography): [24, -12], [108, 12]
 TEST_PTS_GROUND_PLANE = [[24, -12], [72, 12]]
-TEST_PTS_IMAGE_PLANE = [
-    (487.0, 277.0),
-    (268.0, 205.0),
-]
+# TEST_PTS_IMAGE_PLANE = [
+#     (487.0, 277.0),
+#     (268.0, 205.0),
+# ]
 
 # BELOW VALUES ARE FOR THE RIGHT CAMERA EYE!
-# PTS_IMAGE_PLANE = [
-#     (539.0, 238.0),
-#     (102.0, 244.0),
-#     (417.0, 198.0),
-#     (323.0, 200.5),
-#     (228.0, 201.0),
-# ]
-# TEST_PTS_IMAGE_PLANE = [
-#     (483.0, 276.0),
-#     (267.0, 205.0),
-# ]
+PTS_IMAGE_PLANE = [
+    (539.0, 238.0),
+    (102.0, 244.0),
+    (417.0, 198.0),
+    (323.0, 200.5),
+    (228.0, 201.0),
+]
+TEST_PTS_IMAGE_PLANE = [
+    (483.0, 276.0),
+    (267.0, 205.0),
+]
 
 HOMOGRAPHY_MATRIX = None
 
 # Offset to transform left lens coordinates into base_link
 CAMERA_TF_X = 10.5 * METERS_PER_INCH
 CAMERA_TF_Y = 2.375 * METERS_PER_INCH
+CAMERA_TF_Y *= -1
 
 
 def get_homography_matrix():

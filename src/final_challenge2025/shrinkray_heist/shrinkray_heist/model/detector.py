@@ -89,20 +89,28 @@ class Detector:
 
         line_width = max(1, int(4 * scale_factor))
         font_size = max(10, int(20 * scale_factor))
+        font_size *= 3
         text_offset = font_size + 3
 
         try:
-            font = ImageFont.truetype("arial.ttf", font_size)
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+            # font = ImageFont.truetype("arial.ttf", font_size)
         except IOError:
             font = ImageFont.load_default()
 
         # print(f"Labels: {[x[-1] for x in predictions]}")
 
         if draw_all:
-            for (x1, y1, x2, y2), label in predictions:
-                color = _label_to_color(label)
-                draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
-                draw.text((x1, y1 - text_offset), label, fill=color, font=font)
+            if len(predictions) >= 1 and len(predictions[0]) == 2:
+                for (x1, y1, x2, y2), label in predictions:
+                    color = _label_to_color(label)
+                    draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
+                    draw.text((x1, y1 - text_offset), label, fill=color, font=font)
+            elif len(predictions) >= 1 and len(predictions[0]) == 3:
+                for (x1, y1, x2, y2), label, confidence in predictions:
+                    color = _label_to_color(label)
+                    draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
+                    draw.text((x1, y1 - text_offset), f"{confidence:.3f}", fill=color, font=font)
         else:
             (x1, y1, x2, y2), label = predictions[0]
             color = _label_to_color(label)

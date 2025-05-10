@@ -182,6 +182,18 @@ class PathPlan(Node):
         if self.debug:
             visualize.clear_marker(self.debug_text_pub)
 
+        # Special case for parking
+        # Distance between points
+        dist = math.hypot(start_point[0] - end_point[0], start_point[1] - end_point[1])
+        if dist <= 3.0:
+            self.get_logger().info("Distance is short, planning direct path")
+            self.trajectory.addPoint(start_point)
+            self.trajectory.addPoint(end_point)
+            if self.debug:
+                self.trajectory.publish_viz()
+            self.traj_pub.publish(self.trajectory.toPoseArray())
+            return
+
         def is_free(x, y):
             """Check if a point (x, y) is free in the grid."""
             grid_x = min(int((self.origin_x - x) / self.resolution), self.grid.shape[1] - 1)
@@ -282,9 +294,9 @@ class PathPlan(Node):
                 points.append(start_point)
             if is_free(end_point[0], end_point[1]):
                 points.append(end_point)
-            self.get_logger().info(
-                f"Sampling {N} points: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s"
-            )
+            # self.get_logger().info(
+            #     f"Sampling {N} points: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s"
+            # )
 
             # Build map
             graph = {point: [] for point in points}
@@ -314,7 +326,7 @@ class PathPlan(Node):
                 neighbors_pose_array.poses.append(pose)
             if self.debug and self.neighbors_pub.get_subscription_count() > 0:
                 self.neighbors_pub.publish(neighbors_pose_array)
-            self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+            # self.get_logger().info(f"Building graph: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
 
             # Check if the start point is free
             if not is_free(start_point[0], start_point[1]):
@@ -326,6 +338,7 @@ class PathPlan(Node):
                     if dist < min_dist:
                         min_dist = dist
                         start_point = point
+                self.get_logger().info(f"Moved start point from {init_start_point} to {start_point}")
             # Check if the goal point is free
             if not is_free(end_point[0], end_point[1]):
                 self.get_logger().warning("Goal point is not free, moving to nearest free point...")
@@ -336,6 +349,7 @@ class PathPlan(Node):
                     if dist < min_dist:
                         min_dist = dist
                         end_point = point
+                self.get_logger().info(f"Moved goal point from {init_end_point} to {end_point}")
 
             # Build path by implementing A*
             start_time = self.get_clock().now()
@@ -373,7 +387,7 @@ class PathPlan(Node):
                         priority = new_cost + math.hypot(end_point[0] - neighbor[0], end_point[1] - neighbor[1])
                         heapq.heappush(queue, (priority, neighbor))
                         parents[neighbor] = current_point
-            self.get_logger().info(f"A* pathfinding: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
+            # self.get_logger().info(f"A* pathfinding: {(self.get_clock().now() - start_time).nanoseconds / 1e9:.3f}s")
             # self.get_logger().info("Parents: " + str(parents[end_point]))
 
             # Reconstruct path
@@ -396,7 +410,8 @@ class PathPlan(Node):
 
             # Calculate min distance to wall
             minimum_dist = self.find_closest_point_to_wall(path)
-            self.get_logger().info(f"Minimum distance to any dilated wall: {minimum_dist}")
+            # self.get_logger().info(f"Minimum distance to any dilated wall: {minimum_dist}")
+            self.get_logger().info(f"Planned new path with {len(path)} points")
             if self.debug:
                 self.trajectory.publish_viz()
             self.traj_pub.publish(self.trajectory.toPoseArray())

@@ -44,6 +44,7 @@ class PurePursuit(Node):
 
         self.enabled = True
         self.enabled_sub = self.create_subscription(Bool, "/trajectory_following_enabled", self.enabled_callback, 1)
+        self.got_new_path_pub = self.create_publisher(Bool, "/got_new_path", 1)
 
         self.is_backwards = False
         self.is_backwards_sub = self.create_subscription(
@@ -113,11 +114,12 @@ class PurePursuit(Node):
     def get_adaptive_lookahead(self, car_pose: np.ndarray, nearest_segment_idx: int) -> float:
         """Returns the adaptive lookahead distance for the given car pose and nearest segment index."""
         # Tuned lookahead distances
-        max_lookahead = 2.8 + (self.max_speed - 1) * 0.75
+        max_lookahead = 2.25 + (self.speed - 1) * 0.75
+        # max_lookahead = 2.8 + (self.max_speed - 1) * 0.75
         # max_lookahead = 1.5 + (self.speed - 0.8) * 0.75
         # max_lookahead = 3.0 + (self.max_speed - 1) * 1.0  # Drifts a bit too far from the path at high speeds
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.25  # Distance near the car to ignore, a bit too low
-        min_lookahead = 0.75 + (self.max_speed - 1) * 0.3  # Distance near the car to ignore
+        min_lookahead = 0.75 + (self.speed - 1) * 0.3  # Distance near the car to ignore
         # min_lookahead = 0.75 + (self.speed - 0.8) * 0.3  # Distance near the car to ignore
         # min_lookahead = 0.75 + (self.max_speed - 1) * 0.35  # Distance near the car to ignore, too high
         dtheta_threshold = 0.75  # Curvature of turn needed to stop expanding lookahead
@@ -217,9 +219,9 @@ class PurePursuit(Node):
         # Set speed based on allowed velocity to lookahead distance ratio and distance to goal
         min_speed = 1.0
         min_v_to_lookahead_ratio = 0.75
-        max_speed = min(self.max_speed, 0.5 + max(0, np.linalg.norm(self.traj_points[-2] - car_loc) - 0.5))
+        max_speed = min(self.max_speed, 0.4 + max(0, np.linalg.norm(self.traj_points[-2] - car_loc) - 3.0))
         if self.is_backwards:
-            self.speed = 0.5
+            self.speed = 0.4
         else:
             self.speed = np.clip(adaptive_lookahead / min_v_to_lookahead_ratio, min_speed, max_speed)
 
@@ -353,6 +355,7 @@ class PurePursuit(Node):
         self.traj_points = np.concatenate([self.traj_points, [end_point]])
         self.traj_dtheta = np.concatenate([self.traj_dtheta, [0.0]])
         self.is_active = True
+        self.got_new_path_pub.publish(Bool(data=True))
         self.get_logger().info(f"Final trajectory has {len(self.traj_points)} points")
 
     def drive(self, steering_angle=0.0, velocity=0.0, use_last_cmd=False):

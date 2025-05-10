@@ -21,17 +21,18 @@ class DetectorNode(Node):
     def __init__(self):
         super().__init__("detector")
         self.is_sim = self.declare_parameter("is_sim", False).value
-        self.debug = True
-        self.update_period: int = self.declare_parameter("update_period", 3).value
+        self.debug = False
+        self.update_period: int = self.declare_parameter("update_period", 1).value
         self.update_period_counter: int = 0
-        self.threshold = 0.1
-        self.lower_threshold = 0.01
+        self.threshold = 0.01
+        self.lower_threshold = 0.005
 
         if not self.is_sim:
             self.detector = Detector()
             self.detector.set_threshold(self.threshold)
             self.debug_image_pub = self.create_publisher(Image, "/debug_image", 10)
-            self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
+            # self.subscriber = self.create_subscription(Image, "/zed/zed_node/rgb/image_rect_color", self.callback, 1)
+            self.subscriber = self.create_subscription(Image, "/zed/zed_node/right/image_rect_color", self.callback, 1)
             # self.homography_sub = self.create_subscription(Point, "/zed/zed_node/left/image_rect_color_mouse_left", self.homography_callback, 1)
             self.bridge = CvBridge()
 
@@ -49,8 +50,8 @@ class DetectorNode(Node):
 
             self.broadcaster = TransformBroadcaster(self)
 
-        self.banana_state_sub = self.create_subscription(Bool, "/i_hate_ros", self.seen_banana_update, 1)
-        self.seen_banana = False
+        self.banana_state_sub = self.create_subscription(Bool, "/watch_for_banana", self.watch_for_banana_update, 1)
+        self.watch_for_banana = False
 
         self.get_logger().info("Detector Initialized")
 
@@ -59,8 +60,8 @@ class DetectorNode(Node):
     #     x, y = homography_utils.transform_uv_to_xy(msg.x, msg.y)
     #     self.get_logger().info(f"({msg.x}, {msg.y}) -> Homography: {x:.2f} m, {y:.2f} m")
 
-    def seen_banana_update(self, msg: Bool) -> None:
-        self.seen_banana = True
+    def watch_for_banana_update(self, msg: Bool) -> None:
+        self.watch_for_banana = msg.data
 
     def callback(self, img_msg):
         if self.is_sim:
@@ -82,7 +83,9 @@ class DetectorNode(Node):
         # Process image with CV Bridge
         image = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
 
-        self.detector.set_threshold(self.threshold if not self.seen_banana else self.lower_threshold)
+        threshold = self.threshold if not self.watch_for_banana else self.lower_threshold
+        self.detector.set_threshold(threshold)
+        # self.detector.set_threshold(0.001)
         results = self.detector.predict(image)
 
         predictions = results["predictions"]
@@ -91,8 +94,9 @@ class DetectorNode(Node):
         original_image = results["original_image"]
 
         banana_bounding_boxes = [
-            point for point, label, confidence in predictions if label == "banana" and confidence >= self.threshold
+            point for point, label, confidence in predictions if label == "banana" and confidence >= threshold
         ]
+        banana_predictions = [(point, label, conf) for point, label, conf in predictions if label == "banana"]
 
         if banana_bounding_boxes:
             xmin, ymin, xmax, ymax = banana_bounding_boxes[0]  # Highest confidence prediction
@@ -108,17 +112,17 @@ class DetectorNode(Node):
             pass
 
         # save image
-        if self.seen_banana and banana_bounding_boxes:
-            self.seen_banana = False
+        if self.watch_for_banana and banana_bounding_boxes:
+            self.watch_for_banana = False
             # Draw only the first banana bounding box
-            banana_predictions = [(banana_bounding_boxes[0], "banana")]
-            banana_img = self.detector.draw_box(original_image, banana_predictions, draw_all=True)
+            banana_prediction = [(banana_bounding_boxes[0], "banana")]
+            banana_img = self.detector.draw_box(original_image, banana_prediction, draw_all=True)
             save_path = f"{os.path.dirname(__file__)}/banana_{self.get_clock().now().nanoseconds}.png"
             banana_img.save(save_path)
             self.get_logger().info(f"Saved banana image to {save_path}")
 
         if self.debug:
-            boxed_img = self.detector.draw_box(original_image, [(point, label) for point, label, _ in predictions], draw_all=True)
+            boxed_img = self.detector.draw_box(original_image, banana_predictions, draw_all=True)
             cv2_img = cv2.cvtColor(np.array(boxed_img), cv2.COLOR_RGB2BGR)
             debug_img = self.bridge.cv2_to_imgmsg(cv2_img, "bgr8")
 
