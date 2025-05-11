@@ -1,0 +1,21 @@
+<launch>
+  <include file="$(find-pkg-share racecar_simulator)/launch/localization_simulate.launch.xml">
+    <arg name="map" value="$(find-pkg-share localization)/maps/empty_map.yaml"/>
+  </include>
+
+  <node pkg="race_to_the_moon" name="lane_detector" exec="lane_detector" output="screen">
+    <param from="$(find-pkg-share race_to_the_moon)/config/sim_params.yaml"/>
+  </node>
+
+  <node pkg="race_to_the_moon" name="pure_pursuit" exec="pure_pursuit" output="screen">
+    <param from="$(find-pkg-share race_to_the_moon)/config/sim_params.yaml"/>
+  </node>
+
+  <node pkg="race_to_the_moon" name="visualizer_node" exec="visualizer_node" output="screen">
+    <param from="$(find-pkg-share race_to_the_moon)/config/sim_params.yaml"/>
+  </node>
+
+  <!-- Play bag file -->
+  <arg name="bag_file" description="Path to bag file"/>
+  <executable cmd="ros2 bag play $(var bag_file) --topics /zed/zed_node/rgb/image_rect_color" output="screen"/>
+</launch>
