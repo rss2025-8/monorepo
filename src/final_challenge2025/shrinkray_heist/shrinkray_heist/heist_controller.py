@@ -337,6 +337,7 @@ class HeistController(Node):
             if self.get_clock().now().nanoseconds > self.next_timestamp:
                 self.following_enable_pub.publish(Bool(data=False))
                 self.following_backwards_pub.publish(Bool(data=False))
+                self.at_goal = False
                 self.stop_moving()
                 self.change_state(State.GOTO_POSE)  # Go to next pose
 
