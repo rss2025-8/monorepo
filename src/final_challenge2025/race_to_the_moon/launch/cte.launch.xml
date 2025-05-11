@@ -1,0 +1,10 @@
+<launch>
+    <!-- Declare argument -->
+    <arg name="bag_file" default=""/>
+
+    <!-- Launch your node -->
+    <node pkg="race_to_the_moon" exec="cte_node" name="cte_node" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/real/config.yaml"/>
+    </node>
+    <executable cmd="ros2 bag play $(var bag_file)" output="screen"/>
+</launch>

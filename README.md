@@ -2,6 +2,33 @@
 
 All our code will be in here!
 
+## Final Challenge Part B: Race to the Moon
+
+Visualizing/testing a bag in simulation:
+```sh
+# Replace bag_file with the path to your bag file
+ros2 launch race_to_the_moon visual_test.launch.xml bag_file:=local/bags/racetrack/
+ros2 launch race_to_the_moon bag_visual_test.launch.xml bag_file:=local/bags/actual_1mps
+ros2 launch race_to_the_moon bag_visual_test.launch.xml bag_file:=local/bags/actual_2.5mps
+```
+
+On the racecar:
+```sh
+# Consider changing power modes
+sudo nvpmodel -m 2
+sudo nvpmodel -q –verbose
+sudo reboot
+# Wait a bit...
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed
+ros2 launch race_to_the_moon act_race_to_the_moon.launch.xml
+```
+
+Recording a bag:
+```sh
+# Run on the car, modify recorded topics in record_bag.sh locally before deploying
+./record_bag.sh
+```
+
 ## Lab 6: Path Planning
 
 Testing path planning/following in simulation:

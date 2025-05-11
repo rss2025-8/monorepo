@@ -1,0 +1,22 @@
+lane_detector:
+  ros__parameters:
+    debug: True
+    image_topic: "/zed/zed_node/rgb/image_rect_color"
+    disable_topic: "/temp_disable"
+
+pure_pursuit:
+  ros__parameters:
+    debug: True
+    drive_topic: "/drive"
+    max_speed: 4.0
+    low_pass_cutoff_freq: 7.5
+    base_lookahead: 1.5
+    lookahead_speed_ratio: 0.6
+    eta_multiplier: 1.5
+    disable_topic: "/temp_disable"
+
+visualizer_node:
+  ros__parameters:
+    debug: True
+    fast_mode: False
+    image_topic: "/zed/zed_node/rgb/image_rect_color"

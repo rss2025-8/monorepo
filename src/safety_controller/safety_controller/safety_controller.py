@@ -6,6 +6,7 @@ import rclpy.time
 from ackermann_msgs.msg import AckermannDrive, AckermannDriveStamped
 from nav_msgs.msg import Odometry
 from rcl_interfaces.msg import SetParametersResult
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import LaserScan
@@ -38,10 +39,12 @@ class SafetyController(Node):
         scan_topic: str = self.declare_parameter("scan_topic", "scan").get_parameter_value().string_value
         ackermann_cmd_topic: str = self.declare_parameter("ackermann_cmd_topic", "vesc/low_level/ackermann_cmd").value
         safety_topic: str = self.declare_parameter("safety_topic", "vesc/low_level/input/safety").value
+        disable_topic: str = self.declare_parameter("temp_disable_topic", "/temp_disable").value
         self.watchdog_localize_topic: str = self.declare_parameter("watchdog_localize_topic", "").value
 
         self.stopping_time: float = self.declare_parameter("stopping_time", 0.7).value
         self.watchdog_period: float = self.declare_parameter("watchdog_period", 0.5).value
+        self.disable_timeout: float = self.declare_parameter("temp_disable_timeout", 0.3).value
         self.min_front_distance: float = self.declare_parameter("min_front_distance", 0.5).value
         self.min_side_distance: float = self.declare_parameter("min_side_distance", 0.25).value
 
@@ -49,6 +52,7 @@ class SafetyController(Node):
         self.ackermann_sub = self.create_subscription(
             AckermannDriveStamped, ackermann_cmd_topic, self.ackermann_cmd_callback, 10
         )
+        self.disable_sub = self.create_subscription(Bool, disable_topic, self.disable_callback, 10)
         self.safety_pub = self.create_publisher(AckermannDriveStamped, safety_topic, 10)
 
         self.timer_hertz = 50
@@ -73,6 +77,8 @@ class SafetyController(Node):
         self.scan_timestamp = self.get_clock().now()
         self.ackermann_timestamp = self.get_clock().now()
         self.last_debug_timestamp = self.get_clock().now()
+        self.old_time = self.get_clock().now() - Duration(seconds=99999)
+        self.last_disable_timestamp = self.old_time
         self.front_distance = float("inf")
         self.left_distance = float("inf")
         self.right_distance = float("inf")
@@ -80,6 +86,10 @@ class SafetyController(Node):
         self.steering_angle = 0.0
 
         self.get_logger().info("Safety controller initialized")
+
+    def disable_callback(self, disable: Bool) -> None:
+        if disable.data:
+            self.last_disable_timestamp = self.get_clock().now()
 
     def localize_callback(self, odom: Odometry) -> None:
         # Mark that we received a pose estimate
@@ -112,6 +122,11 @@ class SafetyController(Node):
         now = self.get_clock().now()
         should_stop = False
 
+        # Check if the safety controller is disabled
+        if delta_time(self.last_disable_timestamp, now) < self.disable_timeout:
+            self.timing = [0, self.get_clock().now()]
+            return
+
         # Check watchdogs
         if self.watchdog_localize_topic:
             time_since_localize = delta_time(self.localize_timestamp, now)
@@ -137,7 +152,7 @@ class SafetyController(Node):
 
         # Check if we might crash in front
         will_crash = self.front_distance / (self.speed + 1e-6) < self.stopping_time
-        if will_crash:
+        if self.speed > 0 and will_crash:
             self.print_warning(
                 f"Front crash within {self.stopping_time:.3f} s ({self.front_distance:.3f} m at {self.speed:.3f} m/s), stopping car"
             )
@@ -145,21 +160,21 @@ class SafetyController(Node):
 
         # TODO This might sees wires so it doesn't work as intended
         # Check if we might scrape a wall
-        if self.steering_angle == 0:
-            scrape_dist = max(self.left_distance, self.right_distance)
-        elif self.steering_angle > 0:
-            scrape_dist = self.left_distance  # Turning towards left wall
-        else:
-            scrape_dist = self.right_distance  # Turning towards right wall
-        scrape = scrape_dist < self.min_side_distance
-        if scrape:
-            self.print_warning(
-                f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
-            )
-            self.print_warning(
-                f"If this is erroneously triggered (ex: due to wires), comment it out in the safety controller."
-            )
-            should_stop = True
+        # if self.steering_angle == 0:
+        #     scrape_dist = max(self.left_distance, self.right_distance)
+        # elif self.steering_angle > 0:
+        #     scrape_dist = self.left_distance  # Turning towards left wall
+        # else:
+        #     scrape_dist = self.right_distance  # Turning towards right wall
+        # scrape = scrape_dist < self.min_side_distance
+        # if scrape:
+        #     self.print_warning(
+        #         f"Might scrape side wall ({self.steering_angle:.3f} rad, {scrape_dist:.3f} m < {self.min_side_distance:.3f} m), stopping car"
+        #     )
+        #     self.print_warning(
+        #         f"If this is erroneously triggered (ex: due to wires), comment it out in the safety controller."
+        #     )
+        #     should_stop = True
 
         # Monitor responsiveness of timer callback
         if self.timing[0] == self.timer_hertz:
