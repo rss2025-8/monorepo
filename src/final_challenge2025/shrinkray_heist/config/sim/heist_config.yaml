@@ -1,0 +1,8 @@
+detection_node:
+  ros__parameters:
+    is_sim: true
+
+heist_controller:
+  ros__parameters:
+    is_sim: true
+    drive_topic: /drive

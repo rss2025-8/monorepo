@@ -54,9 +54,11 @@ class MotionModel:
 
         # Works on slow test lap, but is choppy (probably was due to the wrong map)
         # 1.0 m/s base noise, 1/3 * dx added noise
-        x_dev = 1.0 * dt + np.abs(dx) / 3
+        # x_dev = 1.0 * dt + np.abs(dx) / 3
+        x_dev = 1.25 * dt + np.abs(dx) / 3
         # 0.5 m/s base noise
-        y_dev = 0.5 * dt  # dy is always 0
+        # y_dev = 0.5 * dt  # dy is always 0
+        y_dev = 0.6 * dt  # dy is always 0
         # pi/6 rad/s base noise, 1/2 * dtheta added noise
         theta_dev = np.pi / 6 * dt + np.abs(dtheta) / 2
 

@@ -8,13 +8,14 @@ TOPICS="/map /robot_description /tf /tf_static /pf/pose/odom"
 # TOPICS="$TOPICS /followed_trajectory/start_point /followed_trajectory/end_pose /followed_trajectory/path /planned_trajectory/start_point /planned_trajectory/end_pose /planned_trajectory/path"
 # Pure pursuit visuals
 TOPICS="$TOPICS /pure_pursuit/drive_line /pure_pursuit/driving_arc /pure_pursuit/lookahead_circle /pure_pursuit/lookahead_point /pure_pursuit/nearest_segment"
-
-echo "Recording bag (run this on the car, edit topics in script)..."
-
+TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color/compressed /pose_to_traj_error"
 # Race to the moon topics
 TOPICS="$TOPICS /race/left_lane /race/right_lane /race/mid_lane /race/trajectory"
 # TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color"
-TOPICS="$TOPICS /zed/zed_node/rgb/image_rect_color/compressed /pose_to_traj_error"
+# Heist topics
+TOPICS="$TOPICS /debug_image /shell_points /detected_point /heist_state /detected_banana /traffic_light_point"
+
+echo "Recording bag (run this on the car, edit topics in script)..."
 
 # Start recording on the robot (Ctrl‑C to stop)
 BAG=bag_$(date +%Y%m%d_%H%M%S)

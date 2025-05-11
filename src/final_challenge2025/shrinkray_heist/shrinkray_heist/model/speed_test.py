@@ -12,5 +12,3 @@ if __name__ == '__main__':
     tn = time.perf_counter()
     
     print(f"Time taken for {N} iterations: {tn - t0:.2f} seconds")
-        
-    

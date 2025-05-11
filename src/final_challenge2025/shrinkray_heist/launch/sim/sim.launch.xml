@@ -1,0 +1,26 @@
+<launch>
+    <include file="$(find-pkg-share racecar_simulator)/launch/simulate.launch.xml">
+        <arg name="map" value="$(find-pkg-share shrinkray_heist)/maps/stata_main_plan.yaml"/>
+    </include>
+    <node pkg="path_planning" exec="trajectory_planner" name="trajectory_planner" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/sim/pf_sim_config.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share shrinkray_heist)/maps/stata_main_plan.yaml"/>
+    </node>
+    <node pkg="path_planning" exec="trajectory_follower" name="trajectory_follower">
+        <param from="$(find-pkg-share path_planning)/config/sim/pf_sim_config.yaml"/>
+    </node>
+    <node pkg="localization" exec="particle_filter" name="particle_filter" output="screen">
+        <param from="$(find-pkg-share path_planning)/config/sim/pf_config.yaml"/>
+        <param name="map_to_load" value="$(find-pkg-share shrinkray_heist)/maps/stata_basement_obs.yaml"/>
+    </node>
+    <node pkg="shrinkray_heist" exec="detection_node" name="detection_node" output="screen">
+        <param from="$(find-pkg-share shrinkray_heist)/config/sim/heist_config.yaml"/>
+    </node>
+    <node pkg="shrinkray_heist" exec="heist_controller" name="heist_controller" output="screen">
+        <param from="$(find-pkg-share shrinkray_heist)/config/sim/heist_config.yaml"/>
+        <param name="main_map" value="$(find-pkg-share shrinkray_heist)/maps/stata_main_plan.yaml"/>
+        <param name="bonus_map" value="$(find-pkg-share shrinkray_heist)/maps/stata_bonus_plan.yaml"/>
+    </node>
+    <node pkg="shrinkray_heist" exec="basement_point_publisher" name="basement_point_publisher" output="screen">
+    </node>
+</launch>

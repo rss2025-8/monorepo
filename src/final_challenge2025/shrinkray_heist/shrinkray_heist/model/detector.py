@@ -16,15 +16,16 @@ class Detector:
     def __init__(self, yolo_dir="/root/yolo", from_tensor_rt=True, threshold=0.5):
         # local import
         from ultralytics import YOLO
+
         cls = YOLO
-        
+
         self.threshold = threshold
         self.yolo_dir = yolo_dir
         if from_tensor_rt:
             self.model = cls(f"{self.yolo_dir}/yolo11n.engine", task="detect")
         else:
             self.model = cls(f"{self.yolo_dir}/yolo11n.pt", task="detect")
-    
+
     def to(self, device):
         self.model.to(device)
 
@@ -34,12 +35,12 @@ class Detector:
             Union[str, pathlib.Path, int, PIL.Image.Image, list, tuple, numpy.ndarray, torch.Tensor]
 
             Batch not supported.
-            
+
         Runs detection on a single image and returns a list of
-        ((xmin, ymin, xmax, ymax), class_label) for each detection
+        ((xmin, ymin, xmax, ymax), class_label, confidence) for each detection
         above the given confidence threshold.
         """
-        results = list(self.model(img, verbose=not silent))[0]
+        results = list(self.model(img, conf=self.threshold, verbose=not silent))[0]
         boxes = results.boxes
 
         predictions = []
@@ -50,14 +51,14 @@ class Detector:
                 x1, y1, x2, y2 = xyxy.tolist()
                 # Map class index to class label using model/ results
                 label = results.names[int(cls_idx.item())]
-                predictions.append(((x1, y1, x2, y2), label))
-        
-        #convert original image to rgb
+                predictions.append(((x1, y1, x2, y2), label, conf.item()))
+
+        # convert original image to rgb
         original_image = results.orig_img
         cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB, original_image)
-        
+
         return dict(predictions=predictions, original_image=original_image)
-    
+
     def set_threshold(self, threshold):
         """
         Sets the confidence threshold for predictions.
@@ -84,28 +85,32 @@ class Detector:
         draw = ImageDraw.Draw(img)
 
         min_dim = min(img.width, img.height)
-        scale_factor = (
-            min_dim / 600.0
-        )
+        scale_factor = min_dim / 600.0
 
-        line_width = max(
-            1, int(4 * scale_factor)
-        )
+        line_width = max(1, int(4 * scale_factor))
         font_size = max(10, int(20 * scale_factor))
+        font_size *= 3
         text_offset = font_size + 3
 
         try:
-            font = ImageFont.truetype("arial.ttf", font_size)
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+            # font = ImageFont.truetype("arial.ttf", font_size)
         except IOError:
             font = ImageFont.load_default()
 
-        print(f"Labels: {[x[-1] for x in predictions]}")
+        # print(f"Labels: {[x[-1] for x in predictions]}")
 
         if draw_all:
-            for (x1, y1, x2, y2), label in predictions:
-                color = _label_to_color(label)
-                draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
-                draw.text((x1, y1 - text_offset), label, fill=color, font=font)
+            if len(predictions) >= 1 and len(predictions[0]) == 2:
+                for (x1, y1, x2, y2), label in predictions:
+                    color = _label_to_color(label)
+                    draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
+                    draw.text((x1, y1 - text_offset), label, fill=color, font=font)
+            elif len(predictions) >= 1 and len(predictions[0]) == 3:
+                for (x1, y1, x2, y2), label, confidence in predictions:
+                    color = _label_to_color(label)
+                    draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
+                    draw.text((x1, y1 - text_offset), f"{confidence:.3f}", fill=color, font=font)
         else:
             (x1, y1, x2, y2), label = predictions[0]
             color = _label_to_color(label)
@@ -113,36 +118,38 @@ class Detector:
             draw.text((x1, y1 - text_offset), label, fill=color, font=font)
 
         return img
-    
+
     def id2name(self, i):
         """
         Converts a class index to a class name.
         """
         return self.model.names[i]
-    
+
     @property
     def classes(self):
         return self.model.names
-        
-    
+
+
 def demo():
     import os
+
     model = Detector()
     model.set_threshold(0.5)
-    
-    img_path = f"{os.path.dirname(__file__)}/../../media/minion.png" 
-        
+
+    img_path = f"{os.path.dirname(__file__)}/../../media/minion.png"
+
     img = Image.open(img_path)
     results = model.predict(img)
-    
+
     predictions = results["predictions"]
     original_image = results["original_image"]
-        
+
     out = model.draw_box(original_image, predictions, draw_all=True)
-    
+
     save_path = f"{os.path.dirname(__file__)}/demo_output.png"
     out.save(save_path)
     print(f"Saved demo to {save_path}!")
 
-if __name__ == '__main__':    
+
+if __name__ == "__main__":
     demo()

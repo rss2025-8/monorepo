@@ -2,6 +2,30 @@
 
 All our code will be in here!
 
+## Final Challenge Part A: Shrink Ray Heist
+
+Testing in sim:
+```sh
+ros2 launch shrinkray_heist sim.launch.xml
+```
+
+Testing on car:
+```sh
+# Consider changing power modes
+sudo nvpmodel -m 2
+sudo nvpmodel -q –verbose
+sudo reboot
+# Wait a bit...
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed
+ros2 launch shrinkray_heist real.launch.xml
+```
+
+Recording a bag:
+```sh
+# Run on the car, modify recorded topics in record_bag.sh locally before deploying
+./record_bag.sh
+```
+
 ## Final Challenge Part B: Race to the Moon
 
 Visualizing/testing a bag in simulation:

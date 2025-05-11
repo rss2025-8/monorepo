@@ -202,8 +202,8 @@ class ParticleFilter(Node):
                 self.get_logger().warning(
                     f"high odom callback latency, check debug or num_particles: {avg_latency:.4f}s"
                 )
-            else:
-                self.get_logger().info(f"odom: {avg_latency:.4f}s")
+            # else:
+                # self.get_logger().info(f"odom: {avg_latency:.4f}s")
             self.timing_motion_model = [0, 0.0]
 
     def laser_callback(self, scan: LaserScan) -> None:
@@ -250,8 +250,9 @@ class ParticleFilter(Node):
                 self.get_logger().warning(
                     f"high laser callback latency, check debug or num_particles: {avg_latency:.4f}s"
                 )
-            else:
-                self.get_logger().info(f"laser: {avg_latency:.4f}s")
+
+            # else:
+            #     self.get_logger().info(f"laser: {avg_latency:.4f}s")
             self.timing_sensor_model = [0, 0.0]
 
     def publish_average_pose(self, time: Time) -> None:
